@@ -1,0 +1,1818 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#101a3a">
+<title>Cosmy Beat Dash</title>
+<meta property="og:title" content="Cosmy Beat Dash">
+<meta property="og:description" content="Tap. Jump. Feel the beat.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="Asset/IMG_3161.PNG">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="Asset/IMG_3161.PNG">
+<link rel="icon" href="Asset/IMG_3161.PNG">
+<script>
+  (function(w,d,a,m){var s='script',g='GameAnalytics';w[g]=w[g]||function(){(w[g].q=w[g].q||[]).push(arguments)};a=d.createElement(s);m=d.getElementsByTagName(s)[0];a.async=1;a.src='https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js';m.parentNode.insertBefore(a,m)})(window,document);
+  GameAnalytics('configureBuild', 'web-1.0.0');
+  GameAnalytics('configureAvailableResourceCurrencies', ['Coins']);
+  GameAnalytics('configureAvailableResourceItemTypes', ['Gameplay', 'Bonus', 'Skin', 'Revive', 'Mission']);
+  GameAnalytics('initialize', '6ee205f93150fa936046a5dfd40979dd', 'cb4dcf676d38f05789db4c347a85544536f99a88');
+</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none;
+    -webkit-user-select:none; user-select:none; font-family:'Segoe UI',system-ui,sans-serif; }
+  #app { position:fixed; left:0; top:0; transform-origin:0 0; overflow:hidden; }
+  #cv { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .overlay { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:14px; color:#fff; z-index:10; }
+  #splash { background:#000 url('Asset/黒背景.png') center/cover no-repeat; z-index:60;
+    transition:opacity .35s ease; }
+  #splash.hide { opacity:0; pointer-events:none; }
+  #menu { background:linear-gradient(160deg,#101a3a,#2a1050); flex-direction:row; gap:0;
+    overflow:auto; padding:10px env(safe-area-inset-right) 10px env(safe-area-inset-left);
+    display:none; }
+  #menu::before { content:''; position:absolute; inset:0; background:rgba(0,0,0,.12); pointer-events:none; }
+  #menu > * { position:relative; z-index:1; }
+  #charcol { display:flex; flex-direction:column; align-items:center; gap:6px;
+    padding:0 3vw; flex-shrink:0; }
+  #charimg { width:min(24vh,110px); height:min(24vh,110px); image-rendering:auto;
+    animation:idle 1.3s ease-in-out infinite; filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+  @keyframes idle {
+    0%,100% { transform:translateY(0) scale(1,1); }
+    30% { transform:translateY(0) scale(1.06,.92); }
+    55% { transform:translateY(-14px) scale(.95,1.07); }
+    80% { transform:translateY(0) scale(1.04,.94); } }
+  #charname { font-weight:900; font-size:min(4.5vh,20px); text-shadow:0 0 12px #f66; }
+  #skineffect { min-height:30px; padding:4px 8px; border-radius:8px;
+    background:rgba(255,255,255,.1); color:#fff; font-size:12px; font-weight:900;
+    text-align:center; letter-spacing:.04em; }
+  #cleared { font-size:12px; opacity:.8; }
+  #skins { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; justify-content:center; max-width:180px; }
+  .skinbtn { width:34px; height:34px; border-radius:9px; border:2px solid transparent;
+    background:rgba(255,255,255,.08); padding:2px; cursor:pointer; position:relative; }
+  .skinbtn img { width:100%; height:100%; }
+  .skinbtn.sel { border-color:#ffd94a; background:rgba(255,217,74,.15); }
+  .skinbtn.lock { opacity:.4; }
+  .skinbtn.lock::after { content:'🔒'; position:absolute; inset:0; display:flex;
+    align-items:center; justify-content:center; font-size:15px; }
+  #stagecol { display:flex; flex-direction:column; align-items:center; gap:8px; padding:0 2vw; }
+  #stagecol h1 { font-size:min(7vh,34px); font-weight:900; letter-spacing:.08em;
+    text-shadow:0 0 24px #4af, 0 3px 0 #123; }
+  #stagecol .sub { opacity:.75; font-size:min(2.8vh,13px); margin-top:-6px; }
+  #grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .tile { width:min(13vh,64px); height:min(13vh,64px); border:none; border-radius:12px;
+    color:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:2px; font-weight:900; font-size:min(4.5vh,20px);
+    box-shadow:0 4px 0 rgba(0,0,0,.4); }
+  .tile small { font-size:10px; font-weight:700; opacity:.9; }
+  .tile:active { transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.4); }
+  .tile.lock { background:#333a4a !important; opacity:.55; cursor:default; }
+  .tile.done::before { content:'★'; font-size:10px; color:#ffd94a; }
+  #dailybtn { width:100%; padding:8px 14px; border:none; border-radius:12px; cursor:pointer;
+    font-weight:900; font-size:15px; color:#231000; display:flex; justify-content:space-between;
+    align-items:center; gap:8px; background:linear-gradient(135deg,#ffd94a,#ff9a3d);
+    box-shadow:0 4px 0 rgba(0,0,0,.4); }
+  #dailybtn small { font-size:11px; font-weight:800; }
+  #dailybtn.off { filter:grayscale(.6); opacity:.6; }
+  #promobanner { width:100%; margin-top:2px; display:flex; align-items:center; gap:10px;
+    padding:8px 12px; border:none; border-radius:14px; cursor:pointer; text-align:left;
+    background:rgba(10,12,24,.78); color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.35);
+    overflow:hidden; }
+  #promobanner:active { transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.35); }
+  #promobanner.swap > * { animation:promoin .35s ease; }
+  @keyframes promoin { from { opacity:0; transform:translateX(14px); } }
+  #promoicon { width:42px; height:42px; border-radius:10px; background:rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; }
+  #promoicon img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
+  #promotxt { display:flex; flex-direction:column; line-height:1.25; flex:1; min-width:0; }
+  #promotxt small { font-size:10px; opacity:.75; font-weight:700; }
+  #promotxt b { font-size:14px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #promotxt .see { color:#ffd94a; opacity:1; }
+  #promobanner .chev { font-size:20px; font-weight:900; opacity:.7; }
+  #missions { display:flex; flex-direction:column; gap:4px; width:100%; }
+  .mission { display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:800;
+    background:rgba(255,255,255,.08); border-radius:8px; padding:4px 10px; color:#fff; }
+  .mission.done { color:#8f8; background:rgba(61,220,132,.15); }
+  #loading { background:rgba(8,10,24,.92); display:none; }
+  .spinner { width:46px; height:46px; border:5px solid rgba(255,255,255,.15);
+    border-top-color:#4af; border-radius:50%; animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #clearov { background:rgba(8,10,24,.88); display:none; }
+  #clearov h2 { font-size:min(9vw,46px); font-weight:900; color:#ffd94a;
+    text-shadow:0 0 30px #fa0, 0 4px 0 #530; animation:pop .5s ease; }
+  #clearchar { width:min(20vh,100px); height:min(20vh,100px); animation:idle .8s ease-in-out infinite; }
+  @keyframes pop { from { transform:scale(.3); opacity:0; } }
+  #clearov .btnrow { display:flex; gap:12px; }
+  #clearov button { padding:11px 26px; font-size:16px; font-weight:800; border:none;
+    border-radius:12px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
+  #sharebtn { background:#3ddc84; color:#043; }
+  #tomenu { background:#4af; color:#023; }
+  #nextbtn { background:#ffd94a; color:#430; }
+  .hudbtn { position:fixed; z-index:9; border:none; border-radius:10px; display:none;
+    background:rgba(255,255,255,.14); color:#fff; cursor:pointer; font-weight:800; }
+  #backbtn { top:calc(8px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right));
+    width:40px; height:40px; font-size:18px; }
+  #practbtn { bottom:calc(10px + env(safe-area-inset-bottom)); left:calc(10px + env(safe-area-inset-left));
+    padding:8px 14px; font-size:13px; }
+  #practbtn.on { background:rgba(61,220,132,.35); }
+  #revivebtn { left:50%; transform:translateX(-50%); bottom:calc(18px + env(safe-area-inset-bottom));
+    padding:12px 26px; font-size:16px; background:#ffd94a; color:#430;
+    box-shadow:0 5px 0 rgba(0,0,0,.4); display:none; }
+  #revivebtn img { vertical-align:-2px; }
+  #coinsdisp { display:flex; align-items:center; gap:5px; font-weight:800; color:#ffd94a; font-size:15px; }
+  #coinsdisp img { width:22px; height:22px; object-fit:contain; }
+  #loginov { background:rgba(8,10,24,.92); display:none; z-index:30; }
+  #loginov h2 { font-size:min(7vh,30px); font-weight:900; color:#ffd94a;
+    text-shadow:0 0 20px #fa0; }
+  #loginov img { width:min(18vh,90px); height:min(18vh,90px); animation:idle 1.3s ease-in-out infinite; }
+  #loginclaim { padding:12px 30px; font-size:17px; font-weight:800; border:none;
+    border-radius:12px; background:#ffd94a; color:#430; cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.35); }
+  #toast { position:fixed; bottom:14vh; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,.75); color:#fff; padding:9px 18px; border-radius:20px;
+    font-size:14px; z-index:50; display:none; }
+</style>
+</head>
+<body>
+<div id="splash" class="overlay"></div>
+<div id="app">
+<canvas id="cv"></canvas>
+
+<div id="menu" class="overlay">
+  <div id="charcol">
+    <img id="charimg" alt="">
+    <div id="charname">●</div>
+    <div id="skineffect"></div>
+    <div id="cleared"></div>
+    <div id="coinsdisp"></div>
+    <div id="skins"></div>
+  </div>
+  <div id="stagecol">
+    <h1>Cosmy Beat Dash</h1>
+    <div class="sub">TAP / HOLD</div>
+    <button id="dailybtn"></button>
+    <div id="grid"></div>
+    <div id="missions"></div>
+    <button id="promobanner">
+      <span id="promoicon">⭐</span>
+      <span id="promotxt">
+        <small id="promosub"></small>
+        <b id="promotitle"></b>
+        <small class="see">App Storeで見る</small>
+      </span>
+      <span class="chev">›</span>
+    </button>
+  </div>
+</div>
+
+<div id="loading" class="overlay">
+  <div class="spinner"></div>
+  <div id="loadmsg">...</div>
+</div>
+
+<div id="clearov" class="overlay">
+  <img id="clearchar" alt="">
+  <h2 id="cleartitle">STAGE CLEAR!</h2>
+  <div id="clearstats" style="font-size:16px;opacity:.9;text-align:center"></div>
+  <div class="btnrow">
+    <button id="sharebtn">↗</button>
+    <button id="nextbtn">▶</button>
+    <button id="tomenu">□</button>
+  </div>
+</div>
+
+<button id="backbtn" class="hudbtn">✕</button>
+<button id="practbtn" class="hudbtn">🚩 OFF</button>
+<button id="revivebtn" class="hudbtn">REVIVE</button>
+<div id="toast"></div>
+
+<div id="loginov" class="overlay">
+  <img id="loginchar" alt="">
+  <h2>🎁</h2>
+  <div id="logininfo" style="font-size:16px;text-align:center"></div>
+  <button id="loginclaim">OK</button>
+</div>
+
+</div>
+
+<script>
+'use strict';
+// ============ 定数 ============
+const CHAR_NAME = 'DASH';
+const DH = 360, GROUND = 300, B = 36;
+const JUMP_T = 0.5, JUMP_H = 2.05 * B;
+const V0 = 4 * JUMP_H / JUMP_T, GRAV = 2 * V0 / JUMP_T;
+const HOLD_MAX = 0.18, HOLD_GRAV = 0.46;
+const LEAD = 0.9, TAP_OFFSET = 0.25;
+const CEIL = DH - GROUND;          // 重力反転ゾーンの天井位置(上下ミラー対称)
+const REVIVE_COST = 50;            // コンティニュー費用(コイン)
+let SPEED = 380;
+
+const SONGS = ['Asset/stage01.mp3', 'Asset/stage2.mp3', 'Asset/stage03.mp3'];
+const HUES = [210, 285, 140, 25, 330, 185, 55, 260, 100, 0];
+const NSTAGE = 10;
+const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
+  name: 'STAGE ' + (i + 1),
+  file: SONGS[i % 3],
+  hue: HUES[i],
+  speed: 350 + i * 10,
+  diff: i / (NSTAGE - 1),
+}));
+
+const SKINS = [
+  { n: 'RED',    src: 'Asset/IMG_3161.PNG', need: 0, effect: 'score',  desc: 'PERFECT +10%' },
+  { n: 'BLUE',   src: 'Asset/IMG_3162.PNG', need: 1, effect: 'judge',  desc: 'WIDE' },
+  { n: 'PINK',   src: 'Asset/IMG_3160.PNG', need: 3, effect: 'coin',   desc: 'MAGNET +40%' },
+  { n: 'GREEN',  src: 'Asset/IMG_3158.PNG', need: 5, effect: 'hold',   desc: 'HOLD +' },
+  { n: 'PURPLE', src: 'Asset/IMG_3159.PNG', need: 7, effect: 'shield', desc: 'SHIELD x1' },
+];
+
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const app = document.getElementById('app');
+const coinImg = new Image();
+coinImg.src = 'Asset/cosmo-coin.png';
+let W = 640, SC = 1;
+// 縦持ちでも常に横画面: 縦のときは画面全体を90度回転して表示する
+function resize() {
+  const portrait = innerHeight > innerWidth;
+  const w = portrait ? innerHeight : innerWidth;
+  const h = portrait ? innerWidth : innerHeight;
+  app.style.width = w + 'px'; app.style.height = h + 'px';
+  app.style.transform = portrait ? 'rotate(90deg) translateY(-100%)' : 'none';
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = w * dpr; cv.height = h * dpr;
+  SC = cv.height / DH; W = cv.width / SC;
+}
+addEventListener('resize', resize);
+addEventListener('orientationchange', () => setTimeout(resize, 100));
+resize();
+
+const $ = id => document.getElementById(id);
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._id); toast._id = setTimeout(() => t.style.display = 'none', 2200);
+}
+
+// ============ セーブデータ ============
+const best = i => +(localStorage.getItem('rdash_best_' + i) || 0);
+const setBest = (i, p) => { if (p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
+const hiScore = i => +(localStorage.getItem('rdash_hs_' + i) || 0);
+const setHiScore = (i, s) => { if (s > hiScore(i)) { localStorage.setItem('rdash_hs_' + i, s); return true; } return false; };
+const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
+const unlocked = i => i === 0 || best(i - 1) >= 60;
+let skinIdx = Math.max(0, Math.min(SKINS.length - 1, +(localStorage.getItem('rdash_skin') || 0)));
+const totalCoins = () => +(localStorage.getItem('rdash_coins') || 0);
+const addCoins = n => localStorage.setItem('rdash_coins', totalCoins() + n);
+const spendCoins = n => { const t = totalCoins(); if (t < n) return false;
+  localStorage.setItem('rdash_coins', t - n); return true; };
+const skinBought = j => localStorage.getItem('rdash_skinbuy_' + j) === '1';
+const skinPrice = j => SKINS[j].need * 100;
+const skinUnlocked = j => clearedCount() >= SKINS[j].need || skinBought(j);
+const currentSkin = () => SKINS[Math.max(0, Math.min(SKINS.length - 1, skinIdx))] || SKINS[0];
+const skinEffect = name => currentSkin().effect === name;
+let bootDone = false;
+
+// ============ GameAnalytics ============
+function gaSend(method, ...args) {
+  try { if (typeof GameAnalytics === 'function') GameAnalytics(method, ...args); } catch (e) {}
+}
+const gaStageId = () => dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
+const gaMode = () => dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
+function gaDesign(id, value = 1) {
+  gaSend('addDesignEvent', id, value);
+}
+function gaProgress(status) {
+  gaSend('addProgressionEvent', status, gaMode(), gaStageId());
+}
+function gaCoins(flowType, amount, itemType, itemId) {
+  if (amount > 0) gaSend('addResourceEvent', flowType, 'Coins', amount, itemType, itemId);
+}
+
+// ============ デイリーチャレンジ & ミッション ============
+const DAILY_IDX = NSTAGE;   // STAGES[10] = 日替わりステージ(毎日再生成)
+const dayKey = () => dateKey(new Date());
+const dailySeedNum = () => +dayKey().replace(/-/g, '');
+function dailyCfg() {
+  const rng = mulberry32(dailySeedNum());
+  const d = new Date();
+  return {
+    name: 'DAILY ' + (d.getMonth() + 1) + '/' + d.getDate(),
+    file: SONGS[dailySeedNum() % 3],
+    hue: Math.floor(rng() * 360),
+    speed: 370 + Math.floor(rng() * 60),
+    diff: 0.45 + rng() * 0.35,
+    seed: dailySeedNum(),
+  };
+}
+function refreshDaily() { STAGES[DAILY_IDX] = dailyCfg(); }
+const dailyMode = () => stageIdx === DAILY_IDX;
+const dailyScore = () => +(localStorage.getItem('rdash_dhs_' + dayKey()) || 0);
+const setDailyScore = s => { if (s > dailyScore()) { localStorage.setItem('rdash_dhs_' + dayKey(), s); return true; } return false; };
+const dailyTriesLeft = () => Math.max(0, 3 - +(localStorage.getItem('rdash_dt_' + dayKey()) || 0));
+const useDailyTry = () => localStorage.setItem('rdash_dt_' + dayKey(), (+(localStorage.getItem('rdash_dt_' + dayKey()) || 0)) + 1);
+
+const MISSION_POOL = [
+  { id: 'coins30',   desc: 'COIN x30',     target: 30,   reward: 40 },
+  { id: 'perfect10', desc: 'PERFECT x10',  target: 10,   reward: 40 },
+  { id: 'combo15',   desc: 'COMBO x15',    target: 15,   reward: 50 },
+  { id: 'orb5',      desc: 'ORB x5',       target: 5,    reward: 40 },
+  { id: 'clear1',    desc: 'STAGE CLEAR',  target: 1,    reward: 60 },
+  { id: 'score3k',   desc: 'SCORE 3000',   target: 3000, reward: 50 },
+  { id: 'fever2',    desc: 'FEVER x2',     target: 2,    reward: 40 },
+  { id: 'risky5',    desc: 'RARE COIN x5', target: 5,    reward: 50 },
+];
+let missions = [], missionProg = {}, missionDay = '';
+function initMissions() {
+  const dk = dayKey();
+  if (missionDay === dk && missions.length) return;
+  missionDay = dk;
+  const rng = mulberry32(dailySeedNum() * 31 + 5);
+  const pool = MISSION_POOL.slice();
+  missions = [];
+  while (missions.length < 3 && pool.length)
+    missions.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
+  try { missionProg = JSON.parse(localStorage.getItem('rdash_mp_' + dk) || '{}'); }
+  catch (e) { missionProg = {}; }
+}
+function missionSave() {
+  try { localStorage.setItem('rdash_mp_' + missionDay, JSON.stringify(missionProg)); } catch (e) {}
+}
+// ============ ランク評価 ============
+const RANK_ORD = { C: 1, B: 2, A: 3, S: 4 };
+const bestRank = i => localStorage.getItem('rdash_rank_' + i) || '';
+const setBestRank = (i, r) => {
+  if ((RANK_ORD[r] || 0) > (RANK_ORD[bestRank(i)] || 0)) localStorage.setItem('rdash_rank_' + i, r);
+};
+
+// 進捗を加算(isMax=true なら最大値更新)し、達成したら即コイン付与
+function mission(id, val, isMax) {
+  initMissions();
+  const m = missions.find(x => x.id === id);
+  if (!m) return;
+  const p = missionProg[id] || { v: 0, c: false };
+  if (p.c) return;
+  p.v = isMax ? Math.max(p.v, val) : p.v + val;
+  if (p.v >= m.target) {
+    p.c = true;
+    addCoins(m.reward);
+    gaCoins('Source', m.reward, 'Mission', m.id);
+    gaDesign('Mission:Complete:' + m.id, m.reward);
+    toast(`🎯 ${m.desc} +${m.reward}`);
+    missionSave();
+  }
+  missionProg[id] = p;
+}
+
+// ============ アイコン読み込み(背景透過) ============
+const skinCache = {};
+function skinSprite(idx) {
+  return skinCache[idx] || null;
+}
+function trimSprite(img) {
+  const S = 256, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, S, S);
+  const id = g.getImageData(0, 0, S, S), d = id.data;
+  let cr = 0, cg = 0, cb = 0, cn = 0;
+  for (const [ox, oy] of [[0,0],[S-4,0],[0,S-4],[S-4,S-4]])
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+      const i = ((oy+y)*S + ox+x)*4; cr += d[i]; cg += d[i+1]; cb += d[i+2]; cn++;
+    }
+  cr /= cn; cg /= cn; cb /= cn;
+  let ca = 0;
+  for (const [ox, oy] of [[0,0],[S-4,0],[0,S-4],[S-4,S-4]])
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) ca += d[(((oy+y)*S + ox+x)*4)+3];
+  ca /= cn;
+  if (ca >= 40) {
+    // 不透明背景の画像だけ色ベースのフラッドフィルで背景を除去。
+    // 既に透過済みの画像でこれをやると、透明部(RGB=0)から黒い輪郭線を侵食してしまう。
+    const TH = 130 * 130;
+    const near = i => { const dr = d[i]-cr, dg = d[i+1]-cg, db = d[i+2]-cb; return dr*dr+dg*dg+db*db < TH; };
+    const vis = new Uint8Array(S*S), st = [];
+    for (let x = 0; x < S; x++) st.push(x, (S-1)*S + x);
+    for (let y = 0; y < S; y++) st.push(y*S, y*S + S - 1);
+    while (st.length) {
+      const p = st.pop();
+      if (vis[p] || !near(p*4)) continue;
+      vis[p] = 1;
+      const x = p % S, y = (p - x) / S;
+      if (x > 0) st.push(p-1); if (x < S-1) st.push(p+1);
+      if (y > 0) st.push(p-S); if (y < S-1) st.push(p+S);
+    }
+    for (let p = 0; p < S*S; p++) if (vis[p]) d[p*4+3] = 0;
+    g.putImageData(id, 0, 0);
+  }
+  // アルファでトリミング(透過済み画像はここだけ通る)
+  let minx = S, miny = S, maxx = 0, maxy = 0;
+  for (let p = 0; p < S*S; p++) {
+    if (d[p*4+3] > 8) { const x = p % S, y = (p-x)/S;
+      if (x < minx) minx = x; if (x > maxx) maxx = x;
+      if (y < miny) miny = y; if (y > maxy) maxy = y; }
+  }
+  if (maxx < minx || maxy < miny) return c;
+  const bw = maxx-minx+1, bh = maxy-miny+1;
+  const target = 232;
+  const scale = target / Math.max(bw, bh);
+  const dw = bw * scale, dh = bh * scale;
+  const c2 = document.createElement('canvas');
+  c2.width = c2.height = S;
+  c2.getContext('2d').drawImage(g.canvas, minx, miny, bw, bh, (S-dw)/2, (S-dh)/2, dw, dh);
+  return c2;
+}
+(function loadIcons() {
+  SKINS.forEach((skin, idx) => {
+    const img = new Image();
+    img.onload = () => {
+      skinCache[idx] = trimSprite(img);
+      refreshMenu();
+    };
+    img.src = skin.src;
+  });
+})();
+
+// ============ オーディオ & ビート解析 ============
+let actx = null, master = null;
+function ensureAudio() {
+  if (!actx) {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
+  }
+  if (actx.state === 'suspended') actx.resume();
+}
+
+function analyzeBeats(buf) {
+  const sr = buf.sampleRate, hop = 512, win = 1024;
+  const a = buf.getChannelData(0);
+  const b = buf.numberOfChannels > 1 ? buf.getChannelData(1) : a;
+  const n = Math.max(1, Math.floor((a.length - win) / hop));
+  const en = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    let s = 0, o = i * hop;
+    for (let j = 0; j < win; j += 2) { const v = (a[o+j]+b[o+j])*0.5; s += v*v; }
+    en[i] = s;
+  }
+  const flux = new Float32Array(n);
+  for (let i = 1; i < n; i++) flux[i] = Math.max(0, en[i]-en[i-1]);
+  let gm = 0; for (let i = 0; i < n; i++) gm += flux[i]; gm /= n;
+  const beats = [];
+  const R = 16;
+  for (let i = 3; i < n-3; i++) {
+    let lm = 0, c = 0;
+    for (let j = Math.max(0, i-R); j < Math.min(n, i+R); j++) { lm += flux[j]; c++; }
+    lm /= c;
+    if (flux[i] > lm*1.7 + gm*0.12 &&
+        flux[i] >= flux[i-1] && flux[i] >= flux[i-2] &&
+        flux[i] >= flux[i+1] && flux[i] >= flux[i+2]) {
+      beats.push({ t: (i*hop + win/2)/sr, s: flux[i]/(lm+1e-9) });
+    }
+  }
+  if (beats.length < buf.duration * 0.6) {
+    beats.length = 0;
+    for (let t = 0.5; t < buf.duration - 1; t += 0.5) beats.push({ t, s: 1 });
+  }
+  return beats;
+}
+
+function cachedBeats(file, buf) {
+  const key = 'rdash_bc1_' + file;
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) return JSON.parse(raw).map(([t, s]) => ({ t, s }));
+  } catch (e) {}
+  const beats = analyzeBeats(buf);
+  try {
+    localStorage.setItem(key, JSON.stringify(beats.map(o => [+o.t.toFixed(3), +o.s.toFixed(2)])));
+  } catch (e) {}
+  return beats;
+}
+
+function timeoutAfter(ms, label) {
+  return new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' timeout')), ms));
+}
+
+async function fetchAudioBuffer(file) {
+  const res = await Promise.race([
+    fetch(file, { cache: 'reload' }),
+    timeoutAfter(12000, 'audio fetch')
+  ]);
+  if (!res.ok) throw new Error('audio fetch failed: ' + res.status);
+  const data = await Promise.race([
+    res.arrayBuffer(),
+    timeoutAfter(12000, 'audio read')
+  ]);
+  return Promise.race([
+    new Promise((resolve, reject) => {
+      const p = actx.decodeAudioData(data.slice(0), resolve, reject);
+      if (p && p.then) p.then(resolve, reject);
+    }),
+    timeoutAfter(12000, 'audio decode')
+  ]);
+}
+
+function fallbackBuffer(seconds = 45) {
+  const sr = actx.sampleRate;
+  const buf = actx.createBuffer(1, sr * seconds | 0, sr);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    const t = i / sr;
+    const beat = Math.exp(-((t % 0.5) * 18));
+    d[i] = Math.sin(t * 440 * Math.PI * 2) * 0.08 * beat;
+  }
+  return buf;
+}
+
+function mulberry32(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+
+// ビート列 → 障害物列(難易度でギャップ・種類・密度を調整)
+function buildLevel(beats, duration, seed, diff) {
+  const rng = mulberry32(seed * 1337 + 7);
+  const ss = beats.map(o => o.s).sort((x, y) => x - y);
+  const dropThr = ss[Math.floor(ss.length * 0.35 * (1 - diff))] || 0;
+  const strong = ss[Math.floor(ss.length * 0.8)] || 1;
+  const minGap = 0.66 - 0.24 * diff;
+  const obs = [];
+  let last = -10;
+  let phrase = 0;
+  let burst = 0;
+  for (const o of beats) {
+    if (o.t < 2.0 || o.t > duration - 1.2) continue;
+    if (o.s < dropThr) continue;
+    if (o.t - last < minGap) continue;
+    if (burst >= 3 && rng() < 0.72) { burst = 0; last = o.t + 0.25; continue; }
+    const r = rng();
+    let type;
+    if (diff < 0.15) {
+      type = r < 0.7 ? 'spike' : 'block';
+    } else {
+      const pow = o.s >= strong;
+      if (phrase % 8 === 7 && diff > 0.25) type = rng() < 0.55 ? 'block2' : 'spike2';
+      else if (pow && r < 0.12 + 0.32 * diff) type = 'spike2';
+      else if (diff > 0.38 && r > 0.9) type = 'hold';
+      else if (r < 0.58) type = 'spike';
+      else if (r < 0.86) type = 'block';
+      else type = 'block2';
+    }
+    obs.push({ t: o.t + TAP_OFFSET, type });
+    phrase++;
+    burst++;
+    last = o.t + (type === 'spike2' || type === 'block2' || type === 'hold' ? 0.15 : 0);
+  }
+  // 重力反転ゾーン: 障害物の広い隙間にポータルを置き、区間内は天井走行になる
+  const zones = [];
+  if (diff >= 0.25 && obs.length > 8) {
+    const nz = diff > 0.6 ? 2 : 1;
+    const snapGap = tgt => {
+      let bestT = null, bestD = 1e9;
+      for (let i = 0; i + 1 < obs.length; i++) {
+        if (obs[i+1].t - obs[i].t < 0.9) continue;
+        const mid = (obs[i].t + obs[i+1].t) / 2;
+        const dd = Math.abs(mid - tgt);
+        if (dd < bestD) { bestD = dd; bestT = mid; }
+      }
+      return bestT;
+    };
+    for (let k = 0; k < nz; k++) {
+      const s0 = snapGap(duration * (0.32 + k * 0.34));
+      const e0 = s0 === null ? null : snapGap(s0 + duration * 0.14);
+      if (s0 !== null && e0 !== null && e0 - s0 > 3 &&
+          (zones.length === 0 || s0 > zones[zones.length-1].end + 2))
+        zones.push({ start: s0, end: e0 });
+    }
+  }
+  const portalTimes = [];
+  for (const z of zones) portalTimes.push(z.start, z.end);
+  // ポータル直前直後は障害物なしの助走スペースにする
+  const obsF = obs.filter(o => portalTimes.every(pt => Math.abs(o.t - pt) > 0.45));
+  const inZone = t => zones.some(z => t >= z.start && t < z.end);
+  // オーブ: 障害物の隙間に置く空中タップ用ボーナス(使わなくてもクリア可能)
+  const orbs = [];
+  const coins = [];
+  if (diff >= 0.15) {
+    for (let i = 0; i + 1 < obsF.length; i++) {
+      const gap = obsF[i+1].t - obsF[i].t;
+      if (gap < 0.6 || gap > 0.95 || rng() >= 0.35) continue;
+      const t = obsF[i].t + gap / 2;
+      if (!portalTimes.every(pt => Math.abs(t - pt) > 0.5)) continue;
+      orbs.push({ t, y: GROUND - B * 2.4 });
+      coins.push({ t: t + 0.12, y: GROUND - B * 3.3, risky: true });
+      coins.push({ t: t + 0.26, y: GROUND - B * 2.6 });
+    }
+  }
+  // コイン: 障害物の上(ジャンプ頂点)と、障害物のないビート上に配置
+  for (const b of obsF) {
+    const high = b.type === 'hold' || b.type === 'block2';
+    coins.push({ t: b.t, y: GROUND - B/2 - JUMP_H * (high ? 1.18 : 1) });
+    if (high) coins.push({ t: b.t + 0.18, y: GROUND - B/2 - JUMP_H * 1.35, risky: true });
+  }
+  let lastC = -10;
+  for (const o of beats) {
+    const t = o.t + TAP_OFFSET;
+    if (t < 2.0 || t > duration - 1.2) continue;
+    if (t - lastC < 0.3) continue;
+    if (obsF.some(b => Math.abs(b.t - t) < 0.4)) continue;
+    coins.push({ t, y: GROUND - B/2 });
+    lastC = t;
+  }
+  // 反転ゾーン内の収集物は上下ミラー
+  for (const c of coins) if (inZone(c.t)) c.y = DH - c.y;
+  for (const o of orbs) if (inZone(o.t)) o.y = DH - o.y;
+  coins.sort((a, b) => a.t - b.t);
+  return { obs: obsF, coins, zones, orbs };
+}
+
+// ============ ゲーム状態 ============
+let state = 'menu';
+let stageIdx = 0, buffer = null, beats = [], level = [], duration = 0;
+let attempts = 0, songPos = -LEAD, musicStart = 0, src = null, attemptOffset = 0;
+let beatIdx = 0, noteJudgeIdx = 0, pulse = 0, deadAt = 0;
+let score = 0, combo = 0, maxCombo = 0;
+let perfectRun = 0, fever = 0, judgeFlash = '';
+let practice = false, cpPct = 0, cpTime = 0;
+let shieldReady = false, invulnUntil = 0;
+let particles = [], confetti = [], floats = [], rings = [], trail = [];
+let coinDefs = [], coinsLive = [], coinRun = 0;
+let pendingBuy = null;
+let flipZones = [], orbDefs = [], orbsLive = [];
+let lastGdir = 1, ceilAlpha = 0;
+let feverOn = false, feverEnd = 0;
+let revivesUsed = 0, reviveOffered = false, deathPos = 0;
+let shake = 0, nearIdx = 0;
+let runStats = { p: 0, g: 0, o: 0 };   // ランク評価用の判定カウント
+let ghost = null, ghostIdx = 0, ghostTrace = [], ghostAcc = 0;
+const inFlipT = t => { for (const z of flipZones) if (t >= z.start && t < z.end) return true; return false; };
+const player = { x: 0, y: GROUND - B, vy: 0, rot: 0, grounded: true };
+let landAt = -9, trailAcc = 0, holdJump = 0;
+let isDown = false, tapAt = -9;
+const cache = {};
+let lastClear = null;
+
+// ============ メニュー ============
+function refreshMenu() {
+  // キャラ表示
+  const sp = skinSprite(skinIdx);
+  if (sp) { const u = sp.toDataURL(); $('charimg').src = u; $('clearchar').src = u; $('loginchar').src = u; }
+  $('charname').textContent = currentSkin().n;
+  $('skineffect').textContent = currentSkin().desc;
+  $('cleared').textContent = '★ ' + clearedCount() + ' / ' + NSTAGE;
+  $('coinsdisp').innerHTML = `<img src="Asset/cosmo-coin.png" alt=""> <span>${totalCoins()}</span>`;
+  // ステージグリッド
+  const grid = $('grid'); grid.innerHTML = '';
+  for (let i = 0; i < NSTAGE; i++) {
+    const b = document.createElement('button');
+    b.className = 'tile' + (unlocked(i) ? '' : ' lock') + (best(i) >= 100 ? ' done' : '');
+    b.style.background = `linear-gradient(135deg,hsl(${STAGES[i].hue},70%,45%),hsl(${STAGES[i].hue+30},70%,35%))`;
+    b.innerHTML = unlocked(i)
+      ? (i + 1) + (best(i) ? `<small>${best(i)}%${bestRank(i) ? ' ' + bestRank(i) : ''}</small>` : '<small>&nbsp;</small>')
+      : '🔒';
+    if (unlocked(i)) b.onclick = () => selectStage(i);
+    else b.onclick = () => toast('60%');
+    grid.appendChild(b);
+  }
+  // デイリー & ミッション
+  refreshDaily();
+  initMissions();
+  const dleft = dailyTriesLeft();
+  const db = $('dailybtn');
+  db.className = dleft > 0 ? '' : 'off';
+  db.innerHTML = `⚡ ${STAGES[DAILY_IDX].name} <small>${dailyScore() ? '★' + dailyScore() + ' · ' : ''}${dleft}/3</small>`;
+  db.onclick = () => dailyTriesLeft() > 0 ? selectStage(DAILY_IDX) : toast('DAILY 0/3');
+  const mi = $('missions'); mi.innerHTML = '';
+  for (const m of missions) {
+    const p = missionProg[m.id] || { v: 0, c: false };
+    const div = document.createElement('div');
+    div.className = 'mission' + (p.c ? ' done' : '');
+    div.innerHTML = `<span>🎯 ${m.desc}</span><small>${p.c ? '✓' : Math.min(Math.floor(p.v), m.target) + '/' + m.target} · +${m.reward}</small>`;
+    mi.appendChild(div);
+  }
+  // スキン
+  const sk = $('skins'); sk.innerHTML = '';
+  SKINS.forEach((s, j) => {
+    const b = document.createElement('button');
+    const ok = skinUnlocked(j);
+    b.className = 'skinbtn' + (j === skinIdx ? ' sel' : '') + (ok ? '' : ' lock');
+    if (ok) {
+      const sp2 = skinSprite(j);
+      if (sp2) { const im = document.createElement('img'); im.src = sp2.toDataURL(); b.appendChild(im); }
+      b.onclick = () => { skinIdx = j; localStorage.setItem('rdash_skin', j); gaDesign('Skin:Select:' + s.n, 1); refreshMenu(); };
+    } else {
+      const price = skinPrice(j);
+      b.onclick = () => {
+        if (pendingBuy === j) {
+          pendingBuy = null;
+          if (spendCoins(price)) {
+            localStorage.setItem('rdash_skinbuy_' + j, '1');
+            skinIdx = j; localStorage.setItem('rdash_skin', j);
+            gaCoins('Sink', price, 'Skin', s.n);
+            gaDesign('Skin:Buy:' + s.n, price);
+            toast(`✓ ${s.n}`);
+            refreshMenu();
+          } else toast(`${price} / ${totalCoins()}`);
+        } else {
+          pendingBuy = j;
+          toast(`${s.n}: ★${s.need} / ${price}`);
+        }
+      };
+    }
+    b.title = `${s.n}: ${s.desc}`;
+    sk.appendChild(b);
+  });
+}
+refreshMenu();
+
+function showHome() {
+  bootDone = true;
+  $('splash').className = 'overlay hide';
+  $('menu').style.display = DEMO ? 'none' : 'flex';
+  setTimeout(() => $('splash').style.display = 'none', 380);
+  gaDesign('UI:Home', 1);
+  if (!DEMO) checkLoginBonus();
+}
+setTimeout(showHome, 2000);
+
+async function selectStage(i) {
+  ensureAudio();
+  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
+  try { await screen.orientation.lock('landscape'); } catch (e) {}
+  if (i === DAILY_IDX) {
+    refreshDaily();
+    if (dailyTriesLeft() <= 0) { toast('DAILY 0/3'); return; }
+  }
+  stageIdx = i;
+  gaDesign('Stage:Select:' + (i === DAILY_IDX ? 'daily' : 'stage_' + String(i + 1).padStart(2, '0')), 1);
+  const cfg = STAGES[i];
+  $('menu').style.display = 'none';
+  $('clearov').style.display = 'none';
+  const ck = cfg.file;   // 曲ファイル単位でキャッシュ(デイリーも共有)
+  if (!cache[ck]) {
+    $('loading').style.display = 'flex';
+    try {
+      $('loadmsg').textContent = '♪';
+      const buf = await fetchAudioBuffer(cfg.file);
+      $('loadmsg').textContent = '...';
+      cache[ck] = { buffer: buf, beats: cachedBeats(cfg.file, buf) };
+    } catch (e) {
+      console.warn('Audio load failed, using fallback beat track:', e);
+      const buf = fallbackBuffer(45);
+      cache[ck] = { buffer: buf, beats: analyzeBeats(buf) };
+      toast('♪ OFF');
+      gaDesign('Audio:Fallback', 1);
+    }
+    $('loading').style.display = 'none';
+  }
+  setupRun(i, cache[ck].buffer, cache[ck].beats);
+}
+
+// ステージ準備の共通処理(通常/デイリー/MY MUSIC)
+function setupRun(i, buf, bts) {
+  stageIdx = i;
+  const cfg = STAGES[i];
+  buffer = buf; beats = bts;
+  duration = buffer.duration;
+  SPEED = cfg.speed;
+  const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
+  level = built.obs; coinDefs = built.coins;
+  flipZones = built.zones; orbDefs = built.orbs;
+  coinsLive = coinDefs.map(c => ({ t: c.t, y: c.y, risky: !!c.risky, got: false }));
+  orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
+  coinRun = 0;
+  lastGdir = 1; ceilAlpha = 0; feverOn = false; fever = 0;
+  attempts = 0; cpPct = 0; cpTime = 0;
+  ghost = null; ghostIdx = 0;
+  if (i < NSTAGE) {   // デイリーはゴーストなし
+    try { const raw = localStorage.getItem('rdash_ghost_' + i); if (raw) ghost = JSON.parse(raw); } catch (e) {}
+  }
+  $('backbtn').style.display = 'block';
+  if (i === DAILY_IDX) {   // デイリーは練習モードなし
+    practice = false;
+    const pb = $('practbtn');
+    pb.textContent = '🚩 OFF'; pb.className = 'hudbtn'; pb.style.display = 'none';
+  } else $('practbtn').style.display = 'block';
+  state = 'ready'; songPos = -LEAD; attemptOffset = 0;
+  player.y = GROUND - B; player.rot = 0;
+}
+
+// ゴースト: ベストラン(スコア更新時)の軌跡を保存して半透明で再生する
+function saveGhost() {
+  if (ghostTrace.length < 10) return;
+  const flat = [];
+  for (const p of ghostTrace) flat.push(Math.round(p.t * 100), Math.round(p.y));
+  try { localStorage.setItem('rdash_ghost_' + stageIdx, JSON.stringify(flat)); } catch (e) {}
+}
+
+function backToMenu() {
+  // 中断時もベスト%を保存
+  if ((state === 'play' || state === 'dead') && songPos > 0)
+    gaDesign('Run:Exit:' + gaStageId(), Math.max(0, Math.min(100, Math.round(songPos / duration * 100))));
+  if ((state === 'play' || state === 'dead') && !practice && !dailyMode() && songPos > 0)
+    setBest(stageIdx, Math.min(99, Math.floor(songPos / duration * 100)));
+  missionSave();
+  if (state === 'play' && !practice && coinRun > 0) {
+    addCoins(coinRun);
+    gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_exit');
+    coinRun = 0;
+  }
+  stopMusic(); state = 'menu';
+  $('menu').style.display = 'flex';
+  $('loading').style.display = 'none';
+  $('clearov').style.display = 'none';
+  $('backbtn').style.display = 'none';
+  $('practbtn').style.display = 'none';
+  $('revivebtn').style.display = 'none';
+  reviveOffered = false;
+  refreshMenu();
+}
+$('backbtn').onclick = backToMenu;
+$('tomenu').onclick = backToMenu;
+$('nextbtn').onclick = () => {
+  const n = stageIdx + 1;
+  if (n < NSTAGE && unlocked(n)) selectStage(n);
+  else backToMenu();
+};
+$('practbtn').onclick = () => {
+  practice = !practice;
+  const b = $('practbtn');
+  b.textContent = '🚩 ' + (practice ? 'ON' : 'OFF');
+  b.className = 'hudbtn' + (practice ? ' on' : '');
+  b.style.display = 'block';
+  toast(practice ? '25%' : 'RUN');
+};
+$('revivebtn').onclick = () => {
+  // コインでコンティニュー: 死亡地点の少し手前から、スコア・コイン・コンボ記録を保持して再開
+  if (state !== 'dead' || !reviveOffered) return;
+  if (!spendCoins(REVIVE_COST)) { reviveOffered = false; $('revivebtn').style.display = 'none'; return; }
+  gaCoins('Sink', REVIVE_COST, 'Revive', 'Continue');
+  gaDesign('Revive:Use:' + gaStageId(), Math.max(0, Math.min(100, Math.round(deathPos / duration * 100))));
+  reviveOffered = false; revivesUsed++;
+  $('revivebtn').style.display = 'none';
+  attempts--;   // コンティニューはATTEMPT数を増やさない
+  startAttempt(Math.max(0, deathPos - 1.5));
+  invulnUntil = performance.now()/1000 + 1.2;
+  sfxCoin();
+};
+$('sharebtn').onclick = shareResult;
+
+// ============ 他ゲームのプロモバナー(順番に表示) ============
+const PROMO_GAMES = [
+  { id: '6784988703', url: 'https://apps.apple.com/jp/app/arcade-heaven-star-match/id6784988703',
+    title: 'Arcade Heaven Star Match', sub: 'このキャラクターのパズルゲーム', emoji: '⭐' },
+  { id: '6789935783', url: 'https://apps.apple.com/jp/app/%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-mogu-mogu-panic/id6789935783',
+    title: 'コスミー Mogu Mogu Panic', sub: 'このキャラクターのゲーム', emoji: '🍩' },
+  { id: '6790154239', url: 'https://apps.apple.com/us/app/cosmii-arcade-%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-%E3%82%A2%E3%83%BC%E3%82%B1%E3%83%BC%E3%83%88/id6790154239',
+    title: 'Cosmii Arcade', sub: 'このキャラクターのゲーム', emoji: '🕹️' },
+];
+let promoIdx = 0;
+function renderPromo() {
+  const g = PROMO_GAMES[promoIdx];
+  $('promosub').textContent = g.sub;
+  $('promotitle').textContent = g.title;
+  const ic = $('promoicon');
+  if (g.iconUrl) ic.innerHTML = `<img src="${g.iconUrl}" alt="">`;
+  else ic.textContent = g.emoji;
+  $('promobanner').onclick = () => window.open(g.url, '_blank', 'noopener');
+}
+setInterval(() => {
+  if ($('menu').style.display === 'none') return;   // メニュー表示中のみ回す
+  promoIdx = (promoIdx + 1) % PROMO_GAMES.length;
+  const b = $('promobanner');
+  b.classList.remove('swap'); void b.offsetWidth; b.classList.add('swap');
+  renderPromo();
+}, 5000);
+renderPromo();
+// アプリアイコンをiTunes APIから取得(失敗時は絵文字のまま)
+(async function loadPromoIcons() {
+  try {
+    const cached = localStorage.getItem('rdash_promo_icons1');
+    let map = cached ? JSON.parse(cached) : null;
+    if (!map) {
+      const ids = PROMO_GAMES.map(g => g.id).join(',');
+      const res = await fetch('https://itunes.apple.com/lookup?id=' + ids + '&country=jp');
+      const data = await res.json();
+      map = {};
+      for (const r of (data.results || [])) map[String(r.trackId)] = r.artworkUrl100;
+      if (Object.keys(map).length) localStorage.setItem('rdash_promo_icons1', JSON.stringify(map));
+    }
+    PROMO_GAMES.forEach(g => { if (map[g.id]) g.iconUrl = map[g.id]; });
+    renderPromo();
+  } catch (e) { /* オフライン等では絵文字表示のまま */ }
+})();
+
+function stopMusic() { if (src) { try { src.stop(); } catch (e) {} src = null; } }
+
+function startAttempt(offset = 0) {
+  if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
+    if (dailyTriesLeft() <= 0) { backToMenu(); toast('DAILY 0/3'); return; }
+    useDailyTry();
+    gaDesign('Daily:Try', 3 - dailyTriesLeft());
+  }
+  attempts++;
+  stopMusic();
+  if (offset === 0) {
+    cpPct = 0; cpTime = 0; score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
+    coinRun = 0; revivesUsed = 0;
+    coinsLive = coinDefs.map(c => ({ t: c.t, y: c.y, risky: !!c.risky, got: false }));
+    runStats = { p: 0, g: 0, o: 0 };
+    ghostTrace = []; ghostAcc = 0;
+  } else {
+    ghostTrace = ghostTrace.filter(pt => pt.t < offset);   // 巻き戻し分は録り直し
+  }
+  nearIdx = level.findIndex(o => o.t >= offset);
+  if (nearIdx < 0) nearIdx = level.length;
+  ghostIdx = 0;
+  attemptOffset = offset;
+  feverOn = false; feverEnd = 0;
+  reviveOffered = false; $('revivebtn').style.display = 'none';
+  orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
+  lastGdir = inFlipT(offset - LEAD) ? -1 : 1;   // 助走開始時点の重力向き
+  player.y = lastGdir === -1 ? CEIL : GROUND - B;
+  player.vy = 0; player.rot = 0; player.grounded = true;
+  holdJump = 0;
+  shieldReady = skinEffect('shield');
+  invulnUntil = 0;
+  particles = []; floats = []; rings = []; trail = []; pulse = 0;
+  musicStart = actx.currentTime + LEAD;
+  beatIdx = beats.findIndex(b => b.t >= offset - LEAD);
+  if (beatIdx < 0) beatIdx = beats.length;
+  noteJudgeIdx = level.findIndex(o => o.t - TAP_OFFSET >= offset - 0.5);
+  if (noteJudgeIdx < 0) noteJudgeIdx = level.length;
+  src = actx.createBufferSource(); src.buffer = buffer; src.connect(master);
+  src.start(musicStart, offset);
+  state = 'play';
+  if (offset === 0) {
+    gaProgress('Start');
+    gaDesign('Run:Start:' + gaStageId(), attempts);
+  } else {
+    gaDesign('Run:Resume:' + gaStageId(), Math.round(offset));
+  }
+}
+
+function die() {
+  const nowT = performance.now() / 1000;
+  if (state === 'play' && nowT < invulnUntil) return;   // シールド後の無敵中
+  if (shieldReady && state === 'play') {
+    shieldReady = false;
+    gaDesign('Power:Shield:' + gaStageId(), Math.round(songPos));
+    invulnUntil = nowT + 0.6;   // ブロック側面など重なりが続く衝突でも生き残れるように
+    score = Math.max(0, score - 300);
+    combo = 0; perfectRun = 0;
+    if (feverOn) { feverOn = false; fever = 0; } else fever = Math.max(0, fever - 0.35);
+    player.vy = -V0 * 0.72 * lastGdir; player.grounded = false; holdJump = HOLD_MAX * 0.5;
+    const px = player.x + B/2, py = player.y + B/2;
+    floats.push({ text: 'SHIELD!', x: px, y: py - 22, l: 1.2, c: '#c792ff' });
+    rings.push({ r: B*0.7, a: 0.75 });
+    shake = 5;
+    if (navigator.vibrate) { try { navigator.vibrate(35); } catch (e) {} }
+    return;
+  }
+  stopMusic();
+  if (navigator.vibrate) { try { navigator.vibrate(70); } catch (e) {} }
+  if (!practice) {
+    if (dailyMode()) setDailyScore(score);
+    else {
+      const pct = Math.max(0, Math.min(100, Math.round(songPos / duration * 100)));
+      setBest(stageIdx, Math.min(99, pct));
+    }
+    gaProgress('Fail');
+    gaDesign('Run:FailPct:' + gaStageId(), Math.max(0, Math.min(100, Math.round(songPos / duration * 100))));
+    gaDesign('Run:FailScore:' + gaStageId(), score);
+    if (coinRun > 0) {
+      addCoins(coinRun);   // 集めたコインは死んでも持ち帰れる
+      gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_fail');
+    }
+    mission('score3k', score, true); mission('combo15', maxCombo, true);
+    missionSave();
+  }
+  combo = 0; perfectRun = 0; fever = 0; feverOn = false;
+  shake = 10;
+  state = 'dead'; deadAt = performance.now();
+  deathPos = songPos;
+  reviveOffered = !practice && revivesUsed === 0 && totalCoins() >= REVIVE_COST &&
+    songPos > 3 && songPos < duration - 2;
+  if (reviveOffered) $('revivebtn').style.display = 'block';
+  const px = player.x + B/2, py = player.y + B/2;
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random()*Math.PI*2, v = 90 + Math.random()*260;
+    particles.push({ x: px, y: py, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 120,
+      s: 4 + Math.random()*7, l: 1, hue: Math.random() < 0.5 ? 0 : 45 });
+  }
+  sfxDeath();
+}
+
+function clearStage() {
+  stopMusic(); state = 'clear';
+  const extra = [];
+  if (!practice) {
+    if (coinRun > 0) {
+      addCoins(coinRun);
+      gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_clear');
+      extra.push(`<span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><img src="Asset/cosmo-coin.png" alt="" style="width:20px;height:20px;object-fit:contain"> +${coinRun}</span>`);
+    }
+    mission('clear1', 1); mission('score3k', score, true); mission('combo15', maxCombo, true);
+    missionSave();
+    if (dailyMode()) {
+      if (setDailyScore(score)) extra.push('🏆 DAILY BEST!');
+    } else {
+      const before = clearedCount();
+      setBest(stageIdx, 100);
+      const after = clearedCount();
+      const newHS = setHiScore(stageIdx, score);
+      if (newHS) extra.push('🏆 NEW RECORD!');
+      if (newHS || !localStorage.getItem('rdash_ghost_' + stageIdx)) saveGhost();
+      for (const s of SKINS) if (before < s.need && after >= s.need)
+        extra.push(`🎁 ${s.n}`);
+      if (stageIdx + 1 < NSTAGE && after > before) extra.push(`🔓 ${STAGES[stageIdx+1].name}`);
+    }
+  }
+  // ランク評価: PERFECT/GREAT/OK の精度から算出
+  const acc = (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, level.length);
+  const rank = acc >= 0.9 ? 'S' : acc >= 0.7 ? 'A' : acc >= 0.5 ? 'B' : 'C';
+  if (!practice && !dailyMode()) setBestRank(stageIdx, rank);
+  if (!practice) {
+    gaProgress('Complete');
+    gaDesign('Run:CompleteScore:' + gaStageId(), score);
+    gaDesign('Run:Rank:' + rank, 1);
+    gaDesign('Run:Combo:' + gaStageId(), maxCombo);
+  }
+  lastClear = { stage: stageIdx, score, maxCombo, pct: 100, rank };
+  $('cleartitle').textContent = practice ? 'PRACTICE CLEAR!' : 'STAGE CLEAR!';
+  const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
+  $('clearstats').innerHTML =
+    `<span style="font-size:30px;font-weight:900;color:${rankCol};text-shadow:0 0 14px ${rankCol}">RANK ${rank}</span><br>` +
+    `${STAGES[stageIdx].name}  /  ATTEMPT ${attempts}<br>SCORE ${score}  MAX COMBO ${maxCombo}` +
+    (practice ? '<br>NO SAVE' : (extra.length ? '<br>' + extra.join('<br>') : ''));
+  $('nextbtn').style.display = (!practice && stageIdx + 1 < NSTAGE) ? 'inline-block' : 'none';
+  const sp = skinSprite(skinIdx);
+  if (sp) $('clearchar').src = sp.toDataURL();
+  $('clearov').style.display = 'flex';
+  confetti = [];
+  for (let i = 0; i < 80; i++) confetti.push({
+    x: Math.random()*W, y: -20 - Math.random()*DH,
+    vy: 60 + Math.random()*120, vx: (Math.random()-0.5)*60,
+    s: 4 + Math.random()*6, r: Math.random()*6.28, hue: Math.random()*360 });
+  sfxClear();
+}
+
+// ============ シェア ============
+async function shareResult() {
+  const r = lastClear || { stage: stageIdx, score, maxCombo, pct: 0 };
+  const cfg = STAGES[r.stage];
+  const url = location.origin + location.pathname;
+  const text = `Cosmy Beat Dash ${cfg.name} CLEAR!\nSCORE: ${r.score} / MAX COMBO: ${r.maxCombo}`;
+  const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
+  const g = c.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, 0, 630);
+  bg.addColorStop(0, `hsl(${cfg.hue},60%,16%)`); bg.addColorStop(1, `hsl(${cfg.hue+30},65%,30%)`);
+  g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
+  g.fillStyle = 'rgba(255,255,255,.06)';
+  for (let i = 0; i < 8; i++) { g.save(); g.translate(150*i+60, 100+(i%3)*180); g.rotate(0.7+i); g.fillRect(-60,-60,120,120); g.restore(); }
+  const sp = skinSprite(skinIdx);
+  if (sp) g.drawImage(sp, 80, 165, 300, 300);
+  g.fillStyle = '#fff'; g.font = '900 72px sans-serif';
+  g.fillText('Cosmy Beat Dash', 430, 170);
+  g.fillStyle = '#ffd94a'; g.font = '900 60px sans-serif';
+  g.fillText(cfg.name + ' CLEAR!', 430, 280);
+  g.fillStyle = '#fff'; g.font = '700 44px sans-serif';
+  g.fillText(`SCORE ${r.score}` + (r.rank ? `   RANK ${r.rank}` : ''), 430, 370);
+  g.fillText(`MAX COMBO ${r.maxCombo}`, 430, 440);
+  g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 30px sans-serif';
+  g.fillText('TAP / HOLD / BEAT', 430, 530);
+  try {
+    const blob = await new Promise(res => c.toBlob(res, 'image/png'));
+    const file = new File([blob], 'cosmy-beat-dash.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Cosmy Beat Dash', text: text + '\n' + url });
+      return;
+    }
+    if (navigator.share) { await navigator.share({ title: 'Cosmy Beat Dash', text, url }); return; }
+    await navigator.clipboard.writeText(text + '\n' + url);
+    toast('COPY');
+  } catch (e) { /* シェアのキャンセルは無視 */ }
+}
+
+// ============ SFX ============
+function sfxDeath() {
+  if (!actx) return;
+  const n = actx.createBufferSource();
+  const b = actx.createBuffer(1, actx.sampleRate*0.35|0, actx.sampleRate);
+  const d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 2.2);
+  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+  n.buffer = b; n.connect(f); f.connect(master); n.start();
+}
+function sfxClear() {
+  if (!actx) return;
+  [523, 659, 784, 1047].forEach((fq, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'triangle'; o.frequency.value = fq;
+    const t0 = actx.currentTime + i*0.13;
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.35, t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+0.5);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0+0.55);
+  });
+}
+
+function sfxCoin() {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square';
+  const t0 = actx.currentTime;
+  o.frequency.setValueAtTime(988, t0);
+  o.frequency.setValueAtTime(1319, t0 + 0.07);
+  g.gain.setValueAtTime(0.10, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.2);
+}
+
+function sfxOrb() {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sine';
+  const t0 = actx.currentTime;
+  o.frequency.setValueAtTime(1046, t0);
+  o.frequency.exponentialRampToValueAtTime(1568, t0 + 0.09);
+  g.gain.setValueAtTime(0.14, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.18);
+}
+
+function sfxFever() {
+  if (!actx) return;
+  [659, 784, 988, 1319].forEach((fq, i) => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'square'; o.frequency.value = fq;
+    const t0 = actx.currentTime + i * 0.07;
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.3);
+  });
+}
+
+// ============ 入力 ============
+function press() {
+  if (state === 'ready') { startAttempt(0); return; }
+  if (state === 'play') { tapAt = performance.now()/1000; }
+}
+addEventListener('pointerdown', e => {
+  if (e.target.closest('button') || e.target.closest('.overlay')) return;
+  isDown = true; press();
+});
+addEventListener('pointerup', () => isDown = false);
+addEventListener('pointercancel', () => isDown = false);
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp') { isDown = true; press(); }
+});
+addEventListener('keyup', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') isDown = false;
+});
+
+// ============ リズム判定 ============
+function judge() {
+  const judgeBoost = skinEffect('judge') ? 1.18 : 1;
+  const maxWindow = 0.21 * judgeBoost;
+  while (noteJudgeIdx < level.length && level[noteJudgeIdx].t - TAP_OFFSET < songPos - maxWindow)
+    noteJudgeIdx++;
+  const prev = level[noteJudgeIdx - 1], next = level[noteJudgeIdx];
+  const prevTap = prev ? prev.t - TAP_OFFSET : null;
+  const nextTap = next ? next.t - TAP_OFFSET : null;
+  const prevD = prevTap === null ? 9 : Math.abs(songPos - prevTap);
+  const nextD = nextTap === null ? 9 : Math.abs(nextTap - songPos);
+  let d = prevD, hitIdx = noteJudgeIdx - 1;
+  if (nextD < prevD) { d = nextD; hitIdx = noteJudgeIdx; }
+  const px = player.x + B/2, py = player.y - 14;
+  if (d <= 0.07 * judgeBoost) {
+    if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
+    combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
+    runStats.p++;
+    fever = Math.min(1, fever + 0.18);
+    const mult = 1 + Math.floor(Math.min(combo, 60) / 15) * 0.25;
+    score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1));
+    judgeFlash = 'PERFECT';
+    mission('perfect10', 1); mission('combo15', combo, true);
+    floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
+    if (perfectRun % 5 === 0)
+      floats.push({ text: 'FEVER +' + perfectRun, x: px, y: py - 18, l: 1.1, c: '#ff7ad9' });
+  } else if (d <= 0.13 * judgeBoost) {
+    if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
+    combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
+    runStats.g++;
+    score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1));
+    judgeFlash = 'GREAT';
+    mission('combo15', combo, true);
+    floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
+  } else if (d <= 0.21 * judgeBoost) {
+    if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
+    combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
+    runStats.o++;
+    score += Math.round((45 + combo * 2) * (feverOn ? 2 : 1));
+    judgeFlash = 'OK';
+    mission('combo15', combo, true);
+    floats.push({ text: 'OK', x: px, y: py, l: 0.8, c: '#bdf' });
+  } else {
+    // 判定窓内にノートがないジャンプは無判定(ホールド移動でコンボ・FEVERを壊さない)
+  }
+}
+// ============ Obstacle geometry ============
+function obstacleRects(ob) {
+  const cx = player.x + B/2 + (ob.t - songPos) * SPEED;
+  const f = inFlipT(ob.t);              // 反転ゾーン内の障害物は天井側に付く
+  const gy = f ? CEIL : GROUND - B;     // 障害物が占める1マス帯の上端
+  switch (ob.type) {
+    case 'spike':  return { spikes: [{x:cx-B/2, y:gy, w:B, h:B, f}], blocks: [] };
+    case 'spike2': return { spikes: [{x:cx-B, y:gy, w:B, h:B, f},{x:cx, y:gy, w:B, h:B, f}], blocks: [] };
+    case 'block':  return { spikes: [], blocks: [{x:cx-B/2, y:gy, w:B, h:B, f}] };
+    case 'block2': return { spikes: [], blocks: [{x:cx-B, y:gy, w:B*2, h:B, f}] };
+    case 'hold':   return { spikes: [], blocks: [{x:cx-B*0.75, y:gy, w:B*1.5, h:B, f}] };
+  }
+  return { spikes: [], blocks: [] };
+}
+
+// ============ 更新 ============
+let prevT = performance.now();
+function update(dt) {
+  if (state !== 'play' && state !== 'dead') return;
+
+  if (state === 'play') {
+    songPos = actx.currentTime - musicStart + attemptOffset;
+    while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
+      pulse = 1; beatIdx++;
+      rings.push({ r: B*0.8, a: 0.35 });
+    }
+    // チェックポイント(練習モード)
+    if (practice) {
+      const pct = Math.floor(Math.max(0, songPos / duration * 100) / 25) * 25;
+      if (pct > cpPct && pct < 100) {
+        cpPct = pct; cpTime = duration * pct / 100;
+        floats.push({ text: '🚩 25%', x: player.x + B/2, y: player.y - 30, l: 1.4, c: '#8f8' });
+      }
+    }
+    // 重力方向(反転ゾーン)
+    const gdir = inFlipT(songPos) ? -1 : 1;
+    if (gdir !== lastGdir) {
+      lastGdir = gdir;
+      player.grounded = false; player.vy = 0;
+      floats.push({ text: 'FLIP!', x: player.x + B/2, y: DH/2, l: 1.1, c: '#8ff' });
+      rings.push({ r: B, a: 0.5 });
+      if (navigator.vibrate) { try { navigator.vibrate(25); } catch (e) {} }
+    }
+    // ジャンプ / 空中オーブ
+    const now = performance.now()/1000;
+    if (player.grounded && (isDown || now - tapAt < 0.1)) {
+      player.vy = -V0 * gdir; player.grounded = false; tapAt = -9;
+      holdJump = HOLD_MAX * (skinEffect('hold') ? 1.22 : 1);
+      judge();
+    } else if (!player.grounded && (isDown || now - tapAt < 0.12)) {
+      for (const orb of orbsLive) {
+        if (orb.used) continue;
+        const odx = (orb.t - songPos) * SPEED;
+        if (Math.abs(odx) > 30 || Math.abs(player.y + B/2 - orb.y) > 42) continue;
+        orb.used = true; tapAt = -9;
+        player.vy = -V0 * 0.9 * gdir; holdJump = HOLD_MAX * 0.6;
+        combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
+        fever = Math.min(1, fever + 0.15);
+        score += Math.round((150 + combo * 5) * (feverOn ? 2 : 1) * (skinEffect('score') ? 1.1 : 1));
+        judgeFlash = 'ORB';
+        mission('orb5', 1); mission('combo15', combo, true);
+        floats.push({ text: 'ORB!', x: player.x + B/2, y: player.y - 14, l: 1, c: '#ffb14a' });
+        rings.push({ r: B*0.6, a: 0.6 });
+        sfxOrb();
+        break;
+      }
+    }
+    // 物理
+    const prevBottom = player.y + B, prevTop = player.y;
+    if (!player.grounded) {
+      const holding = isDown && player.vy * gdir < 0 && holdJump > 0;
+      const holdGrav = skinEffect('hold') ? HOLD_GRAV * 0.88 : HOLD_GRAV;
+      player.vy += GRAV * gdir * (holding ? holdGrav : 1) * dt;
+      holdJump = Math.max(0, holdJump - dt);
+      player.y += player.vy * dt;
+      player.rot += (Math.PI / JUMP_T) * dt * gdir;
+      trailAcc += dt;
+      if (trailAcc > 0.045) { trailAcc = 0; trail.push({ x: player.x, y: player.y, rot: player.rot, l: 0.4, fv: feverOn }); }
+    }
+    // 接地(通常=地面/ブロック上面、反転中=天井/ブロック下面)
+    const pl = player.x + 4, pr = player.x + B - 4;
+    if (gdir === 1) {
+      let floorY = GROUND;
+      for (const ob of level) {
+        if (Math.abs(ob.t - songPos) > 1.5) continue;
+        for (const bl of obstacleRects(ob).blocks) {
+          if (bl.f) continue;
+          if (pr > bl.x && pl < bl.x + bl.w && prevBottom <= bl.y + 6) floorY = Math.min(floorY, bl.y);
+        }
+      }
+      if (!player.grounded && player.vy >= 0 && player.y + B >= floorY) {
+        player.y = floorY - B; player.vy = 0; player.grounded = true;
+        player.rot = Math.round(player.rot / (Math.PI/2)) * (Math.PI/2);
+        landAt = now;
+      }
+      if (player.grounded && player.y + B < floorY - 1 && floorY === GROUND) player.grounded = false;
+    } else {
+      let ceilY = CEIL;
+      for (const ob of level) {
+        if (Math.abs(ob.t - songPos) > 1.5) continue;
+        for (const bl of obstacleRects(ob).blocks) {
+          if (!bl.f) continue;
+          if (pr > bl.x && pl < bl.x + bl.w && prevTop >= bl.y + bl.h - 6) ceilY = Math.max(ceilY, bl.y + bl.h);
+        }
+      }
+      if (!player.grounded && player.vy <= 0 && player.y <= ceilY) {
+        player.y = ceilY; player.vy = 0; player.grounded = true;
+        player.rot = Math.round(player.rot / (Math.PI/2)) * (Math.PI/2);
+        landAt = now;
+      }
+      if (player.grounded && player.y > ceilY + 1 && ceilY === CEIL) player.grounded = false;
+    }
+    // 衝突
+    const hx = player.x + B*0.2, hw = B*0.6, hy = player.y + B*0.2, hh = B*0.6;
+    for (const ob of level) {
+      if (Math.abs(ob.t - songPos) > 1.5) continue;
+      const parts = obstacleRects(ob);
+      for (const s of parts.spikes) {
+        const sx = s.x + s.w*0.36, sw = s.w*0.28;
+        const sy = s.y + (s.f ? 0 : s.h*0.4), sh = s.h*0.6;
+        if (hx < sx+sw && hx+hw > sx && hy < sy+sh && hy+hh > sy) { die(); return; }
+      }
+      for (const bl of parts.blocks) {
+        if (player.x + B - 5 > bl.x && player.x + 5 < bl.x + bl.w &&
+            (bl.f ? (player.y < bl.y + bl.h - 9 && player.y + B > bl.y)
+                  : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { die(); return; }
+      }
+    }
+    // コイン取得
+    for (const c of coinsLive) {
+      if (c.got) continue;
+      const dx = (c.t - songPos) * SPEED;
+      if (dx > W || dx < -W * 0.5) continue;
+      const ccx = player.x + B/2 + dx;
+      const nx = Math.max(player.x, Math.min(ccx, player.x + B));
+      const ny = Math.max(player.y, Math.min(c.y, player.y + B));
+      const coinRadius = 14 * (skinEffect('coin') ? 1.4 : 1);
+      if ((ccx-nx)*(ccx-nx) + (c.y-ny)*(c.y-ny) < coinRadius*coinRadius) {
+        const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1);
+        c.got = true; coinRun += gained;
+        mission('coins30', gained);
+        if (c.risky) { score += (skinEffect('coin') ? 180 : 120) * (feverOn ? 2 : 1); mission('risky5', 1); }
+        sfxCoin();
+        for (let i = 0; i < 6; i++) {
+          const a = Math.random()*Math.PI*2, v = 40 + Math.random()*90;
+          particles.push({ x: ccx, y: c.y, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 60,
+            s: 3, l: 0.6, hue: 50 });
+        }
+      }
+    }
+    // ゴースト記録 & ニアミスボーナス
+    ghostAcc += dt;
+    if (ghostAcc > 0.08 && songPos > 0 && ghostTrace.length < 6000) {
+      ghostAcc = 0; ghostTrace.push({ t: songPos, y: player.y });
+    }
+    while (nearIdx < level.length && level[nearIdx].t <= songPos) {
+      const ob = level[nearIdx++];
+      if (ob.type === 'spike' || ob.type === 'spike2') {
+        const f = inFlipT(ob.t);
+        const clearance = f ? (player.y - (CEIL + B)) : ((GROUND - B) - (player.y + B));
+        if (clearance > -2 && clearance < 13) {   // トゲすれすれ通過
+          score += Math.round(60 * (feverOn ? 2 : 1));
+          fever = Math.min(1, fever + 0.06);
+          floats.push({ text: 'NEAR!', x: player.x + B/2, y: player.y - 26, l: 0.9, c: '#9ff' });
+        }
+      }
+    }
+    // FEVER TIME: メーター満タンで発動、7秒間スコア・コイン2倍
+    if (!feverOn && fever >= 1) {
+      feverOn = true; feverEnd = songPos + 7;
+      mission('fever2', 1);
+      floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
+      rings.push({ r: B, a: 0.8 });
+      sfxFever();
+    }
+    if (feverOn) {
+      fever = Math.max(0, (feverEnd - songPos) / 7);
+      if (songPos >= feverEnd) { feverOn = false; fever = 0; }
+    }
+    if (songPos >= duration) { clearStage(); return; }
+  }
+
+  if (state === 'dead') {
+    // コンティニュー提示中は待ち時間を延長してカウントダウン表示
+    const wait = reviveOffered ? 3400 : 1000;
+    if (reviveOffered) {
+      const left = Math.max(0, Math.ceil((wait - (performance.now() - deadAt)) / 1000));
+      $('revivebtn').innerHTML = `▶ REVIVE <img src="Asset/cosmo-coin.png" alt="" style="width:16px;height:16px;vertical-align:-2px"> ${REVIVE_COST} (${left})`;
+    }
+    if (performance.now() - deadAt > wait) {
+      reviveOffered = false; $('revivebtn').style.display = 'none';
+      if (dailyMode()) {
+        // デイリーは自動リスタートで回数を消費しない: タップ待ちのreadyへ
+        if (dailyTriesLeft() > 0) {
+          state = 'ready'; songPos = -LEAD; attemptOffset = 0;
+          lastGdir = 1; player.y = GROUND - B; player.vy = 0; player.rot = 0; player.grounded = true;
+          particles = [];
+        } else { backToMenu(); toast('DAILY 0/3'); }
+      } else startAttempt(practice ? cpTime : 0);
+    }
+  }
+
+  pulse *= Math.exp(-6 * dt);
+  shake *= Math.exp(-7 * dt);
+  if (!feverOn) fever = Math.max(0, fever - dt * 0.08);
+  for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 800*dt; p.l -= dt*1.2; }
+  particles = particles.filter(p => p.l > 0);
+  for (const f of floats) { f.y -= 28*dt; f.l -= dt*1.1; }
+  floats = floats.filter(f => f.l > 0);
+  for (const r of rings) { r.r += 170*dt; r.a -= dt*1.1; }
+  rings = rings.filter(r => r.a > 0);
+  for (const t of trail) t.l -= dt*2.2;
+  trail = trail.filter(t => t.l > 0);
+}
+
+// ============ 描画 ============
+function draw() {
+  ctx.setTransform(SC, 0, 0, SC, 0, 0);
+  if (shake > 0.3) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  const hue = STAGES[stageIdx].hue;
+  const inGame = state === 'ready' || state === 'play' || state === 'dead';
+
+  const gBg = ctx.createLinearGradient(0, 0, 0, DH);
+  gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
+  gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
+  ctx.fillStyle = gBg; ctx.fillRect(0, 0, W, DH);
+
+  const scroll = (songPos + LEAD) * SPEED;
+  ctx.save();
+  ctx.globalAlpha = 0.08; ctx.fillStyle = '#fff';
+  for (let i = 0; i < 6; i++) {
+    const bx = ((i*331 - scroll*0.25) % (W+240) + W+240) % (W+240) - 120;
+    const by = 60 + (i*97) % 170, sz = 46 + (i*53) % 60;
+    ctx.save(); ctx.translate(bx, by); ctx.rotate(0.785 + i);
+    ctx.fillRect(-sz/2, -sz/2, sz, sz); ctx.restore();
+  }
+  ctx.restore();
+
+  if (inGame || state === 'clear') {
+    ctx.fillStyle = `hsl(${hue},45%,11%)`;
+    ctx.fillRect(0, GROUND, W, DH-GROUND);
+    ctx.strokeStyle = `hsla(${hue},100%,65%,0.85)`;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(0, GROUND); ctx.lineTo(W, GROUND); ctx.stroke();
+    ctx.strokeStyle = `hsla(${hue},80%,60%,0.18)`; ctx.lineWidth = 1;
+    let gx = -(scroll % B); if (gx < 0) gx += B;
+    ctx.beginPath();
+    for (let x = gx - B; x < W; x += B) { ctx.moveTo(x, GROUND); ctx.lineTo(x, DH); }
+    ctx.stroke();
+    // 反転ゾーンが近いときだけ天井をフェードイン
+    const viewT0 = songPos - (W*0.4)/SPEED, viewT1 = songPos + (W*0.8)/SPEED;
+    const zoneVis = flipZones.some(z => z.start - 0.6 < viewT1 && z.end + 0.6 > viewT0);
+    ceilAlpha += ((zoneVis ? 1 : 0) - ceilAlpha) * 0.08;
+    if (ceilAlpha > 0.02) {
+      ctx.save(); ctx.globalAlpha = ceilAlpha;
+      ctx.fillStyle = `hsl(${hue},45%,11%)`;
+      ctx.fillRect(0, 0, W, CEIL);
+      ctx.strokeStyle = `hsla(${hue},100%,65%,0.85)`; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, CEIL); ctx.lineTo(W, CEIL); ctx.stroke();
+      ctx.strokeStyle = `hsla(${hue},80%,60%,0.18)`; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = gx - B; x < W; x += B) { ctx.moveTo(x, 0); ctx.lineTo(x, CEIL); }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  if (inGame) {
+    player.x = W * 0.3;
+    for (const ob of level) {
+      const dt0 = ob.t - songPos;
+      if (dt0 * SPEED > W || dt0 * SPEED < -W*0.5) continue;
+      const parts = obstacleRects(ob);
+      for (const s of parts.spikes) drawSpike(s, hue);
+      for (const bl of parts.blocks) drawBlock(bl, hue);
+    }
+    // コイン
+    const nowS = performance.now()/1000;
+    for (const c of coinsLive) {
+      if (c.got) continue;
+      const dx = (c.t - songPos) * SPEED;
+      if (dx > W || dx < -W*0.5) continue;
+      const ccx = player.x + B/2 + dx;
+      const ccy = c.y + Math.sin(nowS*4 + c.t*7) * 3;
+      const sq = Math.max(0.25, Math.abs(Math.cos(nowS*3 + c.t*2)));
+      ctx.save(); ctx.translate(ccx, ccy); ctx.scale(sq, 1);
+      if (coinImg.complete && coinImg.naturalWidth) {
+        const sz = c.risky ? 24 : 20;
+        ctx.drawImage(coinImg, -sz/2, -sz/2, sz, sz);
+        if (c.risky) {
+          ctx.strokeStyle = '#ff7ad9'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(0, 0, sz * 0.58, 0, 6.283); ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle = c.risky ? '#ff7ad9' : '#ffd94a';
+        ctx.beginPath(); ctx.arc(0, 0, 9, 0, 6.283); ctx.fill();
+        ctx.strokeStyle = c.risky ? '#8a1d60' : '#b8860b'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // 重力反転ポータル(青=入口 / 橙=出口)
+    for (const z of flipZones) {
+      for (const [pt, col] of [[z.start, '#7df'], [z.end, '#ffb14a']]) {
+        const pdx = (pt - songPos) * SPEED;
+        if (pdx > W || pdx < -W*0.5) continue;
+        const x = player.x + B/2 + pdx;
+        ctx.save();
+        ctx.globalAlpha = 0.75;
+        const pg = ctx.createLinearGradient(x-10, 0, x+10, 0);
+        pg.addColorStop(0, 'rgba(255,255,255,0)');
+        pg.addColorStop(0.5, col);
+        pg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = pg;
+        ctx.fillRect(x-10, CEIL, 20, GROUND-CEIL);
+        ctx.globalAlpha = 0.9; ctx.strokeStyle = col; ctx.lineWidth = 2;
+        roundRect(x-7, CEIL+4, 14, GROUND-CEIL-8, 7); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    // オーブ(空中タップで追いジャンプ)
+    for (const orb of orbsLive) {
+      if (orb.used) continue;
+      const odx = (orb.t - songPos) * SPEED;
+      if (odx > W || odx < -W*0.5) continue;
+      const ox = player.x + B/2 + odx;
+      const oy = orb.y + Math.sin(nowS*5 + orb.t*3) * 2;
+      const rr = 10 + Math.sin(nowS*6 + orb.t) * 1.5;
+      ctx.save();
+      const og = ctx.createRadialGradient(ox, oy, 2, ox, oy, rr);
+      og.addColorStop(0, '#fff6c8'); og.addColorStop(0.7, '#ffb14a'); og.addColorStop(1, 'rgba(255,177,74,0)');
+      ctx.fillStyle = og;
+      ctx.beginPath(); ctx.arc(ox, oy, rr, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(ox, oy, rr + 3 + Math.sin(nowS*8)*1.2, 0, 6.283); ctx.stroke();
+      ctx.restore();
+    }
+    // TAP! ガイド(ステージ1・未クリアのみ、最初の2つ)
+    if (stageIdx === 0 && best(0) < 100) {
+      const bounce = Math.abs(Math.sin(performance.now()/180)) * 8;
+      for (let i = 0; i < 2 && i < level.length; i++) {
+        const ob = level[i];
+        const cx = player.x + B/2 + (ob.t - TAP_OFFSET - songPos) * SPEED;
+        if (cx > -B && cx < W + B) {
+          ctx.textAlign = 'center';
+          ctx.font = '900 16px sans-serif';
+          ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffd94a';
+          ctx.strokeText('TAP!', cx, GROUND - B - 16 - bounce);
+          ctx.fillText('TAP!', cx, GROUND - B - 16 - bounce);
+          ctx.textAlign = 'left';
+        }
+      }
+    }
+    // ビートリング(キャラ周囲・非発光)
+    const pcx = player.x + B/2, pcy = player.y + B/2;
+    for (const r of rings) {
+      ctx.globalAlpha = Math.max(0, r.a);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(pcx, pcy, r.r, 0, 6.283); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // ゴースト(ベストランの再生)
+    const sp = skinSprite(skinIdx);
+    if (ghost && state === 'play' && !practice) {
+      while (ghostIdx + 3 < ghost.length && ghost[ghostIdx + 2] / 100 <= songPos) ghostIdx += 2;
+      if (ghostIdx + 3 < ghost.length && songPos >= ghost[ghostIdx] / 100) {
+        const t0 = ghost[ghostIdx] / 100, y0 = ghost[ghostIdx + 1];
+        const t1 = ghost[ghostIdx + 2] / 100, y1 = ghost[ghostIdx + 3];
+        const k = Math.min(1, Math.max(0, (songPos - t0) / Math.max(0.01, t1 - t0)));
+        ctx.save(); ctx.globalAlpha = 0.22;
+        if (sp) ctx.drawImage(sp, player.x, y0 + (y1 - y0) * k, B, B);
+        ctx.restore();
+      }
+    }
+    // 残像(FEVER中はレインボー)
+    for (const t of trail) {
+      ctx.save(); ctx.globalAlpha = Math.max(0, t.l) * 0.5;
+      if (t.fv) ctx.filter = `hue-rotate(${(performance.now()/3 + t.l*500) % 360}deg) saturate(1.8)`;
+      ctx.translate(t.x + B/2, t.y + B/2); ctx.rotate(t.rot);
+      if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
+      ctx.restore();
+    }
+    // FEVER中のオーラ
+    if (feverOn && state === 'play') {
+      ctx.save();
+      ctx.globalAlpha = 0.3 + 0.15 * Math.sin(nowS * 10);
+      ctx.strokeStyle = '#ffd94a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(pcx, pcy, B * 0.95, 0, 6.283); ctx.stroke();
+      ctx.restore();
+    }
+    // プレイヤー(着地スクワッシュ & 空中ストレッチ)
+    if (state !== 'dead') {
+      const now = performance.now()/1000;
+      let sx = 1, sy = 1;
+      const k = Math.exp(-(now - landAt) / 0.09);
+      if (player.grounded && k > 0.03) { sx = 1 + 0.28*k; sy = 1 - 0.28*k; }
+      else if (!player.grounded) { sx = 0.94; sy = 1.08; }
+      ctx.save();
+      if (now < invulnUntil) ctx.globalAlpha = 0.45 + 0.3 * Math.sin(now * 40);  // 無敵中は点滅
+      ctx.translate(pcx, lastGdir === 1 ? player.y + B - (B*sy)/2 : player.y + (B*sy)/2);
+      ctx.rotate(player.rot);
+      ctx.scale(sx, sy);
+      if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
+      else { ctx.fillStyle = '#e33'; ctx.fillRect(-B/2, -B/2, B, B); }
+      ctx.restore();
+    }
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.l);
+      ctx.fillStyle = `hsl(${p.hue},90%,60%)`;
+      ctx.fillRect(p.x - p.s/2, p.y - p.s/2, p.s, p.s);
+    }
+    ctx.globalAlpha = 1;
+    // 判定テキスト
+    for (const f of floats) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, f.l));
+      ctx.textAlign = 'center'; ctx.font = '900 15px sans-serif';
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.fillStyle = f.c;
+      ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y);
+      ctx.textAlign = 'left';
+    }
+    ctx.globalAlpha = 1;
+
+    // UI
+    const pct = Math.max(0, Math.min(100, songPos / duration * 100));
+    const bw = Math.min(W*0.42, 280);
+    ctx.fillStyle = 'rgba(255,255,255,.2)';
+    roundRect((W-bw)/2, 14, bw, 8, 4); ctx.fill();
+    ctx.fillStyle = `hsl(${hue},95%,65%)`;
+    roundRect((W-bw)/2, 14, bw * pct/100, 8, 4); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '900 15px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(Math.floor(pct) + '%', W/2, 40);
+    ctx.textAlign = 'left'; ctx.font = '800 13px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillText(STAGES[stageIdx].name + (practice ? ' 🚩' : ''), 14, 24);
+    ctx.fillText('ATTEMPT ' + Math.max(1, attempts + (state === 'ready' ? 1 : 0)) +
+      (dailyMode() ? '  ·  ' + dailyTriesLeft() + '/3' : ''), 14, 42);
+    if (coinImg.complete && coinImg.naturalWidth) ctx.drawImage(coinImg, 14, 48, 18, 18);
+    else { ctx.fillStyle = '#ffd94a'; ctx.beginPath(); ctx.arc(23, 57, 8, 0, 6.283); ctx.fill(); }
+    ctx.fillStyle = '#ffd94a';
+    ctx.fillText(String(coinRun), 36, 62);
+    ctx.fillStyle = shieldReady ? '#c792ff' : 'rgba(255,255,255,.55)';
+    ctx.font = '800 11px sans-serif';
+    ctx.fillText(currentSkin().n + ' / ' + currentSkin().desc + (shieldReady ? ' READY' : ''), 14, 78);
+    ctx.textAlign = 'right';
+    ctx.font = '900 16px sans-serif'; ctx.fillStyle = '#fff';
+    ctx.fillText('SCORE ' + score, W - 58, 26);
+    if (combo >= 2) {
+      ctx.font = '800 13px sans-serif'; ctx.fillStyle = '#ffd94a';
+      ctx.fillText('COMBO x' + combo, W - 58, 44);
+    }
+    if (judgeFlash) {
+      ctx.font = '900 12px sans-serif';
+      ctx.fillStyle = judgeFlash === 'PERFECT' ? '#ffd94a' : judgeFlash === 'GREAT' ? '#7df' : judgeFlash === 'OK' ? '#bdf' : 'rgba(255,255,255,.45)';
+      ctx.fillText(judgeFlash, W - 58, 60);
+    }
+    if (fever > 0.02) {
+      const fw = 92, fx = W - 150, fy = 67;
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      roundRect(fx, fy, fw, 6, 3); ctx.fill();
+      ctx.fillStyle = feverOn ? '#ffd94a' : '#ff7ad9';
+      roundRect(fx, fy, fw * fever, 6, 3); ctx.fill();
+      ctx.font = '800 10px sans-serif';
+      ctx.fillText(feverOn ? 'FEVER TIME!' : 'FEVER', W - 58, 78);
+    }
+    ctx.textAlign = 'left';
+
+    if (state === 'ready') {
+      const bl = 0.6 + 0.4*Math.sin(performance.now()/300);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(255,255,255,${bl})`;
+      ctx.font = '900 26px sans-serif';
+      ctx.fillText('TAP', W/2, DH*0.42);
+      ctx.font = '600 14px sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.65)';
+      ctx.fillText('♪ TAP   ↗ HOLD', W/2, DH*0.42 + 26);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  if (state === 'clear') {
+    for (const c of confetti) {
+      c.y += c.vy/60; c.x += c.vx/60; c.r += 0.05;
+      if (c.y > DH+20) { c.y = -20; c.x = Math.random()*W; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.r);
+      ctx.fillStyle = `hsl(${c.hue},90%,60%)`;
+      ctx.fillRect(-c.s/2, -c.s/2, c.s, c.s); ctx.restore();
+    }
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+function drawSpike(s, hue) {
+  ctx.beginPath();
+  if (s.f) {  // 天井から下向きのトゲ
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(s.x + s.w/2, s.y + s.h);
+    ctx.lineTo(s.x + s.w, s.y);
+  } else {
+    ctx.moveTo(s.x, s.y + s.h);
+    ctx.lineTo(s.x + s.w/2, s.y);
+    ctx.lineTo(s.x + s.w, s.y + s.h);
+  }
+  ctx.closePath();
+  const g = s.f
+    ? ctx.createLinearGradient(0, s.y + s.h, 0, s.y)
+    : ctx.createLinearGradient(0, s.y, 0, s.y + s.h);
+  g.addColorStop(0, `hsl(${hue},30%,88%)`); g.addColorStop(1, `hsl(${hue},50%,45%)`);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5; ctx.stroke();
+}
+function drawBlock(bl, hue) {
+  const g = ctx.createLinearGradient(0, bl.y, 0, bl.y + bl.h);
+  g.addColorStop(0, `hsl(${hue},55%,60%)`); g.addColorStop(1, `hsl(${hue},55%,32%)`);
+  ctx.fillStyle = g; ctx.fillRect(bl.x, bl.y, bl.w, bl.h);
+  ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5;
+  ctx.strokeRect(bl.x, bl.y, bl.w, bl.h);
+  ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(bl.x+4, bl.y+4, bl.w-8, bl.h-8);
+}
+
+// ============ メインループ ============
+const DEMO = location.search.includes('demo');
+if (DEMO) {
+  document.getElementById('menu').style.display = 'none';
+  stageIdx = 0; duration = 60; attempts = 1; beats = [];
+  level = [];
+  for (let t = 1; t < 58; t += 0.9)
+    level.push({ t, type: ['spike','spike2','block','block2'][Math.floor(t) % 4] });
+  coinDefs = level.map(o => ({ t: o.t, y: GROUND - B/2 - JUMP_H }));
+  level.forEach(o => coinDefs.push({ t: o.t + 0.45, y: GROUND - B/2 }));
+  coinsLive = coinDefs.map(c => ({ t: c.t, y: c.y, risky: !!c.risky, got: false }));
+  flipZones = [{ start: 20, end: 28 }];   // 描画確認用
+  orbDefs = [];
+  for (let t = 2.35; t < 58; t += 4.5) orbDefs.push({ t, y: GROUND - B * 2.4 });
+  orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
+  songPos = parseFloat((location.search.match(/demo=([\d.]+)/) || [])[1]) || 0;  // ?demo=21 で途中から
+  state = 'play';
+}
+function loop(t) {
+  const dt = Math.min(0.033, (t - prevT) / 1000); prevT = t;
+  if (DEMO && state === 'play') {
+    songPos += dt;
+    const now = performance.now()/1000;
+    if (player.grounded && (isDown || now - tapAt < 0.1)) { player.vy = -V0; player.grounded = false; tapAt = -9; }
+    if (!player.grounded) { player.vy += GRAV*dt; player.y += player.vy*dt; player.rot += (Math.PI/JUMP_T)*dt; }
+    if (!player.grounded && player.vy >= 0 && player.y + B >= GROUND) { player.y = GROUND-B; player.vy = 0; player.grounded = true; }
+  } else {
+    update(dt);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ============ ログインボーナス ============
+function dateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function checkLoginBonus() {
+  const today = new Date(), key = dateKey(today);
+  if (localStorage.getItem('rdash_login_last') === key) return;
+  const yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  const cont = localStorage.getItem('rdash_login_last') === dateKey(yest);
+  const streak = cont ? +(localStorage.getItem('rdash_login_streak') || 0) + 1 : 1;
+  const bonus = Math.min(20 + (streak - 1) * 10, 100);
+  $('logininfo').innerHTML = `<b>${streak}</b><br><img src="Asset/cosmo-coin.png" alt="" style="width:22px;height:22px;vertical-align:middle"> <b style="color:#ffd94a">+${bonus}</b>`;
+  $('loginclaim').onclick = () => {
+    addCoins(bonus);
+    gaCoins('Source', bonus, 'Bonus', 'Login');
+    gaDesign('Bonus:Login', bonus);
+    localStorage.setItem('rdash_login_last', key);
+    localStorage.setItem('rdash_login_streak', streak);
+    $('loginov').style.display = 'none';
+    toast(`+${bonus}`);
+    refreshMenu();
+  };
+  $('loginov').style.display = 'flex';
+}
+if (!DEMO && bootDone) checkLoginBonus();
+
+// ============ PWA ============
+if ('serviceWorker' in navigator &&
+    (location.protocol === 'https:' || ['localhost','127.0.0.1'].includes(location.hostname))) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

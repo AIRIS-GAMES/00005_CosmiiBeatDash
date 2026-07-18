@@ -1,0 +1,13 @@
+{
+  "name": "Cosmy Beat Dash",
+  "short_name": "Cosmy",
+  "description": "Tap. Jump. Feel the beat.",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#101a3a",
+  "theme_color": "#101a3a",
+  "icons": [
+    { "src": "Asset/IMG_3161.PNG", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

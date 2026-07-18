@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Start-Process -WindowStyle Hidden python -ArgumentList '-m','http.server','8765','--directory','C:\\\\games\\\\daxh'; Start-Sleep -Seconds 2; \\(Invoke-WebRequest -UseBasicParsing http://localhost:8765/index.html\\).StatusCode; \\(Invoke-WebRequest -UseBasicParsing -Method Head http://localhost:8765/Asset/stage01.mp3\\).StatusCode)",
+      "PowerShell($chrome = @\\(\"$env:ProgramFiles\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\", \"$env:LOCALAPPDATA\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe\"\\) | Where-Object { Test-Path $_ } | Select-Object -First 1; if \\($chrome\\) { & $chrome --headless --disable-gpu --window-size=800,400 --screenshot=\"$env:TEMP\\\\rdash_menu.png\" --virtual-time-budget=4000 http://localhost:8765/index.html; Test-Path \"$env:TEMP\\\\rdash_menu.png\" } else { \"no chrome\" })",
+      "PowerShell($edge = \"${env:ProgramFiles\\(x86\\)}\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\"; if \\(-not \\(Test-Path $edge\\)\\) { $edge = \"$env:ProgramFiles\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\" }; if \\(Test-Path $edge\\) { & $edge --headless=new --disable-gpu --window-size=800,400 --screenshot=\"$env:TEMP\\\\rdash_menu.png\" --virtual-time-budget=5000 http://localhost:8765/index.html | Out-Null; Start-Sleep 1; Test-Path \"$env:TEMP\\\\rdash_menu.png\" } else { \"no edge\" })",
+      "Bash(python *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/)"
+    ]
+  }
+}
