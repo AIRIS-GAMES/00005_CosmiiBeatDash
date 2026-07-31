@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#101a3a">
-<title>Cosmy Beat Dash</title>
-<meta property="og:title" content="Cosmy Beat Dash">
+<title>Cosmii Rhythm Dash</title>
+<meta property="og:title" content="Cosmii Rhythm Dash">
 <meta property="og:description" content="Tap. Jump. Feel the beat.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="Asset/IMG_3161.PNG">
@@ -63,6 +63,19 @@
   #stagecol h1 { font-size:min(7vh,34px); font-weight:900; letter-spacing:.08em;
     text-shadow:0 0 24px #4af, 0 3px 0 #123; }
   #stagecol .sub { opacity:.75; font-size:min(2.8vh,13px); margin-top:-6px; }
+  #stageSelectBtn { width:100%; padding:12px 18px; border:none; border-radius:8px;
+    background:#4af; color:#023; font-size:17px; font-weight:900; cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.4); }
+  #stageSelectBtn:active { transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.4); }
+  #stageSelect { background:linear-gradient(160deg,#101a3a,#2a1050); display:none;
+    overflow:auto; padding:max(14px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right))
+    max(14px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); }
+  #stageSelect h2 { font-size:min(7vh,32px); font-weight:900; text-shadow:0 0 20px #4af; }
+  #stageprogress { font-size:12px; opacity:.8; margin-top:-10px; }
+  #stageback { position:absolute; top:calc(10px + env(safe-area-inset-top));
+    left:calc(12px + env(safe-area-inset-left)); width:42px; height:42px; border:0;
+    border-radius:8px; background:rgba(255,255,255,.14); color:#fff; font-size:20px;
+    font-weight:900; cursor:pointer; }
   #grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
   .tile { width:min(13vh,64px); height:min(13vh,64px); border:none; border-radius:12px;
     color:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center;
@@ -152,10 +165,10 @@
     <div id="skins"></div>
   </div>
   <div id="stagecol">
-    <h1>Cosmy Beat Dash</h1>
+    <h1>Cosmii Rhythm Dash</h1>
     <div class="sub">TAP / HOLD</div>
     <button id="dailybtn"></button>
-    <div id="grid"></div>
+    <button id="stageSelectBtn">STAGE SELECT</button>
     <div id="missions"></div>
     <button id="promobanner">
       <span id="promoicon">⭐</span>
@@ -167,6 +180,13 @@
       <span class="chev">›</span>
     </button>
   </div>
+</div>
+
+<div id="stageSelect" class="overlay">
+  <button id="stageback" aria-label="Back">‹</button>
+  <h2>STAGE SELECT</h2>
+  <div id="stageprogress"></div>
+  <div id="grid"></div>
 </div>
 
 <div id="loading" class="overlay">
@@ -212,15 +232,18 @@ const CEIL = DH - GROUND;          // 重力反転ゾーンの天井位置(上�
 const REVIVE_COST = 50;            // コンティニュー費用(コイン)
 let SPEED = 380;
 
-const SONGS = ['Asset/stage01.mp3', 'Asset/stage2.mp3', 'Asset/stage03.mp3'];
-const HUES = [210, 285, 140, 25, 330, 185, 55, 260, 100, 0];
-const NSTAGE = 10;
+const ORIGINAL_SONGS = ['Asset/stage01.mp3', 'Asset/stage2.mp3', 'Asset/stage03.mp3'];
+const SONGS = ['Asset/bgm1.mp3', 'Asset/bgm2.mp3', 'Asset/bgm3.mp3', 'Asset/bgm4.mp3'];
+const HUES = [210, 285, 140, 25, 330, 185, 55, 260, 100, 0,
+  225, 300, 155, 40, 345, 200, 70, 275, 115, 15];
+const LEGACY_NSTAGE = 10;
+const NSTAGE = 20;
 const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
   name: 'STAGE ' + (i + 1),
-  file: SONGS[i % 3],
+  file: i < LEGACY_NSTAGE ? ORIGINAL_SONGS[i % ORIGINAL_SONGS.length] : SONGS[(i - LEGACY_NSTAGE) % SONGS.length],
   hue: HUES[i],
-  speed: 350 + i * 10,
-  diff: i / (NSTAGE - 1),
+  speed: i < LEGACY_NSTAGE ? 350 + i * 10 : 450 + (i - LEGACY_NSTAGE) * 6,
+  diff: i < LEGACY_NSTAGE ? i / (LEGACY_NSTAGE - 1) : 0.55 + (i - LEGACY_NSTAGE) / (NSTAGE - LEGACY_NSTAGE - 1) * 0.45,
 }));
 
 const SKINS = [
@@ -293,7 +316,7 @@ function gaCoins(flowType, amount, itemType, itemId) {
 }
 
 // ============ デイリーチャレンジ & ミッション ============
-const DAILY_IDX = NSTAGE;   // STAGES[10] = 日替わりステージ(毎日再生成)
+const DAILY_IDX = NSTAGE;   // 通常ステージの末尾に日替わりステージを追加
 const dayKey = () => dateKey(new Date());
 const dailySeedNum = () => +dayKey().replace(/-/g, '');
 function dailyCfg() {
@@ -301,7 +324,7 @@ function dailyCfg() {
   const d = new Date();
   return {
     name: 'DAILY ' + (d.getMonth() + 1) + '/' + d.getDate(),
-    file: SONGS[dailySeedNum() % 3],
+    file: SONGS[dailySeedNum() % SONGS.length],
     hue: Math.floor(rng() * 360),
     speed: 370 + Math.floor(rng() * 60),
     diff: 0.45 + rng() * 0.35,
@@ -437,12 +460,15 @@ function trimSprite(img) {
 
 // ============ オーディオ & ビート解析 ============
 let actx = null, master = null;
-function ensureAudio() {
+async function ensureAudio() {
   if (!actx) {
     actx = new (window.AudioContext || window.webkitAudioContext)();
     master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
   }
-  if (actx.state === 'suspended') actx.resume();
+  if (actx.state === 'suspended') {
+    try { await actx.resume(); } catch (e) {}
+  }
+  return actx.state === 'running';
 }
 
 function analyzeBeats(buf) {
@@ -664,6 +690,7 @@ function refreshMenu() {
   $('charname').textContent = currentSkin().n;
   $('skineffect').textContent = currentSkin().desc;
   $('cleared').textContent = '★ ' + clearedCount() + ' / ' + NSTAGE;
+  $('stageprogress').textContent = '★ ' + clearedCount() + ' / ' + NSTAGE;
   $('coinsdisp').innerHTML = `<img src="Asset/cosmo-coin.png" alt=""> <span>${totalCoins()}</span>`;
   // ステージグリッド
   const grid = $('grid'); grid.innerHTML = '';
@@ -729,6 +756,15 @@ function refreshMenu() {
 }
 refreshMenu();
 
+function openStageSelect() {
+  refreshMenu();
+  $('stageSelect').style.display = 'flex';
+  gaDesign('UI:StageSelect', 1);
+}
+function closeStageSelect() { $('stageSelect').style.display = 'none'; }
+$('stageSelectBtn').onclick = openStageSelect;
+$('stageback').onclick = closeStageSelect;
+
 function showHome() {
   bootDone = true;
   $('splash').className = 'overlay hide';
@@ -740,8 +776,7 @@ function showHome() {
 setTimeout(showHome, 2000);
 
 async function selectStage(i) {
-  ensureAudio();
-  try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
+  await ensureAudio();
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
     refreshDaily();
@@ -751,6 +786,7 @@ async function selectStage(i) {
   gaDesign('Stage:Select:' + (i === DAILY_IDX ? 'daily' : 'stage_' + String(i + 1).padStart(2, '0')), 1);
   const cfg = STAGES[i];
   $('menu').style.display = 'none';
+  $('stageSelect').style.display = 'none';
   $('clearov').style.display = 'none';
   const ck = cfg.file;   // 曲ファイル単位でキャッシュ(デイリーも共有)
   if (!cache[ck]) {
@@ -823,6 +859,7 @@ function backToMenu() {
   }
   stopMusic(); state = 'menu';
   $('menu').style.display = 'flex';
+  $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
   $('clearov').style.display = 'none';
   $('backbtn').style.display = 'none';
@@ -1066,7 +1103,7 @@ async function shareResult() {
   const r = lastClear || { stage: stageIdx, score, maxCombo, pct: 0 };
   const cfg = STAGES[r.stage];
   const url = location.origin + location.pathname;
-  const text = `Cosmy Beat Dash ${cfg.name} CLEAR!\nSCORE: ${r.score} / MAX COMBO: ${r.maxCombo}`;
+  const text = `Cosmii Rhythm Dash ${cfg.name} CLEAR!\nSCORE: ${r.score} / MAX COMBO: ${r.maxCombo}`;
   const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
   const g = c.getContext('2d');
   const bg = g.createLinearGradient(0, 0, 0, 630);
@@ -1077,7 +1114,7 @@ async function shareResult() {
   const sp = skinSprite(skinIdx);
   if (sp) g.drawImage(sp, 80, 165, 300, 300);
   g.fillStyle = '#fff'; g.font = '900 72px sans-serif';
-  g.fillText('Cosmy Beat Dash', 430, 170);
+  g.fillText('Cosmii Rhythm Dash', 430, 170);
   g.fillStyle = '#ffd94a'; g.font = '900 60px sans-serif';
   g.fillText(cfg.name + ' CLEAR!', 430, 280);
   g.fillStyle = '#fff'; g.font = '700 44px sans-serif';
@@ -1089,10 +1126,10 @@ async function shareResult() {
     const blob = await new Promise(res => c.toBlob(res, 'image/png'));
     const file = new File([blob], 'cosmy-beat-dash.png', { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Cosmy Beat Dash', text: text + '\n' + url });
+      await navigator.share({ files: [file], title: 'Cosmii Rhythm Dash', text: text + '\n' + url });
       return;
     }
-    if (navigator.share) { await navigator.share({ title: 'Cosmy Beat Dash', text, url }); return; }
+    if (navigator.share) { await navigator.share({ title: 'Cosmii Rhythm Dash', text, url }); return; }
     await navigator.clipboard.writeText(text + '\n' + url);
     toast('COPY');
   } catch (e) { /* シェアのキャンセルは無視 */ }
@@ -1159,14 +1196,35 @@ function sfxFever() {
 }
 
 // ============ 入力 ============
-function press() {
-  if (state === 'ready') { startAttempt(0); return; }
-  if (state === 'play') { tapAt = performance.now()/1000; }
+let startPending = false;
+async function press() {
+  if (state === 'ready') {
+    if (startPending) return;
+    startPending = true;
+    const audioReady = await ensureAudio();
+    startPending = false;
+    if (state !== 'ready') return;
+    if (!audioReady) { toast('TAP AGAIN'); return; }
+    startAttempt(0);
+    return;
+  }
+  if (state === 'play') {
+    if (actx && actx.state !== 'running') await ensureAudio();
+    tapAt = performance.now()/1000;
+  }
 }
 addEventListener('pointerdown', e => {
   if (e.target.closest('button') || e.target.closest('.overlay')) return;
   isDown = true; press();
 });
+if (!window.PointerEvent) {
+  addEventListener('touchstart', e => {
+    if (e.target.closest('button') || e.target.closest('.overlay')) return;
+    isDown = true; press();
+  }, { passive: true });
+  addEventListener('touchend', () => isDown = false, { passive: true });
+  addEventListener('touchcancel', () => isDown = false, { passive: true });
+}
 addEventListener('pointerup', () => isDown = false);
 addEventListener('pointercancel', () => isDown = false);
 addEventListener('keydown', e => {

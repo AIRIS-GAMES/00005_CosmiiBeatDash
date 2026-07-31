@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v12';
+const CACHE = 'rdash-v16';
 const ASSETS = [
   './',
   'index.html',
@@ -13,6 +13,10 @@ const ASSETS = [
   'Asset/stage01.mp3',
   'Asset/stage2.mp3',
   'Asset/stage03.mp3',
+  'Asset/bgm1.mp3',
+  'Asset/bgm2.mp3',
+  'Asset/bgm3.mp3',
+  'Asset/bgm4.mp3',
 ];
 
 self.addEventListener('install', e => {

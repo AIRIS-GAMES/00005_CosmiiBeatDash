@@ -1,9 +1,9 @@
 {
-  "name": "Cosmy Beat Dash",
-  "short_name": "Cosmy",
+  "name": "Cosmii Rhythm Dash",
+  "short_name": "Rhythm Dash",
   "description": "Tap. Jump. Feel the beat.",
   "start_url": ".",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "landscape",
   "background_color": "#101a3a",
   "theme_color": "#101a3a",
