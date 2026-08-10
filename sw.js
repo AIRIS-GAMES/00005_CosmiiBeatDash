@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v16';
+const CACHE = 'rdash-v20';
 const ASSETS = [
   './',
   'index.html',

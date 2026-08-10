@@ -40,7 +40,8 @@
   #charcol { display:flex; flex-direction:column; align-items:center; gap:6px;
     padding:0 3vw; flex-shrink:0; }
   #charimg { width:min(24vh,110px); height:min(24vh,110px); image-rendering:auto;
-    animation:idle 1.3s ease-in-out infinite; filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+    object-fit:contain; animation:idle 1.3s ease-in-out infinite;
+    filter:drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
   @keyframes idle {
     0%,100% { transform:translateY(0) scale(1,1); }
     30% { transform:translateY(0) scale(1.06,.92); }
@@ -100,7 +101,7 @@
   @keyframes promoin { from { opacity:0; transform:translateX(14px); } }
   #promoicon { width:42px; height:42px; border-radius:10px; background:rgba(255,255,255,.12);
     display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden; }
-  #promoicon img { width:100%; height:100%; object-fit:cover; border-radius:10px; }
+  #promoicon img { width:100%; height:100%; object-fit:cover; border-radius:10px; display:block; }
   #promotxt { display:flex; flex-direction:column; line-height:1.25; flex:1; min-width:0; }
   #promotxt small { font-size:10px; opacity:.75; font-weight:700; }
   #promotxt b { font-size:14px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -392,8 +393,21 @@ function mission(id, val, isMax) {
 
 // ============ アイコン読み込み(背景透過) ============
 const skinCache = {};
+const skinRawCache = {};
 function skinSprite(idx) {
   return skinCache[idx] || null;
+}
+function skinImage(idx) {
+  return skinCache[idx] || skinRawCache[idx] || null;
+}
+function skinImageUrl(idx) {
+  const sp = skinSprite(idx);
+  return sp ? sp.toDataURL() : (SKINS[idx] && SKINS[idx].src) || '';
+}
+function drawSkin(ctx, idx, x, y, w, h) {
+  const img = skinImage(idx);
+  if (img) ctx.drawImage(img, x, y, w, h);
+  return !!img;
 }
 function trimSprite(img) {
   const S = 256, c = document.createElement('canvas');
@@ -451,7 +465,16 @@ function trimSprite(img) {
   SKINS.forEach((skin, idx) => {
     const img = new Image();
     img.onload = () => {
-      skinCache[idx] = trimSprite(img);
+      skinRawCache[idx] = img;
+      try {
+        skinCache[idx] = trimSprite(img);
+      } catch (e) {
+        console.warn('skin trim failed:', skin.src, e);
+      }
+      refreshMenu();
+    };
+    img.onerror = () => {
+      console.warn('skin image failed:', skin.src);
       refreshMenu();
     };
     img.src = skin.src;
@@ -460,6 +483,8 @@ function trimSprite(img) {
 
 // ============ オーディオ & ビート解析 ============
 let actx = null, master = null;
+let musicEl = null, htmlMusicActive = false, nativeMusicActive = false;
+let nativeMusicStart = 0, currentMusicFile = '', currentMusicUrl = '';
 async function ensureAudio() {
   if (!actx) {
     actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -521,15 +546,36 @@ function timeoutAfter(ms, label) {
   return new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' timeout')), ms));
 }
 
+function requestAudioArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', file, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = () => {
+      const ok = xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300);
+      if (!ok) {
+        reject(new Error('audio request failed: ' + xhr.status));
+        return;
+      }
+      if (!xhr.response || xhr.response.byteLength === 0) {
+        reject(new Error('audio request empty: ' + xhr.status));
+        return;
+      }
+      resolve(xhr.response);
+    };
+    xhr.onerror = () => reject(new Error('audio request failed: ' + xhr.status));
+    xhr.onabort = () => reject(new Error('audio request aborted'));
+    xhr.send();
+  });
+}
+
 async function fetchAudioBuffer(file) {
-  const res = await Promise.race([
-    fetch(file, { cache: 'reload' }),
-    timeoutAfter(12000, 'audio fetch')
-  ]);
-  if (!res.ok) throw new Error('audio fetch failed: ' + res.status);
+  if (location.protocol === 'file:') {
+    throw new Error('audio analysis skipped on file://');
+  }
   const data = await Promise.race([
-    res.arrayBuffer(),
-    timeoutAfter(12000, 'audio read')
+    requestAudioArrayBuffer(file),
+    timeoutAfter(12000, 'audio request')
   ]);
   return Promise.race([
     new Promise((resolve, reject) => {
@@ -538,6 +584,40 @@ async function fetchAudioBuffer(file) {
     }),
     timeoutAfter(12000, 'audio decode')
   ]);
+}
+
+function useHtmlMusicPlayback() {
+  if (location.protocol === 'file:') return true;
+  try {
+    return !!(window.Capacitor && (
+      (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
+      (typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web')
+    ));
+  } catch (e) {
+    return false;
+  }
+}
+
+function nativeBgmPlugin() {
+  try {
+    if (!window.Capacitor) return null;
+    if (window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBgm) return window.Capacitor.Plugins.NativeBgm;
+    if (typeof window.Capacitor.registerPlugin === 'function') return window.Capacitor.registerPlugin('NativeBgm');
+  } catch (e) {}
+  return null;
+}
+
+function assetUrl(file) {
+  return new URL(file, location.href).href;
+}
+
+function ensureMusicElement() {
+  if (!musicEl) {
+    musicEl = new Audio();
+    musicEl.preload = 'auto';
+    musicEl.playsInline = true;
+  }
+  return musicEl;
 }
 
 function fallbackBuffer(seconds = 45) {
@@ -685,8 +765,8 @@ let lastClear = null;
 // ============ メニュー ============
 function refreshMenu() {
   // キャラ表示
-  const sp = skinSprite(skinIdx);
-  if (sp) { const u = sp.toDataURL(); $('charimg').src = u; $('clearchar').src = u; $('loginchar').src = u; }
+  const u = skinImageUrl(skinIdx);
+  if (u) { $('charimg').src = u; $('clearchar').src = u; $('loginchar').src = u; }
   $('charname').textContent = currentSkin().n;
   $('skineffect').textContent = currentSkin().desc;
   $('cleared').textContent = '★ ' + clearedCount() + ' / ' + NSTAGE;
@@ -728,8 +808,10 @@ function refreshMenu() {
     const ok = skinUnlocked(j);
     b.className = 'skinbtn' + (j === skinIdx ? ' sel' : '') + (ok ? '' : ' lock');
     if (ok) {
-      const sp2 = skinSprite(j);
-      if (sp2) { const im = document.createElement('img'); im.src = sp2.toDataURL(); b.appendChild(im); }
+      const im = document.createElement('img');
+      im.src = skinImageUrl(j);
+      im.alt = '';
+      b.appendChild(im);
       b.onclick = () => { skinIdx = j; localStorage.setItem('rdash_skin', j); gaDesign('Skin:Select:' + s.n, 1); refreshMenu(); };
     } else {
       const price = skinPrice(j);
@@ -800,7 +882,7 @@ async function selectStage(i) {
       console.warn('Audio load failed, using fallback beat track:', e);
       const buf = fallbackBuffer(45);
       cache[ck] = { buffer: buf, beats: analyzeBeats(buf) };
-      toast('♪ OFF');
+      if (location.protocol !== 'file:') toast('♪ OFF');
       gaDesign('Audio:Fallback', 1);
     }
     $('loading').style.display = 'none';
@@ -813,6 +895,8 @@ function setupRun(i, buf, bts) {
   stageIdx = i;
   const cfg = STAGES[i];
   buffer = buf; beats = bts;
+  currentMusicFile = cfg.file;
+  currentMusicUrl = assetUrl(cfg.file);
   duration = buffer.duration;
   SPEED = cfg.speed;
   const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
@@ -900,50 +984,79 @@ $('sharebtn').onclick = shareResult;
 
 // ============ 他ゲームのプロモバナー(順番に表示) ============
 const PROMO_GAMES = [
-  { id: '6784988703', url: 'https://apps.apple.com/jp/app/arcade-heaven-star-match/id6784988703',
+  { id: '6784988703', key: 'arcade_heaven_star_match', url: 'https://apps.apple.com/jp/app/arcade-heaven-star-match/id6784988703',
     title: 'Arcade Heaven Star Match', sub: 'このキャラクターのパズルゲーム', emoji: '⭐' },
-  { id: '6789935783', url: 'https://apps.apple.com/jp/app/%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-mogu-mogu-panic/id6789935783',
+  { id: '6789935783', key: 'mogu_mogu_panic', url: 'https://apps.apple.com/jp/app/%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-mogu-mogu-panic/id6789935783',
     title: 'コスミー Mogu Mogu Panic', sub: 'このキャラクターのゲーム', emoji: '🍩' },
-  { id: '6790154239', url: 'https://apps.apple.com/us/app/cosmii-arcade-%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-%E3%82%A2%E3%83%BC%E3%82%B1%E3%83%BC%E3%83%88/id6790154239',
+  { id: '6790154239', key: 'cosmii_arcade', url: 'https://apps.apple.com/us/app/cosmii-arcade-%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-%E3%82%A2%E3%83%BC%E3%82%B1%E3%83%BC%E3%83%88/id6790154239',
     title: 'Cosmii Arcade', sub: 'このキャラクターのゲーム', emoji: '🕹️' },
 ];
-let promoIdx = 0;
-function renderPromo() {
+let promoIdx = 0, promoRenderSeq = 0, promoLastImpressionSeq = -1;
+function renderPromo(trackImpression = false) {
   const g = PROMO_GAMES[promoIdx];
   $('promosub').textContent = g.sub;
   $('promotitle').textContent = g.title;
   const ic = $('promoicon');
-  if (g.iconUrl) ic.innerHTML = `<img src="${g.iconUrl}" alt="">`;
-  else ic.textContent = g.emoji;
-  $('promobanner').onclick = () => window.open(g.url, '_blank', 'noopener');
+  ic.textContent = '';
+  if (g.iconUrl) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.onerror = () => { ic.textContent = g.emoji; };
+    img.src = g.iconUrl;
+    ic.appendChild(img);
+  } else {
+    ic.textContent = g.emoji;
+  }
+  if (trackImpression && promoLastImpressionSeq !== promoRenderSeq) {
+    promoLastImpressionSeq = promoRenderSeq;
+    gaDesign('Promo:Impression:' + g.key, 1);
+  }
+  $('promobanner').onclick = () => {
+    gaDesign('Promo:Click:' + g.key, 1);
+    window.open(g.url, '_blank', 'noopener');
+  };
 }
 setInterval(() => {
   if ($('menu').style.display === 'none') return;   // メニュー表示中のみ回す
   promoIdx = (promoIdx + 1) % PROMO_GAMES.length;
+  promoRenderSeq++;
   const b = $('promobanner');
   b.classList.remove('swap'); void b.offsetWidth; b.classList.add('swap');
-  renderPromo();
+  renderPromo(true);
 }, 5000);
-renderPromo();
+renderPromo(true);
 // アプリアイコンをiTunes APIから取得(失敗時は絵文字のまま)
 (async function loadPromoIcons() {
   try {
-    const cached = localStorage.getItem('rdash_promo_icons1');
+    const cached = localStorage.getItem('rdash_promo_icons2');
     let map = cached ? JSON.parse(cached) : null;
     if (!map) {
       const ids = PROMO_GAMES.map(g => g.id).join(',');
       const res = await fetch('https://itunes.apple.com/lookup?id=' + ids + '&country=jp');
       const data = await res.json();
       map = {};
-      for (const r of (data.results || [])) map[String(r.trackId)] = r.artworkUrl100;
-      if (Object.keys(map).length) localStorage.setItem('rdash_promo_icons1', JSON.stringify(map));
+      for (const r of (data.results || [])) {
+        const icon = r.artworkUrl512 || r.artworkUrl100 || r.artworkUrl60;
+        if (icon) map[String(r.trackId)] = icon.replace(/\/\d+x\d+bb\.jpg$/, '/512x512bb.jpg');
+      }
+      if (Object.keys(map).length) localStorage.setItem('rdash_promo_icons2', JSON.stringify(map));
     }
     PROMO_GAMES.forEach(g => { if (map[g.id]) g.iconUrl = map[g.id]; });
-    renderPromo();
+    renderPromo(false);
   } catch (e) { /* オフライン等では絵文字表示のまま */ }
 })();
 
-function stopMusic() { if (src) { try { src.stop(); } catch (e) {} src = null; } }
+function stopMusic() {
+  if (src) { try { src.stop(); } catch (e) {} src = null; }
+  htmlMusicActive = false;
+  nativeMusicActive = false;
+  const nativeBgm = nativeBgmPlugin();
+  if (nativeBgm && nativeBgm.stop) nativeBgm.stop().catch(() => {});
+  if (musicEl) {
+    try { musicEl.pause(); } catch (e) {}
+  }
+}
 
 function startAttempt(offset = 0) {
   if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
@@ -976,13 +1089,58 @@ function startAttempt(offset = 0) {
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
   particles = []; floats = []; rings = []; trail = []; pulse = 0;
-  musicStart = actx.currentTime + LEAD;
+  const htmlMusic = useHtmlMusicPlayback() && currentMusicUrl;
+  musicStart = actx.currentTime + (htmlMusic ? 0 : LEAD);
   beatIdx = beats.findIndex(b => b.t >= offset - LEAD);
   if (beatIdx < 0) beatIdx = beats.length;
   noteJudgeIdx = level.findIndex(o => o.t - TAP_OFFSET >= offset - 0.5);
   if (noteJudgeIdx < 0) noteJudgeIdx = level.length;
-  src = actx.createBufferSource(); src.buffer = buffer; src.connect(master);
-  src.start(musicStart, offset);
+  const nativeBgm = useHtmlMusicPlayback() ? nativeBgmPlugin() : null;
+  if (nativeBgm && nativeBgm.play && currentMusicFile) {
+    nativeMusicActive = true;
+    nativeMusicStart = performance.now() / 1000;
+    nativeBgm.play({ file: currentMusicFile, offset, volume: 0.9 }).catch(e => {
+      nativeMusicActive = false;
+      console.warn('native music play failed:', e);
+      if (state !== 'play') return;
+      try {
+        src = actx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(master);
+        musicStart = actx.currentTime - offset;
+        src.start(actx.currentTime, offset);
+      } catch (err) {
+        console.warn('webaudio music fallback failed:', err);
+        toast('♪ OFF');
+      }
+    });
+  } else if (htmlMusic) {
+    const el = ensureMusicElement();
+    if (el.src !== currentMusicUrl) {
+      el.src = currentMusicUrl;
+      el.load();
+    }
+    try { el.currentTime = offset; } catch (e) {}
+    el.volume = 0.9;
+    htmlMusicActive = true;
+    el.play().catch(e => {
+      htmlMusicActive = false;
+      console.warn('html music play failed:', e);
+      toast('♪ OFF');
+      try {
+        src = actx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(master);
+        musicStart = actx.currentTime - offset;
+        src.start(actx.currentTime, offset);
+      } catch (err) {
+        console.warn('webaudio music fallback failed:', err);
+      }
+    });
+  } else {
+    src = actx.createBufferSource(); src.buffer = buffer; src.connect(master);
+    src.start(musicStart, offset);
+  }
   state = 'play';
   if (offset === 0) {
     gaProgress('Start');
@@ -1087,8 +1245,8 @@ function clearStage() {
     `${STAGES[stageIdx].name}  /  ATTEMPT ${attempts}<br>SCORE ${score}  MAX COMBO ${maxCombo}` +
     (practice ? '<br>NO SAVE' : (extra.length ? '<br>' + extra.join('<br>') : ''));
   $('nextbtn').style.display = (!practice && stageIdx + 1 < NSTAGE) ? 'inline-block' : 'none';
-  const sp = skinSprite(skinIdx);
-  if (sp) $('clearchar').src = sp.toDataURL();
+  const u = skinImageUrl(skinIdx);
+  if (u) $('clearchar').src = u;
   $('clearov').style.display = 'flex';
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
@@ -1111,8 +1269,7 @@ async function shareResult() {
   g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
   g.fillStyle = 'rgba(255,255,255,.06)';
   for (let i = 0; i < 8; i++) { g.save(); g.translate(150*i+60, 100+(i%3)*180); g.rotate(0.7+i); g.fillRect(-60,-60,120,120); g.restore(); }
-  const sp = skinSprite(skinIdx);
-  if (sp) g.drawImage(sp, 80, 165, 300, 300);
+  drawSkin(g, skinIdx, 80, 165, 300, 300);
   g.fillStyle = '#fff'; g.font = '900 72px sans-serif';
   g.fillText('Cosmii Rhythm Dash', 430, 170);
   g.fillStyle = '#ffd94a'; g.font = '900 60px sans-serif';
@@ -1302,7 +1459,9 @@ function update(dt) {
   if (state !== 'play' && state !== 'dead') return;
 
   if (state === 'play') {
-    songPos = actx.currentTime - musicStart + attemptOffset;
+    songPos = nativeMusicActive
+      ? performance.now() / 1000 - nativeMusicStart + attemptOffset
+      : (htmlMusicActive && musicEl ? musicEl.currentTime : actx.currentTime - musicStart + attemptOffset);
     while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
       pulse = 1; beatIdx++;
       rings.push({ r: B*0.8, a: 0.35 });
@@ -1642,7 +1801,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
     // ゴースト(ベストランの再生)
-    const sp = skinSprite(skinIdx);
+    const sp = skinImage(skinIdx);
     if (ghost && state === 'play' && !practice) {
       while (ghostIdx + 3 < ghost.length && ghost[ghostIdx + 2] / 100 <= songPos) ghostIdx += 2;
       if (ghostIdx + 3 < ghost.length && songPos >= ghost[ghostIdx] / 100) {

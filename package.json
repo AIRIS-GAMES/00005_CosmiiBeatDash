@@ -1,7 +1,7 @@
 {
   "scripts": {
     "cap:build": "node scripts/build-capacitor-www.js",
-    "cap:sync:ios": "npm run cap:build && npx cap sync ios",
+    "cap:sync:ios": "npm run cap:build && npx cap sync ios && node scripts/register-native-bgm-ios.js",
     "cap:open:ios": "npm run cap:sync:ios && npx cap open ios"
   },
   "dependencies": {
