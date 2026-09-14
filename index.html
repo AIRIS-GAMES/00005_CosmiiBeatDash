@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -14,6 +14,9 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="Asset/IMG_3161.PNG">
 <link rel="icon" href="Asset/IMG_3161.PNG">
+<link rel="stylesheet" href="collaboration.css">
+<script src="collaboration-config.js"></script>
+<script src="Asset/audio/tracks.js"></script>
 <script>
   (function(w,d,a,m){var s='script',g='GameAnalytics';w[g]=w[g]||function(){(w[g].q=w[g].q||[]).push(arguments)};a=d.createElement(s);m=d.getElementsByTagName(s)[0];a.async=1;a.src='https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js';m.parentNode.insertBefore(a,m)})(window,document);
   GameAnalytics('configureBuild', 'web-1.0.0');
@@ -123,7 +126,6 @@
   #clearov .btnrow { display:flex; gap:12px; }
   #clearov button { padding:11px 26px; font-size:16px; font-weight:800; border:none;
     border-radius:12px; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.35); }
-  #sharebtn { background:#3ddc84; color:#043; }
   #tomenu { background:#4af; color:#023; }
   #nextbtn { background:#ffd94a; color:#430; }
   .hudbtn { position:fixed; z-index:9; border:none; border-radius:10px; display:none;
@@ -150,6 +152,7 @@
     background:rgba(0,0,0,.75); color:#fff; padding:9px 18px; border-radius:20px;
     font-size:14px; z-index:50; display:none; }
 </style>
+<link rel="stylesheet" href="ui.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -169,7 +172,7 @@
     <h1>Cosmii Rhythm Dash</h1>
     <div class="sub">TAP / HOLD</div>
     <button id="dailybtn"></button>
-    <button id="stageSelectBtn">STAGE SELECT</button>
+    <button id="stageSelectBtn">ステージ選択</button>
     <div id="missions"></div>
     <button id="promobanner">
       <span id="promoicon">⭐</span>
@@ -185,7 +188,7 @@
 
 <div id="stageSelect" class="overlay">
   <button id="stageback" aria-label="Back">‹</button>
-  <h2>STAGE SELECT</h2>
+  <h2>ステージ選択</h2>
   <div id="stageprogress"></div>
   <div id="grid"></div>
 </div>
@@ -200,13 +203,12 @@
   <h2 id="cleartitle">STAGE CLEAR!</h2>
   <div id="clearstats" style="font-size:16px;opacity:.9;text-align:center"></div>
   <div class="btnrow">
-    <button id="sharebtn">↗</button>
-    <button id="nextbtn">▶</button>
-    <button id="tomenu">□</button>
+    <button id="nextbtn">次のステージ</button>
+    <button id="tomenu">ホーム</button>
   </div>
 </div>
 
-<button id="backbtn" class="hudbtn">✕</button>
+<button id="backbtn" class="hudbtn" aria-label="ホームに戻る">‹</button>
 <button id="practbtn" class="hudbtn">🚩 OFF</button>
 <button id="revivebtn" class="hudbtn">REVIVE</button>
 <div id="toast"></div>
@@ -267,7 +269,9 @@ function resize() {
   const h = portrait ? innerWidth : innerHeight;
   app.style.width = w + 'px'; app.style.height = h + 'px';
   app.style.transform = portrait ? 'rotate(90deg) translateY(-100%)' : 'none';
-  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const dpr = Math.min(devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2);
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  cv.style.top = '0px';
   cv.width = w * dpr; cv.height = h * dpr;
   SC = cv.height / DH; W = cv.width / SC;
 }
@@ -283,9 +287,12 @@ function toast(msg) {
 
 // ============ セーブデータ ============
 const best = i => +(localStorage.getItem('rdash_best_' + i) || 0);
-const setBest = (i, p) => { if (p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
-const hiScore = i => +(localStorage.getItem('rdash_hs_' + i) || 0);
-const setHiScore = (i, s) => { if (s > hiScore(i)) { localStorage.setItem('rdash_hs_' + i, s); return true; } return false; };
+const setBest = (i, p) => { if (i < NSTAGE && p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
+const recordMode = () => window.collaboration?.active() ? 'sun' : 'normal';
+let runRecordMode = 'normal';
+const recordKey = (kind,i,mode=recordMode()) => `rdash_v2_${mode}_${kind}_${i}`;
+const hiScore = (i,mode=recordMode()) => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
+const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) { localStorage.setItem(recordKey('hs',i,runRecordMode), s); return true; } return false; };
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
 const unlocked = i => i === 0 || best(i - 1) >= 60;
 let skinIdx = Math.max(0, Math.min(SKINS.length - 1, +(localStorage.getItem('rdash_skin') || 0)));
@@ -304,8 +311,8 @@ let bootDone = false;
 function gaSend(method, ...args) {
   try { if (typeof GameAnalytics === 'function') GameAnalytics(method, ...args); } catch (e) {}
 }
-const gaStageId = () => dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
-const gaMode = () => dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
+const gaStageId = () => eventMode() ? 'ohsun_2026' : dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
+const gaMode = () => eventMode() ? 'collaboration' : dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
 function gaDesign(id, value = 1) {
   gaSend('addDesignEvent', id, value);
 }
@@ -318,6 +325,8 @@ function gaCoins(flowType, amount, itemType, itemId) {
 
 // ============ デイリーチャレンジ & ミッション ============
 const DAILY_IDX = NSTAGE;   // 通常ステージの末尾に日替わりステージを追加
+const EVENT_IDX = NSTAGE + 1;
+const eventMode = () => stageIdx === EVENT_IDX;
 const dayKey = () => dateKey(new Date());
 const dailySeedNum = () => +dayKey().replace(/-/g, '');
 function dailyCfg() {
@@ -367,9 +376,10 @@ function missionSave() {
 }
 // ============ ランク評価 ============
 const RANK_ORD = { C: 1, B: 2, A: 3, S: 4 };
-const bestRank = i => localStorage.getItem('rdash_rank_' + i) || '';
+const bestRank = (i,mode=recordMode()) => localStorage.getItem(recordKey('rank',i,mode)) || '';
 const setBestRank = (i, r) => {
-  if ((RANK_ORD[r] || 0) > (RANK_ORD[bestRank(i)] || 0)) localStorage.setItem('rdash_rank_' + i, r);
+  if (i >= NSTAGE) return;
+  if ((RANK_ORD[r] || 0) > (RANK_ORD[bestRank(i,runRecordMode)] || 0)) localStorage.setItem(recordKey('rank',i,runRecordMode), r);
 };
 
 // 進捗を加算(isMax=true なら最大値更新)し、達成したら即コイン付与
@@ -481,156 +491,7 @@ function trimSprite(img) {
   });
 })();
 
-// ============ オーディオ & ビート解析 ============
-let actx = null, master = null;
-let musicEl = null, htmlMusicActive = false, nativeMusicActive = false;
-let nativeMusicStart = 0, currentMusicFile = '', currentMusicUrl = '';
-async function ensureAudio() {
-  if (!actx) {
-    actx = new (window.AudioContext || window.webkitAudioContext)();
-    master = actx.createGain(); master.gain.value = 0.9; master.connect(actx.destination);
-  }
-  if (actx.state === 'suspended') {
-    try { await actx.resume(); } catch (e) {}
-  }
-  return actx.state === 'running';
-}
-
-function analyzeBeats(buf) {
-  const sr = buf.sampleRate, hop = 512, win = 1024;
-  const a = buf.getChannelData(0);
-  const b = buf.numberOfChannels > 1 ? buf.getChannelData(1) : a;
-  const n = Math.max(1, Math.floor((a.length - win) / hop));
-  const en = new Float32Array(n);
-  for (let i = 0; i < n; i++) {
-    let s = 0, o = i * hop;
-    for (let j = 0; j < win; j += 2) { const v = (a[o+j]+b[o+j])*0.5; s += v*v; }
-    en[i] = s;
-  }
-  const flux = new Float32Array(n);
-  for (let i = 1; i < n; i++) flux[i] = Math.max(0, en[i]-en[i-1]);
-  let gm = 0; for (let i = 0; i < n; i++) gm += flux[i]; gm /= n;
-  const beats = [];
-  const R = 16;
-  for (let i = 3; i < n-3; i++) {
-    let lm = 0, c = 0;
-    for (let j = Math.max(0, i-R); j < Math.min(n, i+R); j++) { lm += flux[j]; c++; }
-    lm /= c;
-    if (flux[i] > lm*1.7 + gm*0.12 &&
-        flux[i] >= flux[i-1] && flux[i] >= flux[i-2] &&
-        flux[i] >= flux[i+1] && flux[i] >= flux[i+2]) {
-      beats.push({ t: (i*hop + win/2)/sr, s: flux[i]/(lm+1e-9) });
-    }
-  }
-  if (beats.length < buf.duration * 0.6) {
-    beats.length = 0;
-    for (let t = 0.5; t < buf.duration - 1; t += 0.5) beats.push({ t, s: 1 });
-  }
-  return beats;
-}
-
-function cachedBeats(file, buf) {
-  const key = 'rdash_bc1_' + file;
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw) return JSON.parse(raw).map(([t, s]) => ({ t, s }));
-  } catch (e) {}
-  const beats = analyzeBeats(buf);
-  try {
-    localStorage.setItem(key, JSON.stringify(beats.map(o => [+o.t.toFixed(3), +o.s.toFixed(2)])));
-  } catch (e) {}
-  return beats;
-}
-
-function timeoutAfter(ms, label) {
-  return new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' timeout')), ms));
-}
-
-function requestAudioArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', file, true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = () => {
-      const ok = xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300);
-      if (!ok) {
-        reject(new Error('audio request failed: ' + xhr.status));
-        return;
-      }
-      if (!xhr.response || xhr.response.byteLength === 0) {
-        reject(new Error('audio request empty: ' + xhr.status));
-        return;
-      }
-      resolve(xhr.response);
-    };
-    xhr.onerror = () => reject(new Error('audio request failed: ' + xhr.status));
-    xhr.onabort = () => reject(new Error('audio request aborted'));
-    xhr.send();
-  });
-}
-
-async function fetchAudioBuffer(file) {
-  if (location.protocol === 'file:') {
-    throw new Error('audio analysis skipped on file://');
-  }
-  const data = await Promise.race([
-    requestAudioArrayBuffer(file),
-    timeoutAfter(12000, 'audio request')
-  ]);
-  return Promise.race([
-    new Promise((resolve, reject) => {
-      const p = actx.decodeAudioData(data.slice(0), resolve, reject);
-      if (p && p.then) p.then(resolve, reject);
-    }),
-    timeoutAfter(12000, 'audio decode')
-  ]);
-}
-
-function useHtmlMusicPlayback() {
-  if (location.protocol === 'file:') return true;
-  try {
-    return !!(window.Capacitor && (
-      (typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
-      (typeof window.Capacitor.getPlatform === 'function' && window.Capacitor.getPlatform() !== 'web')
-    ));
-  } catch (e) {
-    return false;
-  }
-}
-
-function nativeBgmPlugin() {
-  try {
-    if (!window.Capacitor) return null;
-    if (window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBgm) return window.Capacitor.Plugins.NativeBgm;
-    if (typeof window.Capacitor.registerPlugin === 'function') return window.Capacitor.registerPlugin('NativeBgm');
-  } catch (e) {}
-  return null;
-}
-
-function assetUrl(file) {
-  return new URL(file, location.href).href;
-}
-
-function ensureMusicElement() {
-  if (!musicEl) {
-    musicEl = new Audio();
-    musicEl.preload = 'auto';
-    musicEl.playsInline = true;
-  }
-  return musicEl;
-}
-
-function fallbackBuffer(seconds = 45) {
-  const sr = actx.sampleRate;
-  const buf = actx.createBuffer(1, sr * seconds | 0, sr);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) {
-    const t = i / sr;
-    const beat = Math.exp(-((t % 0.5) * 18));
-    d[i] = Math.sin(t * 440 * Math.PI * 2) * 0.08 * beat;
-  }
-  return buf;
-}
+// Audio playback lives in html-audio.js; beat maps are prepared offline.
 
 function mulberry32(seed) {
   return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
@@ -739,7 +600,7 @@ function buildLevel(beats, duration, seed, diff) {
 // ============ ゲーム状態 ============
 let state = 'menu';
 let stageIdx = 0, buffer = null, beats = [], level = [], duration = 0;
-let attempts = 0, songPos = -LEAD, musicStart = 0, src = null, attemptOffset = 0;
+let attempts = 0, songPos = -LEAD, attemptOffset = 0;
 let beatIdx = 0, noteJudgeIdx = 0, pulse = 0, deadAt = 0;
 let score = 0, combo = 0, maxCombo = 0;
 let perfectRun = 0, fever = 0, judgeFlash = '';
@@ -747,20 +608,28 @@ let practice = false, cpPct = 0, cpTime = 0;
 let shieldReady = false, invulnUntil = 0;
 let particles = [], confetti = [], floats = [], rings = [], trail = [];
 let coinDefs = [], coinsLive = [], coinRun = 0;
-let pendingBuy = null;
 let flipZones = [], orbDefs = [], orbsLive = [];
 let lastGdir = 1, ceilAlpha = 0;
-let feverOn = false, feverEnd = 0;
+let feverOn = false, feverEnd = 0, feverLength = 7;
+let feverGraceUntil = 0;
+const feverProtected = () => !!window.sunRhythm?.enabled() && (feverOn || performance.now() / 1000 < feverGraceUntil);
 let revivesUsed = 0, reviveOffered = false, deathPos = 0;
 let shake = 0, nearIdx = 0;
 let runStats = { p: 0, g: 0, o: 0 };   // ランク評価用の判定カウント
+const judgedNotes = new Set(), collectedOrbs = new Set(), awardedNear = new Set();
+let settledCoins = 0;
+function settleRunCoins() {
+  const pending = Math.max(0, coinRun - settledCoins);
+  if (!practice && pending) addCoins(pending);
+  settledCoins = coinRun;
+  return pending;
+}
 let ghost = null, ghostIdx = 0, ghostTrace = [], ghostAcc = 0;
 const inFlipT = t => { for (const z of flipZones) if (t >= z.start && t < z.end) return true; return false; };
 const player = { x: 0, y: GROUND - B, vy: 0, rot: 0, grounded: true };
 let landAt = -9, trailAcc = 0, holdJump = 0;
 let isDown = false, tapAt = -9;
 const cache = {};
-let lastClear = null;
 
 // ============ メニュー ============
 function refreshMenu() {
@@ -782,7 +651,7 @@ function refreshMenu() {
       ? (i + 1) + (best(i) ? `<small>${best(i)}%${bestRank(i) ? ' ' + bestRank(i) : ''}</small>` : '<small>&nbsp;</small>')
       : '🔒';
     if (unlocked(i)) b.onclick = () => selectStage(i);
-    else b.onclick = () => toast('60%');
+    else b.onclick = () => toast('前のステージを60%進めると解放');
     grid.appendChild(b);
   }
   // デイリー & ミッション
@@ -816,8 +685,8 @@ function refreshMenu() {
     } else {
       const price = skinPrice(j);
       b.onclick = () => {
-        if (pendingBuy === j) {
-          pendingBuy = null;
+        if (totalCoins()<price) {toast(`${s.n}：${s.need}ステージクリア、または${price}コインで解放（所持${totalCoins()}）`);return;}
+        if (confirm(`${s.n}を${price}コインで解放しますか？\n所持：${totalCoins()}コイン`)) {
           if (spendCoins(price)) {
             localStorage.setItem('rdash_skinbuy_' + j, '1');
             skinIdx = j; localStorage.setItem('rdash_skin', j);
@@ -826,15 +695,13 @@ function refreshMenu() {
             toast(`✓ ${s.n}`);
             refreshMenu();
           } else toast(`${price} / ${totalCoins()}`);
-        } else {
-          pendingBuy = j;
-          toast(`${s.n}: ★${s.need} / ${price}`);
         }
       };
     }
     b.title = `${s.n}: ${s.desc}`;
     sk.appendChild(b);
   });
+  window.gameUI?.refresh();
 }
 refreshMenu();
 
@@ -858,6 +725,8 @@ function showHome() {
 setTimeout(showHome, 2000);
 
 async function selectStage(i) {
+  if (i === EVENT_IDX && !window.collaboration?.active()) return;
+  window.collaboration?.setPlaying(i !== DAILY_IDX);
   await ensureAudio();
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
@@ -865,6 +734,7 @@ async function selectStage(i) {
     if (dailyTriesLeft() <= 0) { toast('DAILY 0/3'); return; }
   }
   stageIdx = i;
+  if (i < NSTAGE) localStorage.setItem('rdash_last_stage', String(i));
   gaDesign('Stage:Select:' + (i === DAILY_IDX ? 'daily' : 'stage_' + String(i + 1).padStart(2, '0')), 1);
   const cfg = STAGES[i];
   $('menu').style.display = 'none';
@@ -875,44 +745,44 @@ async function selectStage(i) {
     $('loading').style.display = 'flex';
     try {
       $('loadmsg').textContent = '♪';
-      const buf = await fetchAudioBuffer(cfg.file);
-      $('loadmsg').textContent = '...';
-      cache[ck] = { buffer: buf, beats: cachedBeats(cfg.file, buf) };
+      const track = AUDIO_TRACKS[cfg.file];
+      if (!track) throw new Error('Missing prepared audio: '+cfg.file);
+      let preparedBeats=track.beats;
+      try{const saved=JSON.parse(localStorage.getItem('rdash_bc1_'+cfg.file)||'null');if(saved?.length)preparedBeats=saved.map(([t,s])=>({t,s}));}catch{}
+      cache[ck] = {buffer:{duration:track.duration},beats:preparedBeats};
     } catch (e) {
-      console.warn('Audio load failed, using fallback beat track:', e);
-      const buf = fallbackBuffer(45);
-      cache[ck] = { buffer: buf, beats: analyzeBeats(buf) };
-      if (location.protocol !== 'file:') toast('♪ OFF');
-      gaDesign('Audio:Fallback', 1);
+      $('loading').style.display='none';backToMenu();toast('音声データを読み込めませんでした');return;
     }
     $('loading').style.display = 'none';
   }
+  if (i === EVENT_IDX && !window.collaboration?.active()) { backToMenu(); return; }
   setupRun(i, cache[ck].buffer, cache[ck].beats);
 }
 
 // ステージ準備の共通処理(通常/デイリー/MY MUSIC)
 function setupRun(i, buf, bts) {
+  runRecordMode = recordMode();
   stageIdx = i;
   const cfg = STAGES[i];
   buffer = buf; beats = bts;
-  currentMusicFile = cfg.file;
-  currentMusicUrl = assetUrl(cfg.file);
-  duration = buffer.duration;
+  currentMusicUrl = assetUrl(AUDIO_TRACKS[cfg.file].playback);
+  const preparedMusic=ensureMusicElement();preparedMusic.pause();if(preparedMusic.src!==currentMusicUrl){preparedMusic.src=currentMusicUrl;preparedMusic.load();}
+  duration = Math.min(buffer.duration, cfg.duration || Infinity);
   SPEED = cfg.speed;
   const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
   level = built.obs; coinDefs = built.coins;
   flipZones = built.zones; orbDefs = built.orbs;
-  coinsLive = coinDefs.map(c => ({ t: c.t, y: c.y, risky: !!c.risky, got: false }));
+  coinsLive = coinDefs.map(c => ({ ...c, got: false }));
   orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
   coinRun = 0;
   lastGdir = 1; ceilAlpha = 0; feverOn = false; fever = 0;
   attempts = 0; cpPct = 0; cpTime = 0;
   ghost = null; ghostIdx = 0;
   if (i < NSTAGE) {   // デイリーはゴーストなし
-    try { const raw = localStorage.getItem('rdash_ghost_' + i); if (raw) ghost = JSON.parse(raw); } catch (e) {}
+    try { const raw = localStorage.getItem(recordKey('ghost',i,runRecordMode)); if (raw) ghost = JSON.parse(raw); } catch (e) {}
   }
   $('backbtn').style.display = 'block';
-  if (i === DAILY_IDX) {   // デイリーは練習モードなし
+  if (i === DAILY_IDX || i === EVENT_IDX) {   // 日替わりとイベントは練習モードなし
     practice = false;
     const pb = $('practbtn');
     pb.textContent = '🚩 OFF'; pb.className = 'hudbtn'; pb.style.display = 'none';
@@ -923,25 +793,29 @@ function setupRun(i, buf, bts) {
 
 // ゴースト: ベストラン(スコア更新時)の軌跡を保存して半透明で再生する
 function saveGhost() {
+  if (stageIdx >= NSTAGE) return;
   if (ghostTrace.length < 10) return;
   const flat = [];
   for (const p of ghostTrace) flat.push(Math.round(p.t * 100), Math.round(p.y));
-  try { localStorage.setItem('rdash_ghost_' + stageIdx, JSON.stringify(flat)); } catch (e) {}
+  try { localStorage.setItem(recordKey('ghost',stageIdx,runRecordMode), JSON.stringify(flat)); } catch (e) {}
 }
 
 function backToMenu() {
+  window.gameSafety?.dismiss();
   // 中断時もベスト%を保存
   if ((state === 'play' || state === 'dead') && songPos > 0)
     gaDesign('Run:Exit:' + gaStageId(), Math.max(0, Math.min(100, Math.round(songPos / duration * 100))));
-  if ((state === 'play' || state === 'dead') && !practice && !dailyMode() && songPos > 0)
+  if ((state === 'play' || state === 'paused' || state === 'dead') && !practice && !dailyMode() && songPos > 0)
     setBest(stageIdx, Math.min(99, Math.floor(songPos / duration * 100)));
   missionSave();
-  if (state === 'play' && !practice && coinRun > 0) {
-    addCoins(coinRun);
-    gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_exit');
+  if ((state === 'play' || state === 'paused') && !practice && coinRun > 0) {
+    const banked=settleRunCoins();
+    gaCoins('Source', banked, 'Gameplay', gaStageId() + '_exit');
     coinRun = 0;
   }
   stopMusic(); state = 'menu';
+  window.collaboration?.setPlaying(false);
+  if (eventMode()) stageIdx = 0;
   $('menu').style.display = 'flex';
   $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
@@ -955,11 +829,14 @@ function backToMenu() {
 $('backbtn').onclick = backToMenu;
 $('tomenu').onclick = backToMenu;
 $('nextbtn').onclick = () => {
+  if (eventMode() || practice || stageIdx === NSTAGE - 1) { selectStage(stageIdx); return; }
+  if (dailyMode()) { if (dailyTriesLeft() > 0) selectStage(DAILY_IDX); else backToMenu(); return; }
   const n = stageIdx + 1;
   if (n < NSTAGE && unlocked(n)) selectStage(n);
   else backToMenu();
 };
 $('practbtn').onclick = () => {
+  if (state !== 'ready') { toast('練習モードは開始前に変更できます'); return; }
   practice = !practice;
   const b = $('practbtn');
   b.textContent = '🚩 ' + (practice ? 'ON' : 'OFF');
@@ -980,7 +857,6 @@ $('revivebtn').onclick = () => {
   invulnUntil = performance.now()/1000 + 1.2;
   sfxCoin();
 };
-$('sharebtn').onclick = shareResult;
 
 // ============ 他ゲームのプロモバナー(順番に表示) ============
 const PROMO_GAMES = [
@@ -1047,18 +923,9 @@ renderPromo(true);
   } catch (e) { /* オフライン等では絵文字表示のまま */ }
 })();
 
-function stopMusic() {
-  if (src) { try { src.stop(); } catch (e) {} src = null; }
-  htmlMusicActive = false;
-  nativeMusicActive = false;
-  const nativeBgm = nativeBgmPlugin();
-  if (nativeBgm && nativeBgm.stop) nativeBgm.stop().catch(() => {});
-  if (musicEl) {
-    try { musicEl.pause(); } catch (e) {}
-  }
-}
 
 function startAttempt(offset = 0) {
+  if (eventMode() && !window.collaboration?.active()) { backToMenu(); return; }
   if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
     if (dailyTriesLeft() <= 0) { backToMenu(); toast('DAILY 0/3'); return; }
     useDailyTry();
@@ -1067,9 +934,11 @@ function startAttempt(offset = 0) {
   attempts++;
   stopMusic();
   if (offset === 0) {
+    window.collaboration?.resetRun();
     cpPct = 0; cpTime = 0; score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
-    coinRun = 0; revivesUsed = 0;
-    coinsLive = coinDefs.map(c => ({ t: c.t, y: c.y, risky: !!c.risky, got: false }));
+    coinRun = 0; settledCoins = 0; revivesUsed = 0;
+    judgedNotes.clear(); collectedOrbs.clear(); awardedNear.clear();
+    coinsLive = coinDefs.map(c => ({ ...c, got: false }));
     runStats = { p: 0, g: 0, o: 0 };
     ghostTrace = []; ghostAcc = 0;
   } else {
@@ -1080,8 +949,9 @@ function startAttempt(offset = 0) {
   ghostIdx = 0;
   attemptOffset = offset;
   feverOn = false; feverEnd = 0;
+  feverGraceUntil = 0;
   reviveOffered = false; $('revivebtn').style.display = 'none';
-  orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
+  orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: collectedOrbs.has(o.t) }));
   lastGdir = inFlipT(offset - LEAD) ? -1 : 1;   // 助走開始時点の重力向き
   player.y = lastGdir === -1 ? CEIL : GROUND - B;
   player.vy = 0; player.rot = 0; player.grounded = true;
@@ -1089,58 +959,7 @@ function startAttempt(offset = 0) {
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
   particles = []; floats = []; rings = []; trail = []; pulse = 0;
-  const htmlMusic = useHtmlMusicPlayback() && currentMusicUrl;
-  musicStart = actx.currentTime + (htmlMusic ? 0 : LEAD);
-  beatIdx = beats.findIndex(b => b.t >= offset - LEAD);
-  if (beatIdx < 0) beatIdx = beats.length;
-  noteJudgeIdx = level.findIndex(o => o.t - TAP_OFFSET >= offset - 0.5);
-  if (noteJudgeIdx < 0) noteJudgeIdx = level.length;
-  const nativeBgm = useHtmlMusicPlayback() ? nativeBgmPlugin() : null;
-  if (nativeBgm && nativeBgm.play && currentMusicFile) {
-    nativeMusicActive = true;
-    nativeMusicStart = performance.now() / 1000;
-    nativeBgm.play({ file: currentMusicFile, offset, volume: 0.9 }).catch(e => {
-      nativeMusicActive = false;
-      console.warn('native music play failed:', e);
-      if (state !== 'play') return;
-      try {
-        src = actx.createBufferSource();
-        src.buffer = buffer;
-        src.connect(master);
-        musicStart = actx.currentTime - offset;
-        src.start(actx.currentTime, offset);
-      } catch (err) {
-        console.warn('webaudio music fallback failed:', err);
-        toast('♪ OFF');
-      }
-    });
-  } else if (htmlMusic) {
-    const el = ensureMusicElement();
-    if (el.src !== currentMusicUrl) {
-      el.src = currentMusicUrl;
-      el.load();
-    }
-    try { el.currentTime = offset; } catch (e) {}
-    el.volume = 0.9;
-    htmlMusicActive = true;
-    el.play().catch(e => {
-      htmlMusicActive = false;
-      console.warn('html music play failed:', e);
-      toast('♪ OFF');
-      try {
-        src = actx.createBufferSource();
-        src.buffer = buffer;
-        src.connect(master);
-        musicStart = actx.currentTime - offset;
-        src.start(actx.currentTime, offset);
-      } catch (err) {
-        console.warn('webaudio music fallback failed:', err);
-      }
-    });
-  } else {
-    src = actx.createBufferSource(); src.buffer = buffer; src.connect(master);
-    src.start(musicStart, offset);
-  }
+  playTrack(offset, LEAD);
   state = 'play';
   if (offset === 0) {
     gaProgress('Start');
@@ -1150,8 +969,10 @@ function startAttempt(offset = 0) {
   }
 }
 
+
 function die() {
   const nowT = performance.now() / 1000;
+  if (state === 'play' && feverProtected()) return;
   if (state === 'play' && nowT < invulnUntil) return;   // シールド後の無敵中
   if (shieldReady && state === 'play') {
     shieldReady = false;
@@ -1180,8 +1001,8 @@ function die() {
     gaDesign('Run:FailPct:' + gaStageId(), Math.max(0, Math.min(100, Math.round(songPos / duration * 100))));
     gaDesign('Run:FailScore:' + gaStageId(), score);
     if (coinRun > 0) {
-      addCoins(coinRun);   // 集めたコインは死んでも持ち帰れる
-      gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_fail');
+      const banked=settleRunCoins();   // 未精算分だけ持ち帰る。復活後も再加算しない。
+      gaCoins('Source', banked, 'Gameplay', gaStageId() + '_fail');
     }
     mission('score3k', score, true); mission('combo15', maxCombo, true);
     missionSave();
@@ -1203,32 +1024,41 @@ function die() {
 }
 
 function clearStage() {
+  if (state !== 'play') return;
   stopMusic(); state = 'clear';
   const extra = [];
+  let isNewBest=false;
   if (!practice) {
     if (coinRun > 0) {
-      addCoins(coinRun);
-      gaCoins('Source', coinRun, 'Gameplay', gaStageId() + '_clear');
+      const banked=settleRunCoins();
+      gaCoins('Source', banked, 'Gameplay', gaStageId() + '_clear');
       extra.push(`<span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><img src="Asset/cosmo-coin.png" alt="" style="width:20px;height:20px;object-fit:contain"> +${coinRun}</span>`);
     }
     mission('clear1', 1); mission('score3k', score, true); mission('combo15', maxCombo, true);
     missionSave();
-    if (dailyMode()) {
-      if (setDailyScore(score)) extra.push('🏆 DAILY BEST!');
+    if (eventMode()) {
+      isNewBest=!!window.collaboration?.complete(extra);
+    } else if (dailyMode()) {
+      isNewBest=setDailyScore(score);
+      if (isNewBest) extra.push('🏆 DAILY BEST!');
     } else {
       const before = clearedCount();
       setBest(stageIdx, 100);
       const after = clearedCount();
       const newHS = setHiScore(stageIdx, score);
-      if (newHS) extra.push('🏆 NEW RECORD!');
-      if (newHS || !localStorage.getItem('rdash_ghost_' + stageIdx)) saveGhost();
+      isNewBest=newHS;
+      if (newHS) extra.push('🏆 自己ベスト更新！');
+      extra.push(runRecordMode==='sun'?'コラボ記録':'通常記録');
+      const sunStats=window.sunRhythm?.inspect();
+      if(sunStats?.feverCount)extra.push(`FEVER ${sunStats.feverCount}回・${sunStats.feverSeconds.toFixed(1)}秒`);
+      if (newHS || !localStorage.getItem(recordKey('ghost',stageIdx,runRecordMode))) saveGhost();
       for (const s of SKINS) if (before < s.need && after >= s.need)
         extra.push(`🎁 ${s.n}`);
       if (stageIdx + 1 < NSTAGE && after > before) extra.push(`🔓 ${STAGES[stageIdx+1].name}`);
     }
   }
   // ランク評価: PERFECT/GREAT/OK の精度から算出
-  const acc = (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, level.length);
+  const acc = Math.min(1, (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, level.length));
   const rank = acc >= 0.9 ? 'S' : acc >= 0.7 ? 'A' : acc >= 0.5 ? 'B' : 'C';
   if (!practice && !dailyMode()) setBestRank(stageIdx, rank);
   if (!practice) {
@@ -1237,14 +1067,17 @@ function clearStage() {
     gaDesign('Run:Rank:' + rank, 1);
     gaDesign('Run:Combo:' + gaStageId(), maxCombo);
   }
-  lastClear = { stage: stageIdx, score, maxCombo, pct: 100, rank };
-  $('cleartitle').textContent = practice ? 'PRACTICE CLEAR!' : 'STAGE CLEAR!';
+  $('cleartitle').textContent = practice ? '練習クリア' : 'ステージクリア！';
   const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
   $('clearstats').innerHTML =
-    `<span style="font-size:30px;font-weight:900;color:${rankCol};text-shadow:0 0 14px ${rankCol}">RANK ${rank}</span><br>` +
-    `${STAGES[stageIdx].name}  /  ATTEMPT ${attempts}<br>SCORE ${score}  MAX COMBO ${maxCombo}` +
-    (practice ? '<br>NO SAVE' : (extra.length ? '<br>' + extra.join('<br>') : ''));
-  $('nextbtn').style.display = (!practice && stageIdx + 1 < NSTAGE) ? 'inline-block' : 'none';
+    `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
+    `<p class="result-summary">${eventMode()?'おっ！サン コラボ':STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
+    (isNewBest?'<p class="result-best">自己ベスト更新！</p>':'') +
+    `<div class="result-bottom">${practice?'<span>練習モード</span>':`<span class="result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン">＋${coinRun}</span>`}<button id="result-details-open" type="button">詳細</button></div>` +
+    `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,level.length-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
+  $('result-details-open').onclick=()=>window.openResultDetails();
+  $('nextbtn').style.display = 'inline-block';
+  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : eventMode() || practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
   $('clearov').style.display = 'flex';
@@ -1256,101 +1089,7 @@ function clearStage() {
   sfxClear();
 }
 
-// ============ シェア ============
-async function shareResult() {
-  const r = lastClear || { stage: stageIdx, score, maxCombo, pct: 0 };
-  const cfg = STAGES[r.stage];
-  const url = location.origin + location.pathname;
-  const text = `Cosmii Rhythm Dash ${cfg.name} CLEAR!\nSCORE: ${r.score} / MAX COMBO: ${r.maxCombo}`;
-  const c = document.createElement('canvas'); c.width = 1200; c.height = 630;
-  const g = c.getContext('2d');
-  const bg = g.createLinearGradient(0, 0, 0, 630);
-  bg.addColorStop(0, `hsl(${cfg.hue},60%,16%)`); bg.addColorStop(1, `hsl(${cfg.hue+30},65%,30%)`);
-  g.fillStyle = bg; g.fillRect(0, 0, 1200, 630);
-  g.fillStyle = 'rgba(255,255,255,.06)';
-  for (let i = 0; i < 8; i++) { g.save(); g.translate(150*i+60, 100+(i%3)*180); g.rotate(0.7+i); g.fillRect(-60,-60,120,120); g.restore(); }
-  drawSkin(g, skinIdx, 80, 165, 300, 300);
-  g.fillStyle = '#fff'; g.font = '900 72px sans-serif';
-  g.fillText('Cosmii Rhythm Dash', 430, 170);
-  g.fillStyle = '#ffd94a'; g.font = '900 60px sans-serif';
-  g.fillText(cfg.name + ' CLEAR!', 430, 280);
-  g.fillStyle = '#fff'; g.font = '700 44px sans-serif';
-  g.fillText(`SCORE ${r.score}` + (r.rank ? `   RANK ${r.rank}` : ''), 430, 370);
-  g.fillText(`MAX COMBO ${r.maxCombo}`, 430, 440);
-  g.fillStyle = 'rgba(255,255,255,.7)'; g.font = '600 30px sans-serif';
-  g.fillText('TAP / HOLD / BEAT', 430, 530);
-  try {
-    const blob = await new Promise(res => c.toBlob(res, 'image/png'));
-    const file = new File([blob], 'cosmy-beat-dash.png', { type: 'image/png' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Cosmii Rhythm Dash', text: text + '\n' + url });
-      return;
-    }
-    if (navigator.share) { await navigator.share({ title: 'Cosmii Rhythm Dash', text, url }); return; }
-    await navigator.clipboard.writeText(text + '\n' + url);
-    toast('COPY');
-  } catch (e) { /* シェアのキャンセルは無視 */ }
-}
 
-// ============ SFX ============
-function sfxDeath() {
-  if (!actx) return;
-  const n = actx.createBufferSource();
-  const b = actx.createBuffer(1, actx.sampleRate*0.35|0, actx.sampleRate);
-  const d = b.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 2.2);
-  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
-  n.buffer = b; n.connect(f); f.connect(master); n.start();
-}
-function sfxClear() {
-  if (!actx) return;
-  [523, 659, 784, 1047].forEach((fq, i) => {
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = 'triangle'; o.frequency.value = fq;
-    const t0 = actx.currentTime + i*0.13;
-    g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.35, t0+0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, t0+0.5);
-    o.connect(g); g.connect(master); o.start(t0); o.stop(t0+0.55);
-  });
-}
-
-function sfxCoin() {
-  if (!actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = 'square';
-  const t0 = actx.currentTime;
-  o.frequency.setValueAtTime(988, t0);
-  o.frequency.setValueAtTime(1319, t0 + 0.07);
-  g.gain.setValueAtTime(0.10, t0);
-  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.2);
-}
-
-function sfxOrb() {
-  if (!actx) return;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = 'sine';
-  const t0 = actx.currentTime;
-  o.frequency.setValueAtTime(1046, t0);
-  o.frequency.exponentialRampToValueAtTime(1568, t0 + 0.09);
-  g.gain.setValueAtTime(0.14, t0);
-  g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
-  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.18);
-}
-
-function sfxFever() {
-  if (!actx) return;
-  [659, 784, 988, 1319].forEach((fq, i) => {
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = 'square'; o.frequency.value = fq;
-    const t0 = actx.currentTime + i * 0.07;
-    g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.12, t0 + 0.015);
-    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.25);
-    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 0.3);
-  });
-}
 
 // ============ 入力 ============
 let startPending = false;
@@ -1366,7 +1105,7 @@ async function press() {
     return;
   }
   if (state === 'play') {
-    if (actx && actx.state !== 'running') await ensureAudio();
+    await ensureAudio();
     tapAt = performance.now()/1000;
   }
 }
@@ -1405,6 +1144,8 @@ function judge() {
   const nextD = nextTap === null ? 9 : Math.abs(nextTap - songPos);
   let d = prevD, hitIdx = noteJudgeIdx - 1;
   if (nextD < prevD) { d = nextD; hitIdx = noteJudgeIdx; }
+  if (hitIdx < 0 || judgedNotes.has(hitIdx)) return;
+  if (d <= maxWindow) judgedNotes.add(hitIdx);
   const px = player.x + B/2, py = player.y - 14;
   if (d <= 0.07 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
@@ -1414,9 +1155,10 @@ function judge() {
     const mult = 1 + Math.floor(Math.min(combo, 60) / 15) * 0.25;
     score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1));
     judgeFlash = 'PERFECT';
+    window.sunRhythm?.charge('PERFECT', hitIdx);
     mission('perfect10', 1); mission('combo15', combo, true);
     floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
-    if (perfectRun % 5 === 0)
+    if (!window.sunRhythm?.enabled() && perfectRun % 5 === 0)
       floats.push({ text: 'FEVER +' + perfectRun, x: px, y: py - 18, l: 1.1, c: '#ff7ad9' });
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
@@ -1424,6 +1166,7 @@ function judge() {
     runStats.g++;
     score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1));
     judgeFlash = 'GREAT';
+    window.sunRhythm?.charge('GREAT', hitIdx);
     mission('combo15', combo, true);
     floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
   } else if (d <= 0.21 * judgeBoost) {
@@ -1431,9 +1174,10 @@ function judge() {
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
     runStats.o++;
     score += Math.round((45 + combo * 2) * (feverOn ? 2 : 1));
-    judgeFlash = 'OK';
+    judgeFlash = 'GOOD';
+    window.sunRhythm?.charge('GOOD', hitIdx);
     mission('combo15', combo, true);
-    floats.push({ text: 'OK', x: px, y: py, l: 0.8, c: '#bdf' });
+    floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
   } else {
     // 判定窓内にノートがないジャンプは無判定(ホールド移動でコンボ・FEVERを壊さない)
   }
@@ -1455,16 +1199,22 @@ function obstacleRects(ob) {
 
 // ============ 更新 ============
 let prevT = performance.now();
-function update(dt) {
+function update(dt, frameSongPos = null) {
   if (state !== 'play' && state !== 'dead') return;
 
   if (state === 'play') {
-    songPos = nativeMusicActive
-      ? performance.now() / 1000 - nativeMusicStart + attemptOffset
-      : (htmlMusicActive && musicEl ? musicEl.currentTime : actx.currentTime - musicStart + attemptOffset);
+    songPos = frameSongPos === null ? musicPosition() : frameSongPos;
     while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
       pulse = 1; beatIdx++;
       rings.push({ r: B*0.8, a: 0.35 });
+    }
+    const missWindow = 0.21 * (skinEffect('judge') ? 1.18 : 1);
+    while (noteJudgeIdx < level.length && level[noteJudgeIdx].t-TAP_OFFSET < songPos-missWindow) {
+      if (!judgedNotes.has(noteJudgeIdx)) {
+        judgedNotes.add(noteJudgeIdx);combo=0;perfectRun=0;
+        floats.push({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});
+      }
+      noteJudgeIdx++;
     }
     // チェックポイント(練習モード)
     if (practice) {
@@ -1494,7 +1244,7 @@ function update(dt) {
         if (orb.used) continue;
         const odx = (orb.t - songPos) * SPEED;
         if (Math.abs(odx) > 30 || Math.abs(player.y + B/2 - orb.y) > 42) continue;
-        orb.used = true; tapAt = -9;
+        orb.used = true; collectedOrbs.add(orb.t); tapAt = -9;
         player.vy = -V0 * 0.9 * gdir; holdJump = HOLD_MAX * 0.6;
         combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
         fever = Math.min(1, fever + 0.15);
@@ -1554,7 +1304,7 @@ function update(dt) {
     }
     // 衝突
     const hx = player.x + B*0.2, hw = B*0.6, hy = player.y + B*0.2, hh = B*0.6;
-    for (const ob of level) {
+    for (const ob of feverProtected() ? [] : level) {
       if (Math.abs(ob.t - songPos) > 1.5) continue;
       const parts = obstacleRects(ob);
       for (const s of parts.spikes) {
@@ -1600,7 +1350,8 @@ function update(dt) {
       if (ob.type === 'spike' || ob.type === 'spike2') {
         const f = inFlipT(ob.t);
         const clearance = f ? (player.y - (CEIL + B)) : ((GROUND - B) - (player.y + B));
-        if (clearance > -2 && clearance < 13) {   // トゲすれすれ通過
+        if (clearance > -2 && clearance < 13 && !awardedNear.has(nearIdx-1)) {   // トゲすれすれ通過
+          awardedNear.add(nearIdx-1);
           score += Math.round(60 * (feverOn ? 2 : 1));
           fever = Math.min(1, fever + 0.06);
           floats.push({ text: 'NEAR!', x: player.x + B/2, y: player.y - 26, l: 0.9, c: '#9ff' });
@@ -1608,16 +1359,14 @@ function update(dt) {
       }
     }
     // FEVER TIME: メーター満タンで発動、7秒間スコア・コイン2倍
-    if (!feverOn && fever >= 1) {
-      feverOn = true; feverEnd = songPos + 7;
-      mission('fever2', 1);
-      floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
-      rings.push({ r: B, a: 0.8 });
-      sfxFever();
-    }
+    if (!feverOn && !window.sunRhythm?.enabled() && fever >= 1) activateFever();
+    if (!feverOn && window.sunRhythm?.enabled()) fever = 0;
     if (feverOn) {
-      fever = Math.max(0, (feverEnd - songPos) / 7);
-      if (songPos >= feverEnd) { feverOn = false; fever = 0; }
+      fever = Math.max(0, (feverEnd - songPos) / feverLength);
+      if (songPos >= feverEnd) {
+        if (window.sunRhythm?.enabled()) feverGraceUntil = performance.now() / 1000 + 1;
+        feverOn = false; fever = 0;
+      }
     }
     if (songPos >= duration) { clearStage(); return; }
   }
@@ -1656,7 +1405,18 @@ function update(dt) {
 }
 
 // ============ 描画 ============
+function activateFever(seconds = 7) {
+  if (feverOn || state !== 'play') return;
+  feverLength = seconds;
+  feverOn = true; feverEnd = songPos + seconds; fever = 1;
+  mission('fever2', 1);
+  floats.push({ text: window.sunRhythm?.enabled() ? 'SUN FEVER!!' : 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
+  rings.push({ r: B, a: 0.8 });
+  sfxFever();
+}
+
 function draw() {
+  if(window.reducedEffects){shake=0;particles=[];rings=[];trail=[];confetti=[];}
   ctx.setTransform(SC, 0, 0, SC, 0, 0);
   if (shake > 0.3) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   const hue = STAGES[stageIdx].hue;
@@ -1678,6 +1438,8 @@ function draw() {
   }
   ctx.restore();
 
+
+  if (inGame) window.sunRhythm?.drawBackground(ctx);
   if (inGame || state === 'clear') {
     ctx.fillStyle = `hsl(${hue},45%,11%)`;
     ctx.fillRect(0, GROUND, W, DH-GROUND);
@@ -1822,7 +1584,20 @@ function draw() {
       ctx.restore();
     }
     // FEVER中のオーラ
-    if (feverOn && state === 'play') {
+    if (feverProtected() && state === 'play') {
+      ctx.save();
+      const fade = feverOn ? 1 : Math.max(0, feverGraceUntil - nowS);
+      ctx.globalAlpha = fade;
+      ctx.lineWidth = 4;
+      const radius = B * (0.83 + 0.04 * Math.sin(nowS * 5));
+      for (let i = 0; i < 7; i++) {
+        const angle = nowS * 1.8 + i * Math.PI * 2 / 7;
+        const color = `hsl(${i * 360 / 7},100%,65%)`;
+        ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(pcx, pcy, radius, angle, angle + Math.PI * 2 / 7 + 0.02); ctx.stroke();
+      }
+      ctx.restore();
+    } else if (feverOn && state === 'play') {
       ctx.save();
       ctx.globalAlpha = 0.3 + 0.15 * Math.sin(nowS * 10);
       ctx.strokeStyle = '#ffd94a'; ctx.lineWidth = 3;
@@ -1861,61 +1636,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
 
-    // UI
-    const pct = Math.max(0, Math.min(100, songPos / duration * 100));
-    const bw = Math.min(W*0.42, 280);
-    ctx.fillStyle = 'rgba(255,255,255,.2)';
-    roundRect((W-bw)/2, 14, bw, 8, 4); ctx.fill();
-    ctx.fillStyle = `hsl(${hue},95%,65%)`;
-    roundRect((W-bw)/2, 14, bw * pct/100, 8, 4); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font = '900 15px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(Math.floor(pct) + '%', W/2, 40);
-    ctx.textAlign = 'left'; ctx.font = '800 13px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.fillText(STAGES[stageIdx].name + (practice ? ' 🚩' : ''), 14, 24);
-    ctx.fillText('ATTEMPT ' + Math.max(1, attempts + (state === 'ready' ? 1 : 0)) +
-      (dailyMode() ? '  ·  ' + dailyTriesLeft() + '/3' : ''), 14, 42);
-    if (coinImg.complete && coinImg.naturalWidth) ctx.drawImage(coinImg, 14, 48, 18, 18);
-    else { ctx.fillStyle = '#ffd94a'; ctx.beginPath(); ctx.arc(23, 57, 8, 0, 6.283); ctx.fill(); }
-    ctx.fillStyle = '#ffd94a';
-    ctx.fillText(String(coinRun), 36, 62);
-    ctx.fillStyle = shieldReady ? '#c792ff' : 'rgba(255,255,255,.55)';
-    ctx.font = '800 11px sans-serif';
-    ctx.fillText(currentSkin().n + ' / ' + currentSkin().desc + (shieldReady ? ' READY' : ''), 14, 78);
-    ctx.textAlign = 'right';
-    ctx.font = '900 16px sans-serif'; ctx.fillStyle = '#fff';
-    ctx.fillText('SCORE ' + score, W - 58, 26);
-    if (combo >= 2) {
-      ctx.font = '800 13px sans-serif'; ctx.fillStyle = '#ffd94a';
-      ctx.fillText('COMBO x' + combo, W - 58, 44);
-    }
-    if (judgeFlash) {
-      ctx.font = '900 12px sans-serif';
-      ctx.fillStyle = judgeFlash === 'PERFECT' ? '#ffd94a' : judgeFlash === 'GREAT' ? '#7df' : judgeFlash === 'OK' ? '#bdf' : 'rgba(255,255,255,.45)';
-      ctx.fillText(judgeFlash, W - 58, 60);
-    }
-    if (fever > 0.02) {
-      const fw = 92, fx = W - 150, fy = 67;
-      ctx.fillStyle = 'rgba(255,255,255,.18)';
-      roundRect(fx, fy, fw, 6, 3); ctx.fill();
-      ctx.fillStyle = feverOn ? '#ffd94a' : '#ff7ad9';
-      roundRect(fx, fy, fw * fever, 6, 3); ctx.fill();
-      ctx.font = '800 10px sans-serif';
-      ctx.fillText(feverOn ? 'FEVER TIME!' : 'FEVER', W - 58, 78);
-    }
-    ctx.textAlign = 'left';
-
-    if (state === 'ready') {
-      const bl = 0.6 + 0.4*Math.sin(performance.now()/300);
-      ctx.textAlign = 'center';
-      ctx.fillStyle = `rgba(255,255,255,${bl})`;
-      ctx.font = '900 26px sans-serif';
-      ctx.fillText('TAP', W/2, DH*0.42);
-      ctx.font = '600 14px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,.65)';
-      ctx.fillText('♪ TAP   ↗ HOLD', W/2, DH*0.42 + 26);
-      ctx.textAlign = 'left';
-    }
+    window.gameUI?.drawHUD(ctx);
   }
 
   if (state === 'clear') {
@@ -1992,9 +1713,16 @@ function loop(t) {
     if (!player.grounded) { player.vy += GRAV*dt; player.y += player.vy*dt; player.rot += (Math.PI/JUMP_T)*dt; }
     if (!player.grounded && player.vy >= 0 && player.y + B >= GROUND) { player.y = GROUND-B; player.vy = 0; player.grounded = true; }
   } else {
-    update(dt);
+    if(state==='play'){
+      const target=musicPosition(),elapsed=Math.max(0,target-songPos);
+      // Advance physics and scrolling together, including ordinary dropped frames.
+      const steps=Math.max(1,Math.min(60,Math.ceil(elapsed/0.02)));
+      const from=songPos;
+      for(let i=1;i<=steps&&state==='play';i++)update(Math.min(elapsed/steps,1/30),from+(target-from)*i/steps);
+    }else update(dt);
   }
   draw();
+  window.collaboration?.tick();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -2031,5 +1759,10 @@ if ('serviceWorker' in navigator &&
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 </script>
+<script src="html-audio.js"></script>
+<script src="sun-rhythm.js"></script>
+<script src="collaboration.js"></script>
+<script src="ui.js"></script>
+<script src="game-safety.js"></script>
 </body>
 </html>

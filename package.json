@@ -1,12 +1,22 @@
 {
   "scripts": {
+    "test": "node scripts/test-build.js && node scripts/test-html-audio.js && node scripts/test-collaboration.js",
+    "test:setup": "playwright install chromium",
+    "preview": "node scripts/preview.js",
+    "preview:phone": "npm run web:build && node scripts/preview.js --lan",
+    "collab:disable": "node scripts/set-collaboration.js disable",
+    "collab:enable": "node scripts/set-collaboration.js enable",
+    "web:build": "node scripts/build-capacitor-www.js",
     "cap:build": "node scripts/build-capacitor-www.js",
-    "cap:sync:ios": "npm run cap:build && npx cap sync ios && node scripts/register-native-bgm-ios.js",
+    "cap:sync:ios": "npm run cap:build && npx cap sync ios",
     "cap:open:ios": "npm run cap:sync:ios && npx cap open ios"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/ios": "^8.4.2"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1"
   }
 }
