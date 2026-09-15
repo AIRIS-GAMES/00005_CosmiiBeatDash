@@ -2,8 +2,17 @@
 (() => {
   'use strict';
   const config = globalThis.COLLAB || { enabled: false, id: 'ohsun_2026' };
+  const collaborationImages = config.enabled === true ? ['07','08','09','10','11','12','13'].map(n => {
+    const image = new Image(); image.decoding = 'async';
+    image.src = config.assetRoot + 'ohsun_' + n + '.png';
+    return image;
+  }) : [];
+  const collaborationPreload = Promise.all(collaborationImages.map(image => {
+    const decoded = image.decode ? image.decode().catch(() => {}) : Promise.resolve();
+    return Promise.race([decoded, new Promise(resolve => setTimeout(resolve, 1500))]);
+  }));
   const key = 'rdash_collab_' + config.id + '_progress';
-  let progress;
+  let progress, progressDirty = false;
   try { progress = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch { progress = {}; }
   let playing = false, lastCheck = 0;
   const active = () => {
@@ -58,7 +67,7 @@
   function claim(id) {
     if (progress[id]) return;
     const goal = goals.find(g => g.id === id);
-    progress[id] = true; save();
+    progress[id] = true; progressDirty = true;
     addCoins(goal.reward);
     gaCoins('Source', goal.reward, 'Mission', config.id + '_' + id);
     toast('EVENT BONUS +' + goal.reward);
@@ -107,6 +116,8 @@
   };
   $('collab-start').onclick = async () => {
     if (!active()) { refresh(); return; }
+    await collaborationPreload;
+    await window.sunRhythm?.preload?.();
     lobby.hidden = true;
     STAGES[EVENT_IDX] = { name: 'SUN RHYTHM CHALLENGE', file: SONGS[0], hue: 52, speed: 370, diff: 0.35, seed: 3307, duration: 45 };
     await selectStage(EVENT_IDX);
@@ -114,7 +125,7 @@
   function tick() {
     if (Date.now() - lastCheck > 1000) { lastCheck = Date.now(); refresh(); }
     if (playing && !active()) refresh();
-    window.sunRhythm?.tick();
+    if (playing || state === 'play' || state === 'ready' || state === 'dead') window.sunRhythm?.tick();
     if (playing && state === 'play') {
       if (coinRun >= 30) claim('coins');
       if (maxCombo >= 15) claim('combo');
@@ -127,7 +138,7 @@
     if (maxCombo >= 15) claim('combo');
     claim('clear');
     const isNewBest=score>(Number(progress.bestV2)||0);
-    progress.bestV2 = Math.max(Number(progress.bestV2) || 0, score); save();
+    progress.bestV2 = Math.max(Number(progress.bestV2) || 0, score); progressDirty = true; flush();
     extra.push('イベント自己ベスト: ' + progress.bestV2);
     const stats=window.sunRhythm?.inspect();
     if(stats?.feverCount)extra.push(`FEVER ${stats.feverCount}回・${stats.feverSeconds.toFixed(1)}秒`);
@@ -136,7 +147,8 @@
     $('clearchar').hidden = true;
     return isNewBest;
   }
-  window.collaboration = { active, setPlaying, tick, complete, resetRun };
+  function flush() { if (progressDirty) { progressDirty = false; save(); } }
+  window.collaboration = { active, setPlaying, tick, complete, resetRun, flush };
   document.addEventListener('visibilitychange', refresh);
   refresh();
 })();

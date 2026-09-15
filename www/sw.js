@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v44-lean-assets';
+const CACHE = 'rdash-v45-coin-assets';
 const ASSETS = [
   './',
   'index.html',
@@ -21,6 +21,7 @@ const ASSETS = [
   'Asset/IMG_3158.PNG',
   'Asset/IMG_3159.PNG',
   'Asset/cosmo-coin.png',
+  'Asset/cosmo-coin-game.png',
   'Asset/黒背景.png',
 ];
 

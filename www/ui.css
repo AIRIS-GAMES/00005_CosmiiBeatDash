@@ -1,6 +1,7 @@
 @font-face { font-family:'M PLUS Rounded 1c'; src:url('Asset/fonts/MPLUSRounded1c-Regular.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:swap; }
 @font-face { font-family:'M PLUS Rounded 1c'; src:url('Asset/fonts/MPLUSRounded1c-Bold.ttf') format('truetype'); font-weight:700 900; font-style:normal; font-display:swap; }
 :root { color-scheme:light; --pop-ink:#283454; --pop-paper:#fffaf0; --pop-font:'M PLUS Rounded 1c',sans-serif; }
+:root { --play-safe-left:max(64px,calc(env(safe-area-inset-left, 0px) + 28px)); }
 html,body { font-family:var(--pop-font); }
 button { font-family:inherit; touch-action:manipulation; }
 button:focus-visible { outline:3px solid #a5eeff; outline-offset:3px; }
@@ -50,8 +51,10 @@ button:focus-visible { outline:3px solid #a5eeff; outline-offset:3px; }
 #grid { gap:7px; }
 .tile { width:58px; height:48px; border-radius:10px; font-size:18px; box-shadow:none; }
 #stageback { width:44px; height:44px; }
-#backbtn { left:12px; right:auto; width:44px; height:44px; background:#101b32e8; font-size:26px; }
-#practbtn { min-height:40px; font-size:11px; background:#101b32e8; }
+#backbtn,#practbtn { left:var(--play-safe-left) !important; right:auto !important; min-width:48px; min-height:48px; }
+#backbtn { top:calc(8px + env(safe-area-inset-top)); width:44px; height:44px; background:#101b32e8; font-size:26px; }
+#practbtn { bottom:calc(10px + env(safe-area-inset-bottom)); padding:8px 14px; }
+#practbtn { min-height:44px; font-size:11px; background:#101b32e8; }
 #revivebtn { bottom:calc(62px + env(safe-area-inset-bottom)); }
 #sun-power { top:auto; bottom:14px; padding:10px 14px; font-size:11px; border-radius:12px; background:#141d2cef; gap:10px; }
 #sun-power progress { width:95px; }

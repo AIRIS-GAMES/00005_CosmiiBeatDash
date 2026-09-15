@@ -5,10 +5,15 @@ const effects=Object.fromEntries(Object.entries({death:.45,clear:.5,coin:.4,orb:
  const audio=new Audio('Asset/audio/'+name+'.wav');audio.preload='auto';audio.volume=volume;return [name,{audio,version:0,at:0}];
 }));
 let audioUnlocked=false;
+let lastCoinSfxAt=-Infinity;
 function assetUrl(file){return new URL(file,location.href).href;}
 function ensureMusicElement(){
  if(!musicEl){musicEl=new Audio();musicEl.preload='auto';musicEl.setAttribute('playsinline','');musicEl.volume=.20;}
  return musicEl;
+}
+function preloadTrack(url){
+ const el=ensureMusicElement();
+ if(el.src!==url){el.src=url;el.load();}
 }
 async function ensureAudio(){
  ensureMusicElement();
@@ -21,8 +26,13 @@ async function ensureAudio(){
  }
  return true;
 }
-function playSfx(name){
+function playSfx(name, burst=false){
  if(!audioPrefs.sound||document.hidden||!audioUnlocked)return;
+ if(name==='coin'&&!burst&&typeof state!=='undefined'&&state==='play'&&typeof coinsLive!=='undefined'&&coinsLive.length){
+  const now=performance.now();
+  if(now-lastCoinSfxAt<70)return;
+  lastCoinSfxAt=now;
+ }
  const entry=effects[name];entry.version++;
  const playing=Object.values(effects).filter(e=>e!==entry&&!e.audio.paused).sort((a,b)=>a.at-b.at);
  while(playing.length>=3){const old=playing.shift();old.version++;old.audio.pause();}
@@ -51,6 +61,7 @@ function sfxOrb(){playSfx('orb');}
 function sfxFever(){playSfx('fever');}
 window.gameAudio={
  settings:()=>({...audioPrefs}),
+ preloadTrack,
  setSettings(prefs){
   if(typeof prefs.music==='boolean')audioPrefs.music=prefs.music;
   if(typeof prefs.sound==='boolean')audioPrefs.sound=prefs.sound;
