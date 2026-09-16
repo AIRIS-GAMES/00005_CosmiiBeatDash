@@ -5,6 +5,9 @@ Run `npm run web:build` followed by `npm test`.
 The pinned Playwright dependency is local; no external npm-cache path is required.
 
 Run `npm run cap:sync:ios` to rebuild www and sync the iOS public assets from source.
+Commit `www/`, `ios/App/App/public/`, and the generated iOS app configs together
+after syncing. The iOS bundle is tracked so pulling a commit also updates its
+web assets. Do not edit generated files directly; regenerate after source changes.
 Source audio masters and store artwork in Asset remain available for regeneration, but are excluded from www and the app bundle.
 Keep official character PNGs and font license files unchanged.
 

@@ -1,0 +1,13 @@
+{
+  "name": "Cosmii Rhythm Dash",
+  "short_name": "Rhythm Dash",
+  "description": "Tap. Jump. Feel the beat.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#101a3a",
+  "theme_color": "#101a3a",
+  "icons": [
+    { "src": "Asset/IMG_3161.PNG", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}
