@@ -10,8 +10,6 @@
     if(state==='play'){
       const now=performance.now()/1000;
       remainingShield=Math.max(0,invulnUntil-now);remainingGrace=Math.max(0,feverGraceUntil-now);
-      missionSave?.(); window.collaboration?.flush?.();
-      flushPendingCoins?.(); flushAnalytics?.();
       stopMusic();state='paused';isDown=false;tapAt=-9;
     }
     panel.hidden=false;$('pause-title').textContent='一時停止';$('resume-game').disabled=false;$('resume-game').focus();

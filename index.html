@@ -262,6 +262,24 @@ const app = document.getElementById('app');
 const coinImg = new Image();
 coinImg.src = 'Asset/cosmo-coin.png';
 let W = 640, SC = 1;
+// Backing-store resolution cap. This was min(dpr, 2) until commit de95037,
+// which lowered it to 1.5 on touch devices with no recorded reason, in the same
+// commit that rewrote audio. On an iPhone (devicePixelRatio 3) a 1.5 cap renders
+// at half the native linear resolution and is then upscaled, which is the
+// straightforward explanation for a soft, aliased image - and it is made worse
+// again by screen-recording re-encode.
+// Raising it costs fill rate, so it is overridable for device A/B without a
+// rebuild:  localStorage.setItem('rdash_dpr_cap','1.5'); resize();
+const DPR_CAP = 2;
+function dprCap() {
+  // ?dpr=1.5 wins over the stored value, so the cap can be A/B'd on a phone
+  // with no debugger attached.
+  const q = parseFloat(new URLSearchParams(location.search).get('dpr'));
+  if (Number.isFinite(q) && q > 0) return q;
+  let v = NaN;
+  try { v = parseFloat(localStorage.getItem('rdash_dpr_cap')); } catch (e) {}
+  return Number.isFinite(v) && v > 0 ? v : DPR_CAP;
+}
 // 縦持ちでも常に横画面: 縦のときは画面全体を90度回転して表示する
 function resize() {
   const portrait = innerHeight > innerWidth;
@@ -269,7 +287,7 @@ function resize() {
   const h = portrait ? innerWidth : innerHeight;
   app.style.width = w + 'px'; app.style.height = h + 'px';
   app.style.transform = portrait ? 'rotate(90deg) translateY(-100%)' : 'none';
-  const dpr = Math.min(devicePixelRatio || 1, matchMedia('(pointer: coarse)').matches ? 1.5 : 2);
+  const dpr = Math.min(devicePixelRatio || 1, dprCap());
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
   cv.style.top = '0px';
   cv.width = w * dpr; cv.height = h * dpr;
@@ -311,8 +329,8 @@ let bootDone = false;
 function gaSend(method, ...args) {
   try { if (typeof GameAnalytics === 'function') GameAnalytics(method, ...args); } catch (e) {}
 }
-const gaStageId = () => eventMode() ? 'ohsun_2026' : dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
-const gaMode = () => eventMode() ? 'collaboration' : dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
+const gaStageId = () => dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
+const gaMode = () => dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
 function gaDesign(id, value = 1) {
   gaSend('addDesignEvent', id, value);
 }
@@ -325,8 +343,6 @@ function gaCoins(flowType, amount, itemType, itemId) {
 
 // ============ デイリーチャレンジ & ミッション ============
 const DAILY_IDX = NSTAGE;   // 通常ステージの末尾に日替わりステージを追加
-const EVENT_IDX = NSTAGE + 1;
-const eventMode = () => stageIdx === EVENT_IDX;
 const dayKey = () => dateKey(new Date());
 const dailySeedNum = () => +dayKey().replace(/-/g, '');
 function dailyCfg() {
@@ -725,8 +741,8 @@ function showHome() {
 setTimeout(showHome, 2000);
 
 async function selectStage(i) {
-  if (i === EVENT_IDX && !window.collaboration?.active()) return;
-  window.collaboration?.setPlaying(i !== DAILY_IDX);
+  if (!Number.isInteger(i) || i < 0 || i > DAILY_IDX) return;
+  window.collaboration?.resetRun();
   await ensureAudio();
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
@@ -755,7 +771,6 @@ async function selectStage(i) {
     }
     $('loading').style.display = 'none';
   }
-  if (i === EVENT_IDX && !window.collaboration?.active()) { backToMenu(); return; }
   setupRun(i, cache[ck].buffer, cache[ck].beats);
 }
 
@@ -765,8 +780,7 @@ function setupRun(i, buf, bts) {
   stageIdx = i;
   const cfg = STAGES[i];
   buffer = buf; beats = bts;
-  currentMusicUrl = assetUrl(AUDIO_TRACKS[cfg.file].playback);
-  const preparedMusic=ensureMusicElement();preparedMusic.pause();if(preparedMusic.src!==currentMusicUrl){preparedMusic.src=currentMusicUrl;preparedMusic.load();}
+  setMusicTrack(AUDIO_TRACKS[cfg.file]);   // 曲ごとの実効ピークを揃える再生ゲインも同時に適用
   duration = Math.min(buffer.duration, cfg.duration || Infinity);
   SPEED = cfg.speed;
   const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
@@ -782,7 +796,7 @@ function setupRun(i, buf, bts) {
     try { const raw = localStorage.getItem(recordKey('ghost',i,runRecordMode)); if (raw) ghost = JSON.parse(raw); } catch (e) {}
   }
   $('backbtn').style.display = 'block';
-  if (i === DAILY_IDX || i === EVENT_IDX) {   // 日替わりとイベントは練習モードなし
+  if (i === DAILY_IDX) {   // 日替わりは練習モードなし
     practice = false;
     const pb = $('practbtn');
     pb.textContent = '🚩 OFF'; pb.className = 'hudbtn'; pb.style.display = 'none';
@@ -814,8 +828,7 @@ function backToMenu() {
     coinRun = 0;
   }
   stopMusic(); state = 'menu';
-  window.collaboration?.setPlaying(false);
-  if (eventMode()) stageIdx = 0;
+  window.collaboration?.resetRun();
   $('menu').style.display = 'flex';
   $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
@@ -829,7 +842,7 @@ function backToMenu() {
 $('backbtn').onclick = backToMenu;
 $('tomenu').onclick = backToMenu;
 $('nextbtn').onclick = () => {
-  if (eventMode() || practice || stageIdx === NSTAGE - 1) { selectStage(stageIdx); return; }
+  if (practice || stageIdx === NSTAGE - 1) { selectStage(stageIdx); return; }
   if (dailyMode()) { if (dailyTriesLeft() > 0) selectStage(DAILY_IDX); else backToMenu(); return; }
   const n = stageIdx + 1;
   if (n < NSTAGE && unlocked(n)) selectStage(n);
@@ -925,7 +938,6 @@ renderPromo(true);
 
 
 function startAttempt(offset = 0) {
-  if (eventMode() && !window.collaboration?.active()) { backToMenu(); return; }
   if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
     if (dailyTriesLeft() <= 0) { backToMenu(); toast('DAILY 0/3'); return; }
     useDailyTry();
@@ -1036,9 +1048,7 @@ function clearStage() {
     }
     mission('clear1', 1); mission('score3k', score, true); mission('combo15', maxCombo, true);
     missionSave();
-    if (eventMode()) {
-      isNewBest=!!window.collaboration?.complete(extra);
-    } else if (dailyMode()) {
+    if (dailyMode()) {
       isNewBest=setDailyScore(score);
       if (isNewBest) extra.push('🏆 DAILY BEST!');
     } else {
@@ -1071,13 +1081,13 @@ function clearStage() {
   const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
   $('clearstats').innerHTML =
     `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
-    `<p class="result-summary">${eventMode()?'おっ！サン コラボ':STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
+    `<p class="result-summary">${STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
     (isNewBest?'<p class="result-best">自己ベスト更新！</p>':'') +
     `<div class="result-bottom">${practice?'<span>練習モード</span>':`<span class="result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン">＋${coinRun}</span>`}<button id="result-details-open" type="button">詳細</button></div>` +
     `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,level.length-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
   $('result-details-open').onclick=()=>window.openResultDetails();
   $('nextbtn').style.display = 'inline-block';
-  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : eventMode() || practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
+  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
   $('clearov').style.display = 'flex';
@@ -1764,5 +1774,6 @@ if ('serviceWorker' in navigator &&
 <script src="collaboration.js"></script>
 <script src="ui.js"></script>
 <script src="game-safety.js"></script>
+<script src="perf-hud.js"></script>
 </body>
 </html>

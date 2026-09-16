@@ -4,7 +4,7 @@ const vm = require('vm');
 
 const root = path.resolve(__dirname, '..');
 const out = path.join(root, 'www');
-const files = ['index.html', 'manifest.json', 'sw.js', 'collaboration-config.js', 'collaboration.js', 'collaboration.css', 'sun-rhythm.js', 'ui.js', 'ui.css', 'game-safety.js', 'html-audio.js'];
+const files = ['index.html', 'manifest.json', 'sw.js', 'collaboration-config.js', 'collaboration.js', 'collaboration.css', 'sun-rhythm.js', 'ui.js', 'ui.css', 'game-safety.js', 'html-audio.js', 'perf-hud.js'];
 const dirs = ['Asset'];
 // Retain source masters and store artwork in the repository, not the app bundle.
 const sourceOnlyAssets = new Set(['stage01.mp3', 'stage2.mp3', 'stage03.mp3', 'bgm1.mp3', 'bgm2.mp3', 'bgm3.mp3', 'bgm4.mp3', 'icon.png', 'appstore-icon.png', 'appstore-icon-cosmy-purple.png'].map(file => path.join(root, 'Asset', file)));

@@ -24,7 +24,7 @@ const server = http.createServer((req,res) => {
   await page.route('**/collaboration-config.js',r=>r.fulfill({contentType:'application/javascript',body:config.replace('endsAt: null',"endsAt: '2099-01-01T00:00:00+09:00'")}));
   const url='http://127.0.0.1:'+server.address().port;
   const shots=fs.mkdtempSync(path.join(os.tmpdir(),'sun-rhythm-qa-'));
-  async function openEvent(){
+  async function openNormal(){
     await page.goto(url);await page.waitForFunction(()=>bootDone&&window.sunRhythm&&getComputedStyle($('splash')).display==='none');
     assert.ok(await page.evaluate(async()=>{
       await document.fonts.load('700 16px "M PLUS Rounded 1c"','あいうSUN');
@@ -53,30 +53,39 @@ const server = http.createServer((req,res) => {
     await page.locator('#collab-banner').click();
     await page.screenshot({path:path.join(shots,'collab-lobby.png')});
     assert.equal(await page.locator('#collab-banner').textContent(),'おっ！さんコラボ開催中');
-    assert.equal(await page.locator('#collab-start').textContent(),'あそぶ');
-    assert.equal(await page.locator('#collab-goals').isVisible(),false);
-    await page.locator('#collab-rewards-open').click();
-    assert.equal(await page.locator('#collab-goals').isVisible(),true);
-    assert.equal(await page.locator('.collab-goal').count(),3);
-    await page.screenshot({path:path.join(shots,'collab-rewards.png')});
+    assert.equal(await page.locator('#collab-start, #collab-rewards, #collab-goals').count(),0);
+    assert.equal(await page.locator('#collab-lobby button').count(),1);
+    assert.ok(!(await page.locator('#collab-lobby').textContent()).includes('45'));
+    assert.ok((await page.locator('#collab-howto').textContent()).includes('100%'));
     await page.setViewportSize({width:390,height:844});
-    assert.ok(await page.locator('#collab-rewards').evaluate(el=>el.parentElement.id==='app'&&el.offsetWidth>el.offsetHeight));
-    await page.screenshot({path:path.join(shots,'collab-rewards-portrait.png')});
-    await page.setViewportSize({width:844,height:390});
+    await page.screenshot({path:path.join(shots,'collab-info-portrait.png')});
     await page.keyboard.press('Escape');
-    assert.equal(await page.locator('#collab-rewards').isVisible(),false);
-    await page.locator('#collab-rewards-open').click();
-    await page.locator('#collab-rewards button').click();
-    assert.equal(await page.locator('#collab-goals').isVisible(),false);
-    assert.ok(await page.locator('#collab-lobby').evaluate(el=>getComputedStyle(el).backgroundImage.includes('8, 15, 39')));
-    await page.locator('#collab-start').click();
+    assert.equal(await page.locator('#collab-lobby').isVisible(),false);
+    assert.equal(await page.locator('#menu').evaluate(el=>el.inert),false);
+    await page.setViewportSize({width:844,height:390});
+    await page.locator('#collab-banner').click();
+    await page.locator('#collab-back').click();
+    assert.equal(await page.evaluate(()=>best(0)),73);
+    await page.evaluate(async()=>{
+      const before=state;await selectStage(NSTAGE+1);
+      if(state!==before)throw Error('removed event stage still selectable');
+      await selectStage(0);
+    });
     await page.waitForFunction(()=>state==='ready');
     await page.screenshot({path:path.join(shots,'ready.png')});
     await page.locator('#cv').click({position:{x:200,y:150}});
     await page.waitForFunction(()=>state==='play');
   }
   try {
-    await openEvent();
+    await openNormal();
+    assert.equal(await page.evaluate(()=>{
+      const key='rdash_collab_ohsun_2026_progress';
+      const legacy=JSON.stringify({coins:true,combo:true,clear:true,bestV2:1234});
+      localStorage.setItem(key,legacy);
+      const before=totalCoins();coinRun=30;maxCombo=15;collaboration.tick();
+      coinRun=0;maxCombo=0;
+      return totalCoins()===before&&localStorage.getItem(key)===legacy;
+    }),true,'normal play must not award legacy challenge bonuses or modify saved rewards');
     const before=await page.evaluate(()=>{
       level=[];coinsLive=[];orbsLive=[];flipZones=[];
       musicEl.currentTime=3.9;songPos=3;
@@ -142,15 +151,15 @@ const server = http.createServer((req,res) => {
     await page.waitForTimeout(200);
     await page.screenshot({path:path.join(shots,'clear.png')});
     assert.ok(await page.locator('#clearov').evaluate(el=>getComputedStyle(el).backgroundImage.includes('8, 15, 39')));
-    assert.equal(await page.locator('#nextbtn').textContent(),'もう一度あそぶ');
+    assert.equal(await page.evaluate(()=>stageIdx),0);
     await page.locator('#nextbtn').click();
     await page.waitForFunction(()=>state==='ready');
     await page.evaluate(()=>{backToMenu();});
     assert.equal(await page.locator('#sun-power').isVisible(),false);
-    assert.equal(await page.evaluate(()=>best(0)),73);
+    assert.equal(await page.evaluate(()=>best(0)),100);
     await page.locator('#continue-btn').click();
     await page.waitForFunction(()=>state==='ready');
-    assert.equal(await page.evaluate(()=>stageIdx),0);
+    assert.equal(await page.evaluate(()=>stageIdx),1);
     await page.evaluate(()=>{state='play';score=4493;coinRun=79;attempts=3;maxCombo=7;runStats={p:5,g:5,o:5};clearStage();});
     await page.screenshot({path:path.join(shots,'clear-normal.png')});
     assert.equal(await page.locator('#result-details').isVisible(),false);

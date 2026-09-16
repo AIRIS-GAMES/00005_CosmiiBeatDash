@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "test": "node scripts/test-build.js && node scripts/test-html-audio.js && node scripts/test-collaboration.js",
+    "test": "node scripts/test-build.js && node scripts/test-audio-levels.js && node scripts/test-html-audio.js && node scripts/test-collaboration.js",
     "test:setup": "playwright install chromium",
     "preview": "node scripts/preview.js",
     "preview:phone": "npm run web:build && node scripts/preview.js --lan",
@@ -9,7 +9,9 @@
     "web:build": "node scripts/build-capacitor-www.js",
     "cap:build": "node scripts/build-capacitor-www.js",
     "cap:sync:ios": "npm run cap:build && npx cap sync ios",
-    "cap:open:ios": "npm run cap:sync:ios && npx cap open ios"
+    "cap:open:ios": "npm run cap:sync:ios && npx cap open ios",
+    "audio:levels": "node scripts/measure-audio.js",
+    "audio:gain": "node scripts/update-track-gain.js"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.2",

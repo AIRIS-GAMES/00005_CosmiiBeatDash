@@ -130,8 +130,10 @@
   #nextbtn { background:#ffd94a; color:#430; }
   .hudbtn { position:fixed; z-index:9; border:none; border-radius:10px; display:none;
     background:rgba(255,255,255,.14); color:#fff; cursor:pointer; font-weight:800; }
-  #backbtn { width:40px; height:40px; font-size:18px; }
-  #practbtn { padding:8px 14px; font-size:13px; }
+  #backbtn { top:calc(8px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right));
+    width:40px; height:40px; font-size:18px; }
+  #practbtn { bottom:calc(10px + env(safe-area-inset-bottom)); left:calc(10px + env(safe-area-inset-left));
+    padding:8px 14px; font-size:13px; }
   #practbtn.on { background:rgba(61,220,132,.35); }
   #revivebtn { left:50%; transform:translateX(-50%); bottom:calc(18px + env(safe-area-inset-bottom));
     padding:12px 26px; font-size:16px; background:#ffd94a; color:#430;
@@ -258,17 +260,26 @@ const SKINS = [
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const app = document.getElementById('app');
 const coinImg = new Image();
-coinImg.src = 'Asset/cosmo-coin-game.png';
-const coinPreload = coinImg.decode ? coinImg.decode().catch(() => {}) : Promise.resolve();
+coinImg.src = 'Asset/cosmo-coin.png';
 let W = 640, SC = 1;
-let backgroundCache = null, backgroundCacheKey = '';
-let spikePaintCache = {}, blockPaintCache = {};
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const isCapacitor = !!window.Capacitor?.isNativePlatform?.();
-const IOS_PERFORMANCE_MODE = isIOS || isCapacitor;
-window.rdIOSPerformance = IOS_PERFORMANCE_MODE;
-let canvasDpr = 1;
+// Backing-store resolution cap. This was min(dpr, 2) until commit de95037,
+// which lowered it to 1.5 on touch devices with no recorded reason, in the same
+// commit that rewrote audio. On an iPhone (devicePixelRatio 3) a 1.5 cap renders
+// at half the native linear resolution and is then upscaled, which is the
+// straightforward explanation for a soft, aliased image - and it is made worse
+// again by screen-recording re-encode.
+// Raising it costs fill rate, so it is overridable for device A/B without a
+// rebuild:  localStorage.setItem('rdash_dpr_cap','1.5'); resize();
+const DPR_CAP = 2;
+function dprCap() {
+  // ?dpr=1.5 wins over the stored value, so the cap can be A/B'd on a phone
+  // with no debugger attached.
+  const q = parseFloat(new URLSearchParams(location.search).get('dpr'));
+  if (Number.isFinite(q) && q > 0) return q;
+  let v = NaN;
+  try { v = parseFloat(localStorage.getItem('rdash_dpr_cap')); } catch (e) {}
+  return Number.isFinite(v) && v > 0 ? v : DPR_CAP;
+}
 // 縦持ちでも常に横画面: 縦のときは画面全体を90度回転して表示する
 function resize() {
   const portrait = innerHeight > innerWidth;
@@ -276,21 +287,11 @@ function resize() {
   const h = portrait ? innerWidth : innerHeight;
   app.style.width = w + 'px'; app.style.height = h + 'px';
   app.style.transform = portrait ? 'rotate(90deg) translateY(-100%)' : 'none';
-  // WKWebView pays the fill cost for every backing-store pixel. The playfield
-  // is deliberately rendered at 1x on iOS; CSS still displays it full-size.
-  const dpr = Math.min(devicePixelRatio || 1, IOS_PERFORMANCE_MODE ? 1 : 1.5);
+  const dpr = Math.min(devicePixelRatio || 1, dprCap());
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
   cv.style.top = '0px';
-  const pixelWidth = Math.max(1, Math.round(w * dpr));
-  const pixelHeight = Math.max(1, Math.round(h * dpr));
-  const canvasChanged = cv.width !== pixelWidth || cv.height !== pixelHeight;
-  if (canvasChanged) { cv.width = pixelWidth; cv.height = pixelHeight; }
-  canvasDpr = dpr;
+  cv.width = w * dpr; cv.height = h * dpr;
   SC = cv.height / DH; W = cv.width / SC;
-  if (canvasChanged) {
-    backgroundCache = null; backgroundCacheKey = '';
-    spikePaintCache = {}; blockPaintCache = {};
-  }
 }
 addEventListener('resize', resize);
 addEventListener('orientationchange', () => setTimeout(resize, 100));
@@ -313,18 +314,8 @@ const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) {
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
 const unlocked = i => i === 0 || best(i - 1) >= 60;
 let skinIdx = Math.max(0, Math.min(SKINS.length - 1, +(localStorage.getItem('rdash_skin') || 0)));
-let pendingCoinDelta = 0;
-const totalCoins = () => +(localStorage.getItem('rdash_coins') || 0) + pendingCoinDelta;
-function flushPendingCoins() {
-  if (!pendingCoinDelta) return;
-  const stored = +(localStorage.getItem('rdash_coins') || 0);
-  localStorage.setItem('rdash_coins', stored + pendingCoinDelta);
-  pendingCoinDelta = 0;
-}
-const addCoins = n => {
-  if (typeof state !== 'undefined' && state === 'play') pendingCoinDelta += n;
-  else localStorage.setItem('rdash_coins', totalCoins() + n);
-};
+const totalCoins = () => +(localStorage.getItem('rdash_coins') || 0);
+const addCoins = n => localStorage.setItem('rdash_coins', totalCoins() + n);
 const spendCoins = n => { const t = totalCoins(); if (t < n) return false;
   localStorage.setItem('rdash_coins', t - n); return true; };
 const skinBought = j => localStorage.getItem('rdash_skinbuy_' + j) === '1';
@@ -335,27 +326,11 @@ const skinEffect = name => currentSkin().effect === name;
 let bootDone = false;
 
 // ============ GameAnalytics ============
-const analyticsQueue = [];
-let analyticsFlushScheduled = false;
-function flushAnalytics() {
-  analyticsFlushScheduled = false;
-  if (!analyticsQueue.length || typeof GameAnalytics !== 'function') return;
-  const queue = analyticsQueue.splice(0);
-  for (const [method, args] of queue) { try { GameAnalytics(method, ...args); } catch (e) {} }
-}
 function gaSend(method, ...args) {
-  if (typeof state !== 'undefined' && state === 'play') {
-    analyticsQueue.push([method, args]);
-    if (!analyticsFlushScheduled) {
-      analyticsFlushScheduled = true;
-      setTimeout(flushAnalytics, 0);
-    }
-    return;
-  }
   try { if (typeof GameAnalytics === 'function') GameAnalytics(method, ...args); } catch (e) {}
 }
-const gaStageId = () => eventMode() ? 'ohsun_2026' : dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
-const gaMode = () => eventMode() ? 'collaboration' : dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
+const gaStageId = () => dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
+const gaMode = () => dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
 function gaDesign(id, value = 1) {
   gaSend('addDesignEvent', id, value);
 }
@@ -368,8 +343,6 @@ function gaCoins(flowType, amount, itemType, itemId) {
 
 // ============ デイリーチャレンジ & ミッション ============
 const DAILY_IDX = NSTAGE;   // 通常ステージの末尾に日替わりステージを追加
-const EVENT_IDX = NSTAGE + 1;
-const eventMode = () => stageIdx === EVENT_IDX;
 const dayKey = () => dateKey(new Date());
 const dailySeedNum = () => +dayKey().replace(/-/g, '');
 function dailyCfg() {
@@ -439,6 +412,7 @@ function mission(id, val, isMax) {
     gaCoins('Source', m.reward, 'Mission', m.id);
     gaDesign('Mission:Complete:' + m.id, m.reward);
     toast(`🎯 ${m.desc} +${m.reward}`);
+    missionSave();
   }
   missionProg[id] = p;
 }
@@ -636,17 +610,7 @@ function buildLevel(beats, duration, seed, diff) {
   for (const c of coins) if (inZone(c.t)) c.y = DH - c.y;
   for (const o of orbs) if (inZone(o.t)) o.y = DH - o.y;
   coins.sort((a, b) => a.t - b.t);
-  const minCoinGap = IOS_PERFORMANCE_MODE ? 0.65 : 0.28;
-  const maxCoins = IOS_PERFORMANCE_MODE ? Math.ceil(coins.length * 0.35) : coins.length;
-  const spacedCoins = [];
-  let lastCoinTime = -Infinity;
-  for (const coin of coins) {
-    if (coin.t - lastCoinTime < minCoinGap) continue;
-    spacedCoins.push(coin);
-    lastCoinTime = coin.t;
-    if (spacedCoins.length >= maxCoins) break;
-  }
-  return { obs: obsF, coins: spacedCoins, zones, orbs };
+  return { obs: obsF, coins, zones, orbs };
 }
 
 // ============ ゲーム状態 ============
@@ -659,13 +623,7 @@ let perfectRun = 0, fever = 0, judgeFlash = '';
 let practice = false, cpPct = 0, cpTime = 0;
 let shieldReady = false, invulnUntil = 0;
 let particles = [], confetti = [], floats = [], rings = [], trail = [];
-const particlePool = [];
-const MAX_PARTICLES = IOS_PERFORMANCE_MODE ? 12 : 120;
-const MAX_FLOATS = IOS_PERFORMANCE_MODE ? 2 : 12;
-const MAX_RINGS = IOS_PERFORMANCE_MODE ? 1 : 8;
-const MAX_TRAIL = IOS_PERFORMANCE_MODE ? 0 : 30;
-const MAX_VISIBLE_COINS = IOS_PERFORMANCE_MODE ? 3 : 8;
-let coinDefs = [], coinsLive = [], coinIdx = 0, coinRun = 0;
+let coinDefs = [], coinsLive = [], coinRun = 0;
 let flipZones = [], orbDefs = [], orbsLive = [];
 let lastGdir = 1, ceilAlpha = 0;
 let feverOn = false, feverEnd = 0, feverLength = 7;
@@ -688,37 +646,6 @@ const player = { x: 0, y: GROUND - B, vy: 0, rot: 0, grounded: true };
 let landAt = -9, trailAcc = 0, holdJump = 0;
 let isDown = false, tapAt = -9;
 const cache = {};
-function clearParticles() {
-  while (particles.length) particlePool.push(particles.pop());
-}
-function spawnParticle(x, y, vx, vy, size, life, hue) {
-  if (particles.length >= MAX_PARTICLES) return;
-  const p = particlePool.pop() || {};
-  p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.s = size; p.l = life; p.hue = hue;
-  particles.push(p);
-}
-function pushFloat(float) {
-  if (floats.length >= MAX_FLOATS) floats.shift();
-  floats.push(float);
-}
-function pushRing(ring) {
-  if (rings.length >= MAX_RINGS) rings.shift();
-  rings.push(ring);
-}
-function pushTrail(item) {
-  if (MAX_TRAIL === 0) return;
-  if (trail.length >= MAX_TRAIL) trail.shift();
-  trail.push(item);
-}
-function compactEffects(items, release) {
-  let write = 0;
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
-    if ((item.l === undefined || item.l > 0) && (item.a === undefined || item.a > 0)) items[write++] = item;
-    else if (release) release(item);
-  }
-  items.length = write;
-}
 
 // ============ メニュー ============
 function refreshMenu() {
@@ -814,10 +741,9 @@ function showHome() {
 setTimeout(showHome, 2000);
 
 async function selectStage(i) {
-  if (i === EVENT_IDX && !window.collaboration?.active()) return;
-  window.collaboration?.setPlaying(i !== DAILY_IDX);
+  if (!Number.isInteger(i) || i < 0 || i > DAILY_IDX) return;
+  window.collaboration?.resetRun();
   await ensureAudio();
-  await coinPreload;
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
     refreshDaily();
@@ -831,13 +757,12 @@ async function selectStage(i) {
   $('stageSelect').style.display = 'none';
   $('clearov').style.display = 'none';
   const ck = cfg.file;   // 曲ファイル単位でキャッシュ(デイリーも共有)
-  const track = AUDIO_TRACKS[cfg.file];
-  if (!track) { backToMenu(); toast('音声データを読み込めませんでした'); return; }
-  window.gameAudio?.preloadTrack?.(assetUrl(track.playback));
   if (!cache[ck]) {
     $('loading').style.display = 'flex';
     try {
       $('loadmsg').textContent = '♪';
+      const track = AUDIO_TRACKS[cfg.file];
+      if (!track) throw new Error('Missing prepared audio: '+cfg.file);
       let preparedBeats=track.beats;
       try{const saved=JSON.parse(localStorage.getItem('rdash_bc1_'+cfg.file)||'null');if(saved?.length)preparedBeats=saved.map(([t,s])=>({t,s}));}catch{}
       cache[ck] = {buffer:{duration:track.duration},beats:preparedBeats};
@@ -846,7 +771,6 @@ async function selectStage(i) {
     }
     $('loading').style.display = 'none';
   }
-  if (i === EVENT_IDX && !window.collaboration?.active()) { backToMenu(); return; }
   setupRun(i, cache[ck].buffer, cache[ck].beats);
 }
 
@@ -856,15 +780,13 @@ function setupRun(i, buf, bts) {
   stageIdx = i;
   const cfg = STAGES[i];
   buffer = buf; beats = bts;
-  currentMusicUrl = assetUrl(AUDIO_TRACKS[cfg.file].playback);
-  const preparedMusic=ensureMusicElement();preparedMusic.pause();if(preparedMusic.src!==currentMusicUrl){preparedMusic.src=currentMusicUrl;preparedMusic.load();}
+  setMusicTrack(AUDIO_TRACKS[cfg.file]);   // 曲ごとの実効ピークを揃える再生ゲインも同時に適用
   duration = Math.min(buffer.duration, cfg.duration || Infinity);
   SPEED = cfg.speed;
   const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
   level = built.obs; coinDefs = built.coins;
   flipZones = built.zones; orbDefs = built.orbs;
   coinsLive = coinDefs.map(c => ({ ...c, got: false }));
-  coinIdx = 0;
   orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
   coinRun = 0;
   lastGdir = 1; ceilAlpha = 0; feverOn = false; fever = 0;
@@ -874,7 +796,7 @@ function setupRun(i, buf, bts) {
     try { const raw = localStorage.getItem(recordKey('ghost',i,runRecordMode)); if (raw) ghost = JSON.parse(raw); } catch (e) {}
   }
   $('backbtn').style.display = 'block';
-  if (i === DAILY_IDX || i === EVENT_IDX) {   // 日替わりとイベントは練習モードなし
+  if (i === DAILY_IDX) {   // 日替わりは練習モードなし
     practice = false;
     const pb = $('practbtn');
     pb.textContent = '🚩 OFF'; pb.className = 'hudbtn'; pb.style.display = 'none';
@@ -900,16 +822,13 @@ function backToMenu() {
   if ((state === 'play' || state === 'paused' || state === 'dead') && !practice && !dailyMode() && songPos > 0)
     setBest(stageIdx, Math.min(99, Math.floor(songPos / duration * 100)));
   missionSave();
-  window.collaboration?.flush?.();
   if ((state === 'play' || state === 'paused') && !practice && coinRun > 0) {
     const banked=settleRunCoins();
     gaCoins('Source', banked, 'Gameplay', gaStageId() + '_exit');
     coinRun = 0;
   }
-  flushPendingCoins(); flushAnalytics();
   stopMusic(); state = 'menu';
-  window.collaboration?.setPlaying(false);
-  if (eventMode()) stageIdx = 0;
+  window.collaboration?.resetRun();
   $('menu').style.display = 'flex';
   $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
@@ -923,7 +842,7 @@ function backToMenu() {
 $('backbtn').onclick = backToMenu;
 $('tomenu').onclick = backToMenu;
 $('nextbtn').onclick = () => {
-  if (eventMode() || practice || stageIdx === NSTAGE - 1) { selectStage(stageIdx); return; }
+  if (practice || stageIdx === NSTAGE - 1) { selectStage(stageIdx); return; }
   if (dailyMode()) { if (dailyTriesLeft() > 0) selectStage(DAILY_IDX); else backToMenu(); return; }
   const n = stageIdx + 1;
   if (n < NSTAGE && unlocked(n)) selectStage(n);
@@ -1019,7 +938,6 @@ renderPromo(true);
 
 
 function startAttempt(offset = 0) {
-  if (eventMode() && !window.collaboration?.active()) { backToMenu(); return; }
   if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
     if (dailyTriesLeft() <= 0) { backToMenu(); toast('DAILY 0/3'); return; }
     useDailyTry();
@@ -1033,7 +951,6 @@ function startAttempt(offset = 0) {
     coinRun = 0; settledCoins = 0; revivesUsed = 0;
     judgedNotes.clear(); collectedOrbs.clear(); awardedNear.clear();
     coinsLive = coinDefs.map(c => ({ ...c, got: false }));
-    coinIdx = 0;
     runStats = { p: 0, g: 0, o: 0 };
     ghostTrace = []; ghostAcc = 0;
   } else {
@@ -1053,7 +970,7 @@ function startAttempt(offset = 0) {
   holdJump = 0;
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
-  clearParticles(); floats.length = 0; rings.length = 0; trail.length = 0; pulse = 0;
+  particles = []; floats = []; rings = []; trail = []; pulse = 0;
   playTrack(offset, LEAD);
   state = 'play';
   if (offset === 0) {
@@ -1078,8 +995,8 @@ function die() {
     if (feverOn) { feverOn = false; fever = 0; } else fever = Math.max(0, fever - 0.35);
     player.vy = -V0 * 0.72 * lastGdir; player.grounded = false; holdJump = HOLD_MAX * 0.5;
     const px = player.x + B/2, py = player.y + B/2;
-    pushFloat({ text: 'SHIELD!', x: px, y: py - 22, l: 1.2, c: '#c792ff' });
-    pushRing({ r: B*0.7, a: 0.75 });
+    floats.push({ text: 'SHIELD!', x: px, y: py - 22, l: 1.2, c: '#c792ff' });
+    rings.push({ r: B*0.7, a: 0.75 });
     shake = 5;
     if (navigator.vibrate) { try { navigator.vibrate(35); } catch (e) {} }
     return;
@@ -1099,10 +1016,8 @@ function die() {
       const banked=settleRunCoins();   // 未精算分だけ持ち帰る。復活後も再加算しない。
       gaCoins('Source', banked, 'Gameplay', gaStageId() + '_fail');
     }
-    flushPendingCoins(); flushAnalytics();
     mission('score3k', score, true); mission('combo15', maxCombo, true);
     missionSave();
-    window.collaboration?.flush?.();
   }
   combo = 0; perfectRun = 0; fever = 0; feverOn = false;
   shake = 10;
@@ -1114,7 +1029,8 @@ function die() {
   const px = player.x + B/2, py = player.y + B/2;
   for (let i = 0; i < 26; i++) {
     const a = Math.random()*Math.PI*2, v = 90 + Math.random()*260;
-    spawnParticle(px, py, Math.cos(a)*v, Math.sin(a)*v - 120, 4 + Math.random()*7, 1, Math.random() < 0.5 ? 0 : 45);
+    particles.push({ x: px, y: py, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 120,
+      s: 4 + Math.random()*7, l: 1, hue: Math.random() < 0.5 ? 0 : 45 });
   }
   sfxDeath();
 }
@@ -1130,13 +1046,9 @@ function clearStage() {
       gaCoins('Source', banked, 'Gameplay', gaStageId() + '_clear');
       extra.push(`<span style="display:inline-flex;align-items:center;gap:5px;justify-content:center"><img src="Asset/cosmo-coin.png" alt="" style="width:20px;height:20px;object-fit:contain"> +${coinRun}</span>`);
     }
-    flushPendingCoins(); flushAnalytics();
     mission('clear1', 1); mission('score3k', score, true); mission('combo15', maxCombo, true);
     missionSave();
-    window.collaboration?.flush?.();
-    if (eventMode()) {
-      isNewBest=!!window.collaboration?.complete(extra);
-    } else if (dailyMode()) {
+    if (dailyMode()) {
       isNewBest=setDailyScore(score);
       if (isNewBest) extra.push('🏆 DAILY BEST!');
     } else {
@@ -1169,13 +1081,13 @@ function clearStage() {
   const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
   $('clearstats').innerHTML =
     `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
-    `<p class="result-summary">${eventMode()?'おっ！サン コラボ':STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
+    `<p class="result-summary">${STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
     (isNewBest?'<p class="result-best">自己ベスト更新！</p>':'') +
     `<div class="result-bottom">${practice?'<span>練習モード</span>':`<span class="result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン">＋${coinRun}</span>`}<button id="result-details-open" type="button">詳細</button></div>` +
     `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,level.length-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
   $('result-details-open').onclick=()=>window.openResultDetails();
   $('nextbtn').style.display = 'inline-block';
-  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : eventMode() || practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
+  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
   $('clearov').style.display = 'flex';
@@ -1203,7 +1115,7 @@ async function press() {
     return;
   }
   if (state === 'play') {
-    void ensureAudio();
+    await ensureAudio();
     tapAt = performance.now()/1000;
   }
 }
@@ -1255,9 +1167,9 @@ function judge() {
     judgeFlash = 'PERFECT';
     window.sunRhythm?.charge('PERFECT', hitIdx);
     mission('perfect10', 1); mission('combo15', combo, true);
-    pushFloat({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
+    floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
     if (!window.sunRhythm?.enabled() && perfectRun % 5 === 0)
-      pushFloat({ text: 'FEVER +' + perfectRun, x: px, y: py - 18, l: 1.1, c: '#ff7ad9' });
+      floats.push({ text: 'FEVER +' + perfectRun, x: px, y: py - 18, l: 1.1, c: '#ff7ad9' });
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1266,7 +1178,7 @@ function judge() {
     judgeFlash = 'GREAT';
     window.sunRhythm?.charge('GREAT', hitIdx);
     mission('combo15', combo, true);
-    pushFloat({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
+    floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
   } else if (d <= 0.21 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1275,7 +1187,7 @@ function judge() {
     judgeFlash = 'GOOD';
     window.sunRhythm?.charge('GOOD', hitIdx);
     mission('combo15', combo, true);
-    pushFloat({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
+    floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
   } else {
     // 判定窓内にノートがないジャンプは無判定(ホールド移動でコンボ・FEVERを壊さない)
   }
@@ -1304,13 +1216,13 @@ function update(dt, frameSongPos = null) {
     songPos = frameSongPos === null ? musicPosition() : frameSongPos;
     while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
       pulse = 1; beatIdx++;
-      pushRing({ r: B*0.8, a: 0.35 });
+      rings.push({ r: B*0.8, a: 0.35 });
     }
     const missWindow = 0.21 * (skinEffect('judge') ? 1.18 : 1);
     while (noteJudgeIdx < level.length && level[noteJudgeIdx].t-TAP_OFFSET < songPos-missWindow) {
       if (!judgedNotes.has(noteJudgeIdx)) {
         judgedNotes.add(noteJudgeIdx);combo=0;perfectRun=0;
-        pushFloat({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});
+        floats.push({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});
       }
       noteJudgeIdx++;
     }
@@ -1319,7 +1231,7 @@ function update(dt, frameSongPos = null) {
       const pct = Math.floor(Math.max(0, songPos / duration * 100) / 25) * 25;
       if (pct > cpPct && pct < 100) {
         cpPct = pct; cpTime = duration * pct / 100;
-        pushFloat({ text: '🚩 25%', x: player.x + B/2, y: player.y - 30, l: 1.4, c: '#8f8' });
+        floats.push({ text: '🚩 25%', x: player.x + B/2, y: player.y - 30, l: 1.4, c: '#8f8' });
       }
     }
     // 重力方向(反転ゾーン)
@@ -1327,15 +1239,14 @@ function update(dt, frameSongPos = null) {
     if (gdir !== lastGdir) {
       lastGdir = gdir;
       player.grounded = false; player.vy = 0;
-      pushFloat({ text: 'FLIP!', x: player.x + B/2, y: DH/2, l: 1.1, c: '#8ff' });
-      pushRing({ r: B, a: 0.5 });
+      floats.push({ text: 'FLIP!', x: player.x + B/2, y: DH/2, l: 1.1, c: '#8ff' });
+      rings.push({ r: B, a: 0.5 });
       if (navigator.vibrate) { try { navigator.vibrate(25); } catch (e) {} }
     }
     // ジャンプ / 空中オーブ
     const now = performance.now()/1000;
     if (player.grounded && (isDown || now - tapAt < 0.1)) {
       player.vy = -V0 * gdir; player.grounded = false; tapAt = -9;
-      if (perfEnabled) perfStats.jumps++;
       holdJump = HOLD_MAX * (skinEffect('hold') ? 1.22 : 1);
       judge();
     } else if (!player.grounded && (isDown || now - tapAt < 0.12)) {
@@ -1350,8 +1261,8 @@ function update(dt, frameSongPos = null) {
         score += Math.round((150 + combo * 5) * (feverOn ? 2 : 1) * (skinEffect('score') ? 1.1 : 1));
         judgeFlash = 'ORB';
         mission('orb5', 1); mission('combo15', combo, true);
-        pushFloat({ text: 'ORB!', x: player.x + B/2, y: player.y - 14, l: 1, c: '#ffb14a' });
-        pushRing({ r: B*0.6, a: 0.6 });
+        floats.push({ text: 'ORB!', x: player.x + B/2, y: player.y - 14, l: 1, c: '#ffb14a' });
+        rings.push({ r: B*0.6, a: 0.6 });
         sfxOrb();
         break;
       }
@@ -1366,7 +1277,7 @@ function update(dt, frameSongPos = null) {
       player.y += player.vy * dt;
       player.rot += (Math.PI / JUMP_T) * dt * gdir;
       trailAcc += dt;
-      if (trailAcc > (IOS_PERFORMANCE_MODE ? 0.08 : 0.045)) { trailAcc = 0; pushTrail({ x: player.x, y: player.y, rot: player.rot, l: 0.4, fv: feverOn }); }
+      if (trailAcc > 0.045) { trailAcc = 0; trail.push({ x: player.x, y: player.y, rot: player.rot, l: 0.4, fv: feverOn }); }
     }
     // 接地(通常=地面/ブロック上面、反転中=天井/ブロック下面)
     const pl = player.x + 4, pr = player.x + B - 4;
@@ -1417,13 +1328,11 @@ function update(dt, frameSongPos = null) {
                   : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { die(); return; }
       }
     }
-    // コイン取得: 時間順のカーソルで画面外のコインを毎回走査しない
-    while (coinIdx < coinsLive.length && coinsLive[coinIdx].t < songPos - W / SPEED * 0.5) coinIdx++;
-    for (let i = coinIdx; i < coinsLive.length; i++) {
-      const c = coinsLive[i];
+    // コイン取得
+    for (const c of coinsLive) {
       if (c.got) continue;
       const dx = (c.t - songPos) * SPEED;
-      if (dx > W) break;
+      if (dx > W || dx < -W * 0.5) continue;
       const ccx = player.x + B/2 + dx;
       const nx = Math.max(player.x, Math.min(ccx, player.x + B));
       const ny = Math.max(player.y, Math.min(c.y, player.y + B));
@@ -1431,16 +1340,13 @@ function update(dt, frameSongPos = null) {
       if ((ccx-nx)*(ccx-nx) + (c.y-ny)*(c.y-ny) < coinRadius*coinRadius) {
         const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1);
         c.got = true; coinRun += gained;
-        if (perfEnabled) perfStats.coins++;
         mission('coins30', gained);
         if (c.risky) { score += (skinEffect('coin') ? 180 : 120) * (feverOn ? 2 : 1); mission('risky5', 1); }
         sfxCoin();
-        // Coin pickup is on the hottest path in WKWebView. Keep the sound and
-        // reward, but do not allocate decorative particles on iOS.
-        const particleCount = IOS_PERFORMANCE_MODE ? 0 : 6;
-        for (let j = 0; j < particleCount; j++) {
+        for (let i = 0; i < 6; i++) {
           const a = Math.random()*Math.PI*2, v = 40 + Math.random()*90;
-          spawnParticle(ccx, c.y, Math.cos(a)*v, Math.sin(a)*v - 60, 3, 0.6, 50);
+          particles.push({ x: ccx, y: c.y, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 60,
+            s: 3, l: 0.6, hue: 50 });
         }
       }
     }
@@ -1458,7 +1364,7 @@ function update(dt, frameSongPos = null) {
           awardedNear.add(nearIdx-1);
           score += Math.round(60 * (feverOn ? 2 : 1));
           fever = Math.min(1, fever + 0.06);
-          pushFloat({ text: 'NEAR!', x: player.x + B/2, y: player.y - 26, l: 0.9, c: '#9ff' });
+          floats.push({ text: 'NEAR!', x: player.x + B/2, y: player.y - 26, l: 0.9, c: '#9ff' });
         }
       }
     }
@@ -1489,7 +1395,7 @@ function update(dt, frameSongPos = null) {
         if (dailyTriesLeft() > 0) {
           state = 'ready'; songPos = -LEAD; attemptOffset = 0;
           lastGdir = 1; player.y = GROUND - B; player.vy = 0; player.rot = 0; player.grounded = true;
-          clearParticles();
+          particles = [];
         } else { backToMenu(); toast('DAILY 0/3'); }
       } else startAttempt(practice ? cpTime : 0);
     }
@@ -1499,13 +1405,13 @@ function update(dt, frameSongPos = null) {
   shake *= Math.exp(-7 * dt);
   if (!feverOn) fever = Math.max(0, fever - dt * 0.08);
   for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 800*dt; p.l -= dt*1.2; }
-  compactEffects(particles, p => particlePool.push(p));
+  particles = particles.filter(p => p.l > 0);
   for (const f of floats) { f.y -= 28*dt; f.l -= dt*1.1; }
-  compactEffects(floats);
+  floats = floats.filter(f => f.l > 0);
   for (const r of rings) { r.r += 170*dt; r.a -= dt*1.1; }
-  compactEffects(rings);
+  rings = rings.filter(r => r.a > 0);
   for (const t of trail) t.l -= dt*2.2;
-  compactEffects(trail);
+  trail = trail.filter(t => t.l > 0);
 }
 
 // ============ 描画 ============
@@ -1514,30 +1420,22 @@ function activateFever(seconds = 7) {
   feverLength = seconds;
   feverOn = true; feverEnd = songPos + seconds; fever = 1;
   mission('fever2', 1);
-  pushFloat({ text: window.sunRhythm?.enabled() ? 'SUN FEVER!!' : 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: IOS_PERFORMANCE_MODE ? 0.5 : 1.6, c: '#ff7ad9' });
-  pushRing({ r: B, a: 0.8 });
+  floats.push({ text: window.sunRhythm?.enabled() ? 'SUN FEVER!!' : 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
+  rings.push({ r: B, a: 0.8 });
   sfxFever();
 }
 
 function draw() {
-  if(window.reducedEffects){shake=0;clearParticles();rings.length=0;trail.length=0;confetti=[];}
+  if(window.reducedEffects){shake=0;particles=[];rings=[];trail=[];confetti=[];}
   ctx.setTransform(SC, 0, 0, SC, 0, 0);
   if (shake > 0.3) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   const hue = STAGES[stageIdx].hue;
   const inGame = state === 'ready' || state === 'play' || state === 'dead';
 
-  const bgKey = `${Math.ceil(W)}:${hue}`;
-  if (!backgroundCache || backgroundCacheKey !== bgKey) {
-    backgroundCache = document.createElement('canvas');
-    backgroundCache.width = Math.ceil(W); backgroundCache.height = DH;
-    const bg = backgroundCache.getContext('2d');
-    const gBg = bg.createLinearGradient(0, 0, 0, DH);
-    gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
-    gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
-    bg.fillStyle = gBg; bg.fillRect(0, 0, W, DH);
-    backgroundCacheKey = bgKey;
-  }
-  ctx.drawImage(backgroundCache, 0, 0, W, DH);
+  const gBg = ctx.createLinearGradient(0, 0, 0, DH);
+  gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
+  gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
+  ctx.fillStyle = gBg; ctx.fillRect(0, 0, W, DH);
 
   const scroll = (songPos + LEAD) * SPEED;
   ctx.save();
@@ -1592,23 +1490,18 @@ function draw() {
     }
     // コイン
     const nowS = performance.now()/1000;
-    let visibleCoins = 0;
-    for (let i = coinIdx; i < coinsLive.length; i++) {
-      const c = coinsLive[i];
+    for (const c of coinsLive) {
       if (c.got) continue;
       const dx = (c.t - songPos) * SPEED;
-      if (dx > W) break;
-      if (dx < -W*0.5) continue;
-      if (++visibleCoins > MAX_VISIBLE_COINS) break;
+      if (dx > W || dx < -W*0.5) continue;
       const ccx = player.x + B/2 + dx;
-      const ccy = IOS_PERFORMANCE_MODE ? c.y : c.y + Math.sin(nowS*4 + c.t*7) * 3;
-      const sq = IOS_PERFORMANCE_MODE ? 1 : Math.max(0.25, Math.abs(Math.cos(nowS*3 + c.t*2)));
-      ctx.save(); ctx.translate(ccx, ccy);
-      if (!IOS_PERFORMANCE_MODE) ctx.scale(sq, 1);
+      const ccy = c.y + Math.sin(nowS*4 + c.t*7) * 3;
+      const sq = Math.max(0.25, Math.abs(Math.cos(nowS*3 + c.t*2)));
+      ctx.save(); ctx.translate(ccx, ccy); ctx.scale(sq, 1);
       if (coinImg.complete && coinImg.naturalWidth) {
         const sz = c.risky ? 24 : 20;
         ctx.drawImage(coinImg, -sz/2, -sz/2, sz, sz);
-        if (c.risky && !IOS_PERFORMANCE_MODE) {
+        if (c.risky) {
           ctx.strokeStyle = '#ff7ad9'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, sz * 0.58, 0, 6.283); ctx.stroke();
         }
@@ -1695,7 +1588,7 @@ function draw() {
     // 残像(FEVER中はレインボー)
     for (const t of trail) {
       ctx.save(); ctx.globalAlpha = Math.max(0, t.l) * 0.5;
-      if (t.fv && !IOS_PERFORMANCE_MODE) ctx.filter = `hue-rotate(${(performance.now()/3 + t.l*500) % 360}deg) saturate(1.8)`;
+      if (t.fv) ctx.filter = `hue-rotate(${(performance.now()/3 + t.l*500) % 360}deg) saturate(1.8)`;
       ctx.translate(t.x + B/2, t.y + B/2); ctx.rotate(t.rot);
       if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
       ctx.restore();
@@ -1707,12 +1600,10 @@ function draw() {
       ctx.globalAlpha = fade;
       ctx.lineWidth = 4;
       const radius = B * (0.83 + 0.04 * Math.sin(nowS * 5));
-      const auraCount = IOS_PERFORMANCE_MODE ? 3 : 7;
-      for (let i = 0; i < auraCount; i++) {
+      for (let i = 0; i < 7; i++) {
         const angle = nowS * 1.8 + i * Math.PI * 2 / 7;
         const color = `hsl(${i * 360 / 7},100%,65%)`;
-        ctx.strokeStyle = color;
-        if (!IOS_PERFORMANCE_MODE) { ctx.shadowColor = color; ctx.shadowBlur = 12; }
+        ctx.strokeStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 12;
         ctx.beginPath(); ctx.arc(pcx, pcy, radius, angle, angle + Math.PI * 2 / 7 + 0.02); ctx.stroke();
       }
       ctx.restore();
@@ -1788,24 +1679,16 @@ function drawSpike(s, hue) {
     ctx.lineTo(s.x + s.w, s.y + s.h);
   }
   ctx.closePath();
-  const key = `${hue}:${s.f ? 1 : 0}`;
-  let g = spikePaintCache[key];
-  if (!g) {
-    g = s.f ? ctx.createLinearGradient(0, s.y + s.h, 0, s.y) : ctx.createLinearGradient(0, s.y, 0, s.y + s.h);
-    g.addColorStop(0, `hsl(${hue},30%,88%)`); g.addColorStop(1, `hsl(${hue},50%,45%)`);
-    spikePaintCache[key] = g;
-  }
+  const g = s.f
+    ? ctx.createLinearGradient(0, s.y + s.h, 0, s.y)
+    : ctx.createLinearGradient(0, s.y, 0, s.y + s.h);
+  g.addColorStop(0, `hsl(${hue},30%,88%)`); g.addColorStop(1, `hsl(${hue},50%,45%)`);
   ctx.fillStyle = g; ctx.fill();
   ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5; ctx.stroke();
 }
 function drawBlock(bl, hue) {
-  const key = `${hue}:${bl.f ? 1 : 0}`;
-  let g = blockPaintCache[key];
-  if (!g) {
-    g = ctx.createLinearGradient(0, bl.y, 0, bl.y + bl.h);
-    g.addColorStop(0, `hsl(${hue},55%,60%)`); g.addColorStop(1, `hsl(${hue},55%,32%)`);
-    blockPaintCache[key] = g;
-  }
+  const g = ctx.createLinearGradient(0, bl.y, 0, bl.y + bl.h);
+  g.addColorStop(0, `hsl(${hue},55%,60%)`); g.addColorStop(1, `hsl(${hue},55%,32%)`);
   ctx.fillStyle = g; ctx.fillRect(bl.x, bl.y, bl.w, bl.h);
   ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5;
   ctx.strokeRect(bl.x, bl.y, bl.w, bl.h);
@@ -1814,12 +1697,6 @@ function drawBlock(bl, hue) {
 }
 
 // ============ メインループ ============
-const perfEnabled = location.search.includes('perf=1');
-const perfStats = { frames: 0, longFrames: 0, maxFrameMs: 0, updateCalls: 0, maxUpdates: 0, updateMs: 0, drawMs: 0, jumps: 0, coins: 0, sunStarts: 0 };
-if (perfEnabled) window.__rdPerf = perfStats;
-const MAX_CATCHUP_STEPS = 3;
-const MAX_SIM_DT = 1 / 30;
-const MAX_CATCHUP_TIME = MAX_CATCHUP_STEPS * MAX_SIM_DT;
 const DEMO = location.search.includes('demo');
 if (DEMO) {
   document.getElementById('menu').style.display = 'none';
@@ -1838,9 +1715,7 @@ if (DEMO) {
   state = 'play';
 }
 function loop(t) {
-  const frameStart = performance.now();
   const dt = Math.min(0.033, (t - prevT) / 1000); prevT = t;
-  let updateCalls = 0;
   if (DEMO && state === 'play') {
     songPos += dt;
     const now = performance.now()/1000;
@@ -1850,27 +1725,13 @@ function loop(t) {
   } else {
     if(state==='play'){
       const target=musicPosition(),elapsed=Math.max(0,target-songPos);
-      const overloaded = elapsed > MAX_CATCHUP_TIME;
-      const steps = overloaded ? 1 : Math.max(1, Math.min(MAX_CATCHUP_STEPS, Math.ceil(elapsed/(1/60))));
+      // Advance physics and scrolling together, including ordinary dropped frames.
+      const steps=Math.max(1,Math.min(60,Math.ceil(elapsed/0.02)));
       const from=songPos;
-      const simulationElapsed = overloaded ? MAX_SIM_DT : elapsed;
-      const stepDt=Math.min(MAX_SIM_DT,simulationElapsed/steps);
-      for(let i=1;i<=steps&&state==='play';i++){
-        const updateStart=perfEnabled?performance.now():0;
-        const framePosition = overloaded ? target : from+(target-from)*i/steps;
-        update(stepDt,framePosition); updateCalls++;
-        if(perfEnabled) perfStats.updateMs+=performance.now()-updateStart;
-      }
+      for(let i=1;i<=steps&&state==='play';i++)update(Math.min(elapsed/steps,1/30),from+(target-from)*i/steps);
     }else update(dt);
   }
-  const drawStart=perfEnabled?performance.now():0;
   draw();
-  if(perfEnabled){
-    perfStats.drawMs+=performance.now()-drawStart;
-    const frameMs=performance.now()-frameStart;
-    perfStats.frames++;perfStats.updateCalls+=updateCalls;perfStats.maxUpdates=Math.max(perfStats.maxUpdates,updateCalls);
-    perfStats.maxFrameMs=Math.max(perfStats.maxFrameMs,frameMs);if(frameMs>20)perfStats.longFrames++;
-  }
   window.collaboration?.tick();
   requestAnimationFrame(loop);
 }
@@ -1913,5 +1774,6 @@ if ('serviceWorker' in navigator &&
 <script src="collaboration.js"></script>
 <script src="ui.js"></script>
 <script src="game-safety.js"></script>
+<script src="perf-hud.js"></script>
 </body>
 </html>

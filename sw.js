@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v44-lean-assets';
+const CACHE = 'rdash-v52-collab-info-only';
 const ASSETS = [
   './',
   'index.html',
@@ -9,6 +9,7 @@ const ASSETS = [
   'ui.js',
   'game-safety.js',
   'html-audio.js',
+  'perf-hud.js',
   'Asset/audio/tracks.js',
   ...['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav'].map(file=>'Asset/audio/'+file),
   'ui.css',
