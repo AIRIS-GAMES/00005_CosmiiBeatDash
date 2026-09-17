@@ -74,6 +74,12 @@
     }
   }
   let previousCombo=0,milestone=0,milestoneUntil=0;
+  let pauseSpace=72;
+  function measurePauseSpace(){
+    const style=getComputedStyle($('backbtn'));
+    pauseSpace=parseFloat(style.right)+parseFloat(style.width)+12;
+  }
+  addEventListener('resize',measurePauseSpace);measurePauseSpace();
   function drawHUD(g){
     const now=performance.now()/1000;
     if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=now+0.8;}previousCombo=combo;
@@ -82,9 +88,11 @@
     g.fillStyle='#34415b';roundRect(W/2-width/2,21,width,5,2.5);g.fill();
     if(percent>0){g.fillStyle='#82def2';roundRect(W/2-width/2,21,width*percent/100,5,2.5);g.fill();}
     g.font='600 10px "M PLUS Rounded 1c", sans-serif';g.fillStyle='#d7e2f1';g.textAlign='center';g.fillText(Math.floor(percent)+'%  ·  GOAL',W/2,39);
-    g.fillStyle='#101b32e8';roundRect(W-155,10,141,41,10);g.fill();
-    g.textAlign='right';g.fillStyle='#91a5c1';g.font='600 9px "M PLUS Rounded 1c", sans-serif';g.fillText('SCORE',W-26,24);
-    g.fillStyle='#fff';g.font='900 18px "M PLUS Rounded 1c", sans-serif';g.fillText(score.toLocaleString(),W-26,43);
+    const scoreRight=W-pauseSpace*DH/Math.min(innerWidth,innerHeight);
+    const scoreLeft=Math.max(scoreRight-141,W/2+width/2+24);
+    g.fillStyle='#101b32e8';roundRect(scoreLeft,10,scoreRight-scoreLeft,41,10);g.fill();
+    g.textAlign='right';g.fillStyle='#91a5c1';g.font='600 9px "M PLUS Rounded 1c", sans-serif';g.fillText('SCORE',scoreRight-12,24);
+    g.fillStyle='#fff';g.font='900 18px "M PLUS Rounded 1c", sans-serif';g.fillText(score.toLocaleString(),scoreRight-12,43,scoreRight-scoreLeft-24);
     if(now<milestoneUntil&&state==='play'){g.textAlign='center';g.font='900 19px "M PLUS Rounded 1c", sans-serif';g.fillStyle='#ffe58a';g.fillText(milestone+' COMBO',W/2,76);}
     if(!window.sunRhythm?.enabled()&&fever>0.02){
       const x=W/2-110,y=DH-42;g.fillStyle='#101b32ef';roundRect(x,y,220,30,10);g.fill();

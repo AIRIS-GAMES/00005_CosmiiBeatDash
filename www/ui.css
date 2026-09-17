@@ -50,8 +50,10 @@ button:focus-visible { outline:3px solid #a5eeff; outline-offset:3px; }
 #grid { gap:7px; }
 .tile { width:58px; height:48px; border-radius:10px; font-size:18px; box-shadow:none; }
 #stageback { width:44px; height:44px; }
-#backbtn { left:12px; right:auto; width:44px; height:44px; background:#101b32e8; font-size:26px; }
-#practbtn { min-height:40px; font-size:11px; background:#101b32e8; }
+/* In portrait the rotated playfield's right edge is the screen bottom. */
+:root { --play-controls-right:calc(16px + env(safe-area-inset-right, 0px)); --play-controls-top:env(safe-area-inset-top, 0px); }
+@media (orientation:portrait) { :root { --play-controls-right:calc(16px + env(safe-area-inset-bottom, 0px)); --play-controls-top:env(safe-area-inset-left, 0px); } }
+#backbtn { left:auto; right:var(--play-controls-right); top:calc(8px + var(--play-controls-top)); width:44px; height:44px; background:#101b32e8; font-size:26px; }
 #revivebtn { bottom:calc(62px + env(safe-area-inset-bottom)); }
 #sun-power { top:auto; bottom:14px; padding:10px 14px; font-size:11px; border-radius:12px; background:#141d2cef; gap:10px; }
 #sun-power progress { width:95px; }

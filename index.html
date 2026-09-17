@@ -132,9 +132,6 @@
     background:rgba(255,255,255,.14); color:#fff; cursor:pointer; font-weight:800; }
   #backbtn { top:calc(8px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right));
     width:40px; height:40px; font-size:18px; }
-  #practbtn { bottom:calc(10px + env(safe-area-inset-bottom)); left:calc(10px + env(safe-area-inset-left));
-    padding:8px 14px; font-size:13px; }
-  #practbtn.on { background:rgba(61,220,132,.35); }
   #revivebtn { left:50%; transform:translateX(-50%); bottom:calc(18px + env(safe-area-inset-bottom));
     padding:12px 26px; font-size:16px; background:#ffd94a; color:#430;
     box-shadow:0 5px 0 rgba(0,0,0,.4); display:none; }
@@ -209,7 +206,6 @@
 </div>
 
 <button id="backbtn" class="hudbtn" aria-label="ホームに戻る">‹</button>
-<button id="practbtn" class="hudbtn">🚩 OFF</button>
 <button id="revivebtn" class="hudbtn">REVIVE</button>
 <div id="toast"></div>
 
@@ -796,11 +792,7 @@ function setupRun(i, buf, bts) {
     try { const raw = localStorage.getItem(recordKey('ghost',i,runRecordMode)); if (raw) ghost = JSON.parse(raw); } catch (e) {}
   }
   $('backbtn').style.display = 'block';
-  if (i === DAILY_IDX) {   // 日替わりは練習モードなし
-    practice = false;
-    const pb = $('practbtn');
-    pb.textContent = '🚩 OFF'; pb.className = 'hudbtn'; pb.style.display = 'none';
-  } else $('practbtn').style.display = 'block';
+  practice = false;
   state = 'ready'; songPos = -LEAD; attemptOffset = 0;
   player.y = GROUND - B; player.rot = 0;
 }
@@ -834,7 +826,6 @@ function backToMenu() {
   $('loading').style.display = 'none';
   $('clearov').style.display = 'none';
   $('backbtn').style.display = 'none';
-  $('practbtn').style.display = 'none';
   $('revivebtn').style.display = 'none';
   reviveOffered = false;
   refreshMenu();
@@ -847,15 +838,6 @@ $('nextbtn').onclick = () => {
   const n = stageIdx + 1;
   if (n < NSTAGE && unlocked(n)) selectStage(n);
   else backToMenu();
-};
-$('practbtn').onclick = () => {
-  if (state !== 'ready') { toast('練習モードは開始前に変更できます'); return; }
-  practice = !practice;
-  const b = $('practbtn');
-  b.textContent = '🚩 ' + (practice ? 'ON' : 'OFF');
-  b.className = 'hudbtn' + (practice ? ' on' : '');
-  b.style.display = 'block';
-  toast(practice ? '25%' : 'RUN');
 };
 $('revivebtn').onclick = () => {
   // コインでコンティニュー: 死亡地点の少し手前から、スコア・コイン・コンボ記録を保持して再開

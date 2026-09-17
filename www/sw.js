@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v52-collab-info-only';
+const CACHE = 'rdash-v55-pause-next-to-score';
 const ASSETS = [
   './',
   'index.html',
