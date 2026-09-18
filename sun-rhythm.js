@@ -60,18 +60,24 @@
       g.globalAlpha = 0.35*Math.max(0,1-elapsed/0.22);
       g.fillStyle = '#ffe449'; g.fillRect(0,0,W,DH); g.globalAlpha = 1;
     }
+    g.restore();
+  }
+  function drawArtwork(g) {
+    if (!enabled() || !running || !feverOn || state !== 'play') return;
+    g.save(); g.setTransform(SC,0,0,SC,0,0);
     if (art.complete && art.naturalWidth) {
-      const scale = Math.min(DH*0.60/art.naturalHeight,W*0.6/art.naturalWidth);
+      // Inset from the phone's cutout edge and the top; use the space left of HUD.
+      const left = W*0.12, top = 22;
+      const maxWidth = Math.min(120,W*0.16);
+      // Keep the same size throughout FEVER, including inverted course sections.
+      const scale = Math.min(72/art.naturalHeight,maxWidth/art.naturalWidth);
       const w=art.naturalWidth*scale,h=art.naturalHeight*scale;
-      const entry=Math.min(1,Math.max(0,elapsed/0.7));
-      const rise=(1-entry)*(1-entry)*34-Math.sin(entry*Math.PI)*8;
-      // Whole source image, original colors/aspect ratio; gentle whole-image motion.
-      g.translate(W/2,(GROUND-h)/2+25+h/2+rise);
-      if(!window.reducedEffects)g.rotate(Math.sin(elapsed*3)*0.025);
+      // Keep the whole original image within the reserved space, without bobbing.
+      g.translate(left+w/2,top+h/2);
       g.drawImage(art,-w/2,-h/2,w,h);
     }
     g.restore();
   }
-  window.sunRhythm={charge,reset,tick,drawBackground,enabled,
+  window.sunRhythm={charge,reset,tick,drawBackground,drawArtwork,enabled,
     inspect:()=>({power,running,artwork:currentArtwork,artReady:art.complete && art.naturalWidth>0,feverCount,feverSeconds})};
 })();

@@ -28,7 +28,7 @@
   lobby.setAttribute('role', 'dialog');
   lobby.setAttribute('aria-modal', 'true');
   lobby.setAttribute('aria-labelledby', 'collab-title');
-  lobby.innerHTML = '<div class="collab-card"><img alt="おっ！サン"><small>© SUN-TV</small></div><div class="collab-info"><h2 id="collab-title">おっ！サン コラボ</h2><p id="collab-intro">いつものステージに、おっ！サンが登場！</p><div id="collab-howto"><strong>SUN POWER 100%で自動発動！</strong><p>PERFECT ＋14% ／ GREAT ＋9% ／ GOOD ＋5%<br>1回のSUN FEVERは10秒間。終了後は再びためられます。</p><small>コイン取得では増えません。<br>デイリー・練習モードは対象外です。</small></div><button id="collab-back">閉じる</button></div>';
+  lobby.innerHTML = '<div class="collab-card"><img alt="おっ！サン"></div><div class="collab-info"><h2 id="collab-title">おっ！サン コラボ</h2><p id="collab-intro">いつものステージに、おっ！サンが登場！</p><div id="collab-howto"><strong>SUN POWER 100%で自動発動！</strong><p>PERFECT ＋14% ／ GREAT ＋9% ／ GOOD ＋5%<br>1回のSUN FEVERは10秒間。終了後は再びためられます。</p><small>コイン取得では増えません。<br>デイリー・練習モードは対象外です。</small></div><button id="collab-back">閉じる</button></div>';
   app.appendChild(lobby);
   let background = [];
   function close() {
