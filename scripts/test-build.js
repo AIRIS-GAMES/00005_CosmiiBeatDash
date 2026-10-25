@@ -10,7 +10,11 @@ for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3
 for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav']){
   assert(fs.existsSync(path.join(out,'Asset/audio',file)),`Missing playback asset: ${file}`);
 }
-for(const file of ['index.html','sw.js','ui.js','ui.css','html-audio.js','collaboration-config.js']){
+for(const file of ['index.html','sw.js','ui.js','ui.css','html-audio.js','cosmii-power.js']){
   assert(fs.readFileSync(path.join(root,file)).equals(fs.readFileSync(path.join(out,file))),`Stale build: ${file}`);
 }
+for(const file of ['collaboration.js','collaboration.css','collaboration-config.js','sun-rhythm.js']){
+  assert(!fs.existsSync(path.join(out,file)),`Removed collaboration code bundled: ${file}`);
+}
+assert(!fs.existsSync(path.join(out,'Asset','collaborations')),'Removed collaboration artwork bundled');
 console.log('Build assets: PASS');

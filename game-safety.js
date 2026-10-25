@@ -19,7 +19,6 @@
     if(!await ensureAudio()){$('pause-title').textContent='音声を再開できません。もう一度お試しください';$('resume-game').disabled=false;return;}
     for(let n=3;n>0;n--){if(request!==token||state!=='paused')return;$('pause-title').textContent=String(n);await new Promise(r=>setTimeout(r,700));}
     if(request!==token||state!=='paused'||document.hidden)return;
-    if(runRecordMode==='sun'&&!window.collaboration?.active()){panel.hidden=true;backToMenu();return;}
     const now=performance.now()/1000;invulnUntil=now+remainingShield;feverGraceUntil=now+remainingGrace;
     isDown=false;tapAt=-9;prevT=performance.now();state='play';playTrack(Math.max(0,songPos));panel.hidden=true;
   }

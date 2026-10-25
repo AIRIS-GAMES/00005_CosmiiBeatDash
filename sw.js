@@ -1,11 +1,9 @@
-const CACHE = 'rdash-v59-collab-stable-size';
+const CACHE = 'rdash-v60-cosmii-power';
 const ASSETS = [
   './',
   'index.html',
   'manifest.json',
-  'collaboration-config.js',
-  'collaboration.js',
-  'sun-rhythm.js',
+  'cosmii-power.js',
   'ui.js',
   'game-safety.js',
   'html-audio.js',
@@ -15,7 +13,6 @@ const ASSETS = [
   'ui.css',
   'Asset/fonts/MPLUSRounded1c-Regular.ttf',
   'Asset/fonts/MPLUSRounded1c-Bold.ttf',
-  'collaboration.css',
   'Asset/IMG_3161.PNG',
   'Asset/IMG_3162.PNG',
   'Asset/IMG_3160.PNG',
@@ -53,12 +50,7 @@ self.addEventListener('fetch', e => {
       return new Response(bytes.slice(start,end+1),{status:206,headers:{'Content-Type':cached.headers.get('Content-Type')||'audio/mpeg','Content-Range':`bytes ${start}-${end}/${bytes.byteLength}`,'Content-Length':String(end-start+1),'Accept-Ranges':'bytes'}});
     })());return;
   }
-  // Never retain licensed artwork in the runtime cache.
-  if (url.pathname.includes('/Asset/collaborations/')) {
-    e.respondWith(fetch(e.request, { cache: 'no-store' }));
-    return;
-  }
-  if (/\/(collaboration-config\.js|collaboration\.js|collaboration\.css|sun-rhythm\.js)$/.test(url.pathname)) {
+  if (/\/cosmii-power\.js$/.test(url.pathname)) {
     e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
       return res;

@@ -23,7 +23,6 @@
   header.appendChild($('coinsdisp'));menu.prepend(header);
   const continueButton=document.createElement('button');continueButton.id='continue-btn';
   stage.insertBefore(continueButton,stage.firstChild);
-  if($('collab-banner'))stage.insertBefore($('collab-banner'),continueButton);
   const nav=document.createElement('div');nav.className='home-nav';
   nav.append($('stageSelectBtn'),$('dailybtn'));stage.appendChild(nav);
   const footer=document.createElement('footer');footer.id='home-footer';
@@ -42,7 +41,7 @@
     section.appendChild($(id));$('panel-content').appendChild(section);sections[key]=section;
   }
   const help=document.createElement('p');help.className='help-text';
-  help.textContent='操作：画面タップ／スペースキーでジャンプ。長押しで高く跳べます。SUN POWERが満タンになると、いつもの操作のまま無敵・スコアとコイン2倍。';sections.more.prepend(help);
+  help.textContent='操作：画面タップ／スペースキーでジャンプ。長押しで高く跳べます。コイン10枚でPOWERが発動し、10秒間無敵・スコアとコインが2倍になります。';sections.more.prepend(help);
   let opener=null;
   window.reducedEffects=localStorage.getItem('rdash_reduced_effects')==='1'||(localStorage.getItem('rdash_reduced_effects')===null&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   const effectsButton=document.createElement('button');effectsButton.id='effects-setting';
@@ -57,7 +56,7 @@
   $('more-open').onclick=()=>openPanel('more','遊び方・その他',$('more-open'));
   const effects={score:'PERFECTの得点 +10%',judge:'タイミング判定がやさしく',coin:'コインを引き寄せる',hold:'長押しジャンプを強化',shield:'ミスを1回ガード'};
   function refresh(){
-    help.textContent='画面タップ／スペースキーでジャンプ。長押しで高く跳べます。光るタイミングに合わせて跳び、空中のオーブはタップで追加ジャンプ。FLIP区間では天井を走ります。'+(window.collaboration?.active()?'SUN POWER満タンで10秒間無敵・スコアとコイン2倍。':'POWER満タンで7秒間スコアとコイン2倍（無敵なし）。')+' Ⅱボタン／Escで一時停止。';
+    help.textContent='画面タップ／スペースキーでジャンプ。長押しで高く跳べます。光るタイミングに合わせて跳び、空中のオーブはタップで追加ジャンプ。FLIP区間では天井を走ります。コイン10枚でPOWERが10秒間発動し、無敵・スコアとコイン2倍。Ⅱボタン／Escで一時停止。';
     let last=Number(localStorage.getItem('rdash_last_stage'));
     if(!Number.isInteger(last)||last<0||last>=NSTAGE||!unlocked(last))last=0;
     if(best(last)>=100&&last+1<NSTAGE&&unlocked(last+1))last++;
@@ -94,12 +93,6 @@
     g.textAlign='right';g.fillStyle='#91a5c1';g.font='600 9px "M PLUS Rounded 1c", sans-serif';g.fillText('SCORE',scoreRight-12,24);
     g.fillStyle='#fff';g.font='900 18px "M PLUS Rounded 1c", sans-serif';g.fillText(score.toLocaleString(),scoreRight-12,43,scoreRight-scoreLeft-24);
     if(now<milestoneUntil&&state==='play'){g.textAlign='center';g.font='900 19px "M PLUS Rounded 1c", sans-serif';g.fillStyle='#ffe58a';g.fillText(milestone+' COMBO',W/2,76);}
-    if(!window.sunRhythm?.enabled()&&fever>0.02){
-      const x=W/2-110,y=DH-42;g.fillStyle='#101b32ef';roundRect(x,y,220,30,10);g.fill();
-      g.fillStyle='#ffe58a';g.font='bold 11px "M PLUS Rounded 1c", sans-serif';g.textAlign='left';g.fillText(feverOn?'FEVER':'POWER',x+12,y+19);
-      g.fillStyle='#34415b';g.fillRect(x+77,y+12,80,6);g.fillStyle='#ffe58a';g.fillRect(x+77,y+12,80*fever,6);
-      if(feverOn){g.textAlign='right';g.fillText(Math.max(0,feverEnd-songPos).toFixed(1)+'s',x+207,y+19);}
-    }
     if(state==='ready'){
       g.fillStyle='#101b32ee';roundRect(W/2-175,92,350,113,16);g.fill();
       g.textAlign='center';g.fillStyle='#94afca';g.font='600 12px "M PLUS Rounded 1c", sans-serif';g.fillText(STAGES[stageIdx].name,W/2,115);

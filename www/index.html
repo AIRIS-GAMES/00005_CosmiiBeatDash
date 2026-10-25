@@ -14,8 +14,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="Asset/IMG_3161.PNG">
 <link rel="icon" href="Asset/IMG_3161.PNG">
-<link rel="stylesheet" href="collaboration.css">
-<script src="collaboration-config.js"></script>
 <script src="Asset/audio/tracks.js"></script>
 <script>
   (function(w,d,a,m){var s='script',g='GameAnalytics';w[g]=w[g]||function(){(w[g].q=w[g].q||[]).push(arguments)};a=d.createElement(s);m=d.getElementsByTagName(s)[0];a.async=1;a.src='https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js';m.parentNode.insertBefore(a,m)})(window,document);
@@ -302,10 +300,9 @@ function toast(msg) {
 // ============ セーブデータ ============
 const best = i => +(localStorage.getItem('rdash_best_' + i) || 0);
 const setBest = (i, p) => { if (i < NSTAGE && p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
-const recordMode = () => window.collaboration?.active() ? 'sun' : 'normal';
 let runRecordMode = 'normal';
-const recordKey = (kind,i,mode=recordMode()) => `rdash_v2_${mode}_${kind}_${i}`;
-const hiScore = (i,mode=recordMode()) => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
+const recordKey = (kind,i,mode='normal') => `rdash_v2_${mode}_${kind}_${i}`;
+const hiScore = (i,mode='normal') => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
 const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) { localStorage.setItem(recordKey('hs',i,runRecordMode), s); return true; } return false; };
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
 const unlocked = i => i === 0 || best(i - 1) >= 60;
@@ -388,7 +385,7 @@ function missionSave() {
 }
 // ============ ランク評価 ============
 const RANK_ORD = { C: 1, B: 2, A: 3, S: 4 };
-const bestRank = (i,mode=recordMode()) => localStorage.getItem(recordKey('rank',i,mode)) || '';
+const bestRank = (i,mode='normal') => localStorage.getItem(recordKey('rank',i,mode)) || '';
 const setBestRank = (i, r) => {
   if (i >= NSTAGE) return;
   if ((RANK_ORD[r] || 0) > (RANK_ORD[bestRank(i,runRecordMode)] || 0)) localStorage.setItem(recordKey('rank',i,runRecordMode), r);
@@ -622,9 +619,9 @@ let particles = [], confetti = [], floats = [], rings = [], trail = [];
 let coinDefs = [], coinsLive = [], coinRun = 0;
 let flipZones = [], orbDefs = [], orbsLive = [];
 let lastGdir = 1, ceilAlpha = 0;
-let feverOn = false, feverEnd = 0, feverLength = 7;
+let feverOn = false, feverEnd = 0, feverLength = 10;
 let feverGraceUntil = 0;
-const feverProtected = () => !!window.sunRhythm?.enabled() && (feverOn || performance.now() / 1000 < feverGraceUntil);
+const feverProtected = () => feverOn || performance.now() / 1000 < feverGraceUntil;
 let revivesUsed = 0, reviveOffered = false, deathPos = 0;
 let shake = 0, nearIdx = 0;
 let runStats = { p: 0, g: 0, o: 0 };   // ランク評価用の判定カウント
@@ -738,7 +735,6 @@ setTimeout(showHome, 2000);
 
 async function selectStage(i) {
   if (!Number.isInteger(i) || i < 0 || i > DAILY_IDX) return;
-  window.collaboration?.resetRun();
   await ensureAudio();
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
@@ -772,7 +768,7 @@ async function selectStage(i) {
 
 // ステージ準備の共通処理(通常/デイリー/MY MUSIC)
 function setupRun(i, buf, bts) {
-  runRecordMode = recordMode();
+  window.cosmiiPower?.reset();
   stageIdx = i;
   const cfg = STAGES[i];
   buffer = buf; beats = bts;
@@ -820,7 +816,7 @@ function backToMenu() {
     coinRun = 0;
   }
   stopMusic(); state = 'menu';
-  window.collaboration?.resetRun();
+  window.cosmiiPower?.reset();
   $('menu').style.display = 'flex';
   $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
@@ -928,7 +924,7 @@ function startAttempt(offset = 0) {
   attempts++;
   stopMusic();
   if (offset === 0) {
-    window.collaboration?.resetRun();
+    window.cosmiiPower?.reset();
     cpPct = 0; cpTime = 0; score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
     coinRun = 0; settledCoins = 0; revivesUsed = 0;
     judgedNotes.clear(); collectedOrbs.clear(); awardedNear.clear();
@@ -1040,9 +1036,8 @@ function clearStage() {
       const newHS = setHiScore(stageIdx, score);
       isNewBest=newHS;
       if (newHS) extra.push('🏆 自己ベスト更新！');
-      extra.push(runRecordMode==='sun'?'コラボ記録':'通常記録');
-      const sunStats=window.sunRhythm?.inspect();
-      if(sunStats?.feverCount)extra.push(`FEVER ${sunStats.feverCount}回・${sunStats.feverSeconds.toFixed(1)}秒`);
+      const powerStats=window.cosmiiPower?.inspect();
+      if(powerStats?.activationCount)extra.push(`POWER ${powerStats.activationCount}回・${powerStats.activeSeconds.toFixed(1)}秒`);
       if (newHS || !localStorage.getItem(recordKey('ghost',stageIdx,runRecordMode))) saveGhost();
       for (const s of SKINS) if (before < s.need && after >= s.need)
         extra.push(`🎁 ${s.n}`);
@@ -1143,22 +1138,17 @@ function judge() {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
     runStats.p++;
-    fever = Math.min(1, fever + 0.18);
     const mult = 1 + Math.floor(Math.min(combo, 60) / 15) * 0.25;
     score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1));
     judgeFlash = 'PERFECT';
-    window.sunRhythm?.charge('PERFECT', hitIdx);
     mission('perfect10', 1); mission('combo15', combo, true);
     floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
-    if (!window.sunRhythm?.enabled() && perfectRun % 5 === 0)
-      floats.push({ text: 'FEVER +' + perfectRun, x: px, y: py - 18, l: 1.1, c: '#ff7ad9' });
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
     runStats.g++;
     score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1));
     judgeFlash = 'GREAT';
-    window.sunRhythm?.charge('GREAT', hitIdx);
     mission('combo15', combo, true);
     floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
   } else if (d <= 0.21 * judgeBoost) {
@@ -1167,7 +1157,6 @@ function judge() {
     runStats.o++;
     score += Math.round((45 + combo * 2) * (feverOn ? 2 : 1));
     judgeFlash = 'GOOD';
-    window.sunRhythm?.charge('GOOD', hitIdx);
     mission('combo15', combo, true);
     floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
   } else {
@@ -1239,7 +1228,6 @@ function update(dt, frameSongPos = null) {
         orb.used = true; collectedOrbs.add(orb.t); tapAt = -9;
         player.vy = -V0 * 0.9 * gdir; holdJump = HOLD_MAX * 0.6;
         combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
-        fever = Math.min(1, fever + 0.15);
         score += Math.round((150 + combo * 5) * (feverOn ? 2 : 1) * (skinEffect('score') ? 1.1 : 1));
         judgeFlash = 'ORB';
         mission('orb5', 1); mission('combo15', combo, true);
@@ -1322,6 +1310,7 @@ function update(dt, frameSongPos = null) {
       if ((ccx-nx)*(ccx-nx) + (c.y-ny)*(c.y-ny) < coinRadius*coinRadius) {
         const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1);
         c.got = true; coinRun += gained;
+        window.cosmiiPower?.collect(gained);
         mission('coins30', gained);
         if (c.risky) { score += (skinEffect('coin') ? 180 : 120) * (feverOn ? 2 : 1); mission('risky5', 1); }
         sfxCoin();
@@ -1345,18 +1334,15 @@ function update(dt, frameSongPos = null) {
         if (clearance > -2 && clearance < 13 && !awardedNear.has(nearIdx-1)) {   // トゲすれすれ通過
           awardedNear.add(nearIdx-1);
           score += Math.round(60 * (feverOn ? 2 : 1));
-          fever = Math.min(1, fever + 0.06);
           floats.push({ text: 'NEAR!', x: player.x + B/2, y: player.y - 26, l: 0.9, c: '#9ff' });
         }
       }
     }
     // FEVER TIME: メーター満タンで発動、7秒間スコア・コイン2倍
-    if (!feverOn && !window.sunRhythm?.enabled() && fever >= 1) activateFever();
-    if (!feverOn && window.sunRhythm?.enabled()) fever = 0;
     if (feverOn) {
       fever = Math.max(0, (feverEnd - songPos) / feverLength);
       if (songPos >= feverEnd) {
-        if (window.sunRhythm?.enabled()) feverGraceUntil = performance.now() / 1000 + 1;
+        feverGraceUntil = performance.now() / 1000 + 1;
         feverOn = false; fever = 0;
       }
     }
@@ -1385,7 +1371,6 @@ function update(dt, frameSongPos = null) {
 
   pulse *= Math.exp(-6 * dt);
   shake *= Math.exp(-7 * dt);
-  if (!feverOn) fever = Math.max(0, fever - dt * 0.08);
   for (const p of particles) { p.x += p.vx*dt; p.y += p.vy*dt; p.vy += 800*dt; p.l -= dt*1.2; }
   particles = particles.filter(p => p.l > 0);
   for (const f of floats) { f.y -= 28*dt; f.l -= dt*1.1; }
@@ -1397,12 +1382,12 @@ function update(dt, frameSongPos = null) {
 }
 
 // ============ 描画 ============
-function activateFever(seconds = 7) {
+function activateFever(seconds = 10) {
   if (feverOn || state !== 'play') return;
   feverLength = seconds;
   feverOn = true; feverEnd = songPos + seconds; fever = 1;
   mission('fever2', 1);
-  floats.push({ text: window.sunRhythm?.enabled() ? 'SUN FEVER!!' : 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
+  floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
   rings.push({ r: B, a: 0.8 });
   sfxFever();
 }
@@ -1418,6 +1403,7 @@ function draw() {
   gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
   gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
   ctx.fillStyle = gBg; ctx.fillRect(0, 0, W, DH);
+  if (inGame) window.cosmiiPower?.drawBackground(ctx);
 
   const scroll = (songPos + LEAD) * SPEED;
   ctx.save();
@@ -1431,7 +1417,6 @@ function draw() {
   ctx.restore();
 
 
-  if (inGame) window.sunRhythm?.drawBackground(ctx);
   if (inGame || state === 'clear') {
     ctx.fillStyle = `hsl(${hue},45%,11%)`;
     ctx.fillRect(0, GROUND, W, DH-GROUND);
@@ -1628,7 +1613,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
 
-    window.sunRhythm?.drawArtwork(ctx);
+    window.cosmiiPower?.drawArtwork(ctx);
     window.gameUI?.drawHUD(ctx);
   }
 
@@ -1714,8 +1699,8 @@ function loop(t) {
       for(let i=1;i<=steps&&state==='play';i++)update(Math.min(elapsed/steps,1/30),from+(target-from)*i/steps);
     }else update(dt);
   }
+  window.cosmiiPower?.tick();
   draw();
-  window.collaboration?.tick();
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
@@ -1753,8 +1738,7 @@ if ('serviceWorker' in navigator &&
 }
 </script>
 <script src="html-audio.js"></script>
-<script src="sun-rhythm.js"></script>
-<script src="collaboration.js"></script>
+<script src="cosmii-power.js"></script>
 <script src="ui.js"></script>
 <script src="game-safety.js"></script>
 <script src="perf-hud.js"></script>
