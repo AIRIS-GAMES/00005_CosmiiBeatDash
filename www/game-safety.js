@@ -5,6 +5,7 @@
   panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','pause-title');app.appendChild(panel);
   let token=0,remainingShield=0,remainingGrace=0;
   function pause(){
+    if(window.cosmiiTutorial?.active){window.cosmiiTutorial.pause();return;}
     if(state!=='play'&&state!=='paused')return;
     token++;
     if(state==='play'){

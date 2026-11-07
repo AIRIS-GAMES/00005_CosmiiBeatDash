@@ -1,6 +1,4 @@
-@font-face { font-family:'M PLUS Rounded 1c'; src:url('Asset/fonts/MPLUSRounded1c-Regular.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:swap; }
-@font-face { font-family:'M PLUS Rounded 1c'; src:url('Asset/fonts/MPLUSRounded1c-Bold.ttf') format('truetype'); font-weight:700 900; font-style:normal; font-display:swap; }
-:root { color-scheme:light; --pop-ink:#283454; --pop-paper:#fffaf0; --pop-font:'M PLUS Rounded 1c',sans-serif; }
+:root { color-scheme:light; --pop-ink:#283454; --pop-paper:#fffaf0; --pop-font:'Exo 2','M PLUS 1p',sans-serif; }
 html,body { font-family:var(--pop-font); }
 button { font-family:inherit; touch-action:manipulation; }
 button:focus-visible { outline:3px solid #a5eeff; outline-offset:3px; }

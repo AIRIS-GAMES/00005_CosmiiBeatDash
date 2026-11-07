@@ -21,11 +21,12 @@ const FALLBACK_MUSIC_GAIN=0.3;
 
 let musicEl=null,currentMusicUrl='',currentMusicGain=FALLBACK_MUSIC_GAIN,playbackGeneration=0;
 const audioPrefs=(()=>{try{return {...{music:true,sound:true},...JSON.parse(localStorage.getItem('rdash_audio_prefs')||'{}')};}catch{return {music:true,sound:true};}})();
+for(const key of ['musicVolume','soundVolume'])audioPrefs[key]=Number.isFinite(audioPrefs[key])?Math.max(0,Math.min(1,audioPrefs[key])):1;
 const effects=Object.fromEntries(Object.entries(SFX_GAIN).map(([name,gain])=>{
  const voices=Array.from({length:SFX_POOL_SIZE[name]},()=>{
   const audio=new Audio('Asset/audio/'+name+'.wav');
   audio.preload=SFX_EAGER_PRELOAD.includes(name)?'auto':'none';
-  audio.volume=gain;audio.setAttribute('playsinline','');
+  audio.volume=gain*audioPrefs.soundVolume;audio.setAttribute('playsinline','');
   const voice={audio,busy:false,startedAt:0,token:0};
   // Rewinding here keeps the start task down to a single play() call.
   audio.addEventListener('ended',()=>{voice.busy=false;try{audio.currentTime=0;}catch{}});
@@ -40,7 +41,7 @@ function ignorePlayRejection(voice,token){return error=>{if(voice.token===token)
 function releaseVoice(voice){voice.token++;voice.busy=false;voice.audio.pause();try{voice.audio.currentTime=0;}catch{}}
 function activeVoices(){const list=[];for(const entry of Object.values(effects))for(const voice of entry.voices)if(voice.busy)list.push(voice);return list.sort((a,b)=>a.startedAt-b.startedAt);}
 function ensureMusicElement(){
- if(!musicEl){musicEl=new Audio();musicEl.preload='auto';musicEl.setAttribute('playsinline','');musicEl.volume=currentMusicGain;}
+ if(!musicEl){musicEl=new Audio();musicEl.preload='auto';musicEl.setAttribute('playsinline','');musicEl.volume=currentMusicGain*audioPrefs.musicVolume;}
  return musicEl;
 }
 // Sets both the source and its measured playback gain; never set one alone.
@@ -50,7 +51,7 @@ function ensureMusicElement(){
 function setMusicTrack(track){
  currentMusicUrl=assetUrl(track.playback);
  currentMusicGain=typeof track.gain==='number'?track.gain:FALLBACK_MUSIC_GAIN;
- const el=ensureMusicElement();el.pause();resetMusicClock();el.volume=currentMusicGain;
+ const el=ensureMusicElement();el.pause();resetMusicClock();el.volume=currentMusicGain*audioPrefs.musicVolume;
  if(el.src!==currentMusicUrl){el.src=currentMusicUrl;el.load();}
 }
 async function ensureAudio(){
@@ -69,7 +70,7 @@ async function ensureAudio(){
 // Start now or drop: never schedule a pickup sound for a later task. Reserving
 // the sole slot before play() also excludes other effects while play is pending.
 function playSfx(name){
- if(!audioPrefs.sound||document.hidden||!audioUnlocked)return;
+ if(!audioPrefs.sound||audioPrefs.soundVolume===0||document.hidden||!audioUnlocked)return;
  const entry=effects[name],now=performance.now();
  if(now-entry.lastStart<SFX_RETRIGGER_MS)return;
  const active=activeVoices();
@@ -140,19 +141,19 @@ function musicPosition(){
  if(out<clockOut)out=clockOut;
  clockOut=out;return out;
 }
-function playTrack(offset,lead=0){
+function playTrack(offset,lead=0,newAttempt=false){
  const generation=++playbackGeneration,el=ensureMusicElement();
  el.pause();
  if(el.src!==currentMusicUrl){el.src=currentMusicUrl;el.load();}
- el.volume=currentMusicGain;
- el.muted=!audioPrefs.music;
+ el.volume=currentMusicGain*audioPrefs.musicVolume;
+ el.muted=!audioPrefs.music||audioPrefs.musicVolume===0;
  const position=Math.max(0,offset+0.9-lead);
  attemptOffset=offset;
  beatIdx=beats.findIndex(b=>b.t>=offset-LEAD);if(beatIdx<0)beatIdx=beats.length;
  noteJudgeIdx=level.findIndex(o=>o.t-TAP_OFFSET>=offset-.5);if(noteJudgeIdx<0)noteJudgeIdx=level.length;
  const failed=()=>{if(generation!==playbackGeneration)return;window.gameSafety?.pause();toast('音声を再開できません。もう一度お試しください');};
  resetMusicClock();
- try{el.currentTime=position;const result=el.play();if(result?.catch)result.catch(failed);}catch{failed();}
+ try{el.currentTime=position;const result=el.play();Promise.resolve(result).then(()=>{if(generation===playbackGeneration&&state==='play')window.beatPSF?.start(offset,newAttempt);},failed);}catch{failed();}
 }
 function sfxDeath(){playSfx('death');}
 function sfxClear(){playSfx('clear');}
@@ -165,8 +166,11 @@ window.gameAudio={
  setSettings(prefs){
   if(typeof prefs.music==='boolean')audioPrefs.music=prefs.music;
   if(typeof prefs.sound==='boolean')audioPrefs.sound=prefs.sound;
+  for(const key of ['musicVolume','soundVolume'])if(Number.isFinite(prefs[key]))audioPrefs[key]=Math.max(0,Math.min(1,prefs[key]));
   localStorage.setItem('rdash_audio_prefs',JSON.stringify(audioPrefs));
-  if(musicEl)musicEl.muted=!audioPrefs.music;if(!audioPrefs.sound)stopEffects();
+  if(musicEl){musicEl.volume=currentMusicGain*audioPrefs.musicVolume;musicEl.muted=!audioPrefs.music||audioPrefs.musicVolume===0;}
+  for(const entry of Object.values(effects))for(const voice of entry.voices)voice.audio.volume=entry.gain*audioPrefs.soundVolume;
+  if(!audioPrefs.sound||audioPrefs.soundVolume===0)stopEffects();
  },
  setClockSmoothing(on){clockSmoothing=!!on;localStorage.setItem('rdash_clock_smoothing',on?'1':'0');resetMusicClock();},
  clockSmoothing:()=>clockSmoothing,

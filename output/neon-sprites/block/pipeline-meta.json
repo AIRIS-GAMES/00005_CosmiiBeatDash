@@ -1,0 +1,64 @@
+{
+  "target": "asset",
+  "mode": "single",
+  "prompt": "",
+  "role": "",
+  "input": "C:\\Users\\ramur\\.codex\\generated_images\\01a1b4d1-d218-7052-a4ff-04170e38b11d\\exec-05271626-bbfd-41dd-bfd2-c6cb6c08429c.png",
+  "threshold": 100,
+  "edge_threshold": 150,
+  "duration": 200,
+  "rows": 1,
+  "cols": 1,
+  "cell_size": 128,
+  "fit_scale": 0.95,
+  "trim_border": 4,
+  "edge_clean_depth": 3,
+  "align": "bottom",
+  "shared_scale": false,
+  "component_mode": "largest",
+  "component_padding": 0,
+  "min_component_area": 1,
+  "edge_touch_margin": 0,
+  "frame_labels": [
+    "single-1"
+  ],
+  "frames": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "source_box": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "component_mode": "largest",
+      "component_count": 1,
+      "selected_component_area": 595729,
+      "selected_component_bbox": [
+        231,
+        243,
+        1015,
+        1003
+      ],
+      "crop_bbox": [
+        231,
+        243,
+        1015,
+        1003
+      ],
+      "edge_touch": false,
+      "output_size": [
+        121,
+        117
+      ],
+      "paste_position": [
+        3,
+        8
+      ]
+    }
+  ],
+  "edge_touch_frames": []
+}

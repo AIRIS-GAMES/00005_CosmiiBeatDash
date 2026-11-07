@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:${server.address().port}`);
+    await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(`http://127.0.0.1:${server.address().port}`);
     await page.waitForFunction(() => bootDone && window.cosmiiPower);
 
     const collected = await page.evaluate(() => {
@@ -70,44 +70,18 @@ const server = http.createServer((req, res) => {
       die();
       return { firstActivation, multipliedCoins, stateBeforeProtectedHit, stateAfterProtectedHit: state };
     });
-    assert.deepEqual(collected.firstActivation, {
-      coins: 10,
-      power: 0,
-      active: true,
-      length: 10,
-      invulnerable: true,
-      character: collected.firstActivation.character,
-      characterSource: true
-    });
-    assert.equal(collected.multipliedCoins, 12, 'Coins collected during FEVER are doubled');
-    assert.equal(collected.firstActivation.character, 'RED');
+    assert.equal(collected.firstActivation.coins, 10);
+    assert.equal(collected.firstActivation.active, false);
+    assert.equal(collected.firstActivation.power, 0);
+    assert.equal(collected.firstActivation.invulnerable, false);
+    assert.equal(collected.multipliedCoins, 11, 'Coins retain their ordinary value');
     assert.equal(collected.stateBeforeProtectedHit, 'play');
-    assert.equal(collected.stateAfterProtectedHit, 'play', 'POWER protects the player while active');
-
-    await page.waitForFunction(() => cosmiiPower.inspect().artReady);
-    const followUp = await page.evaluate(() => {
-      songPos = 2;
-      cosmiiPower.tick();
-      const activeSeconds = cosmiiPower.inspect().activeSeconds;
-      update(0, feverEnd + 0.1);
-      cosmiiPower.tick();
-      const ended = { active: feverOn, running: cosmiiPower.inspect().running, grace: feverProtected() };
-      cosmiiPower.collect(8);
-      Math.random = () => 0.999999;
-      cosmiiPower.tick();
-      return {
-        activeSeconds,
-        ended,
-        secondActivation: cosmiiPower.inspect().activationCount,
-        secondCharacter: cosmiiPower.inspect().character,
-        secondCharacterSource: SKINS.some(skin => skin.n === cosmiiPower.inspect().character)
-      };
+    assert.equal(collected.stateAfterProtectedHit, 'dead', 'Collecting coins must not prevent death');
+    const legacy = await page.evaluate(() => {
+      state='play'; activateFever(10); cosmiiPower.collect(100); cosmiiPower.tick();
+      return {active:feverOn,protected:feverProtected(),hidden:document.getElementById('cosmii-power').hidden,count:cosmiiPower.inspect().activationCount};
     });
-    assert.ok(followUp.activeSeconds > 0);
-    assert.deepEqual(followUp.ended, { active: false, running: false, grace: true });
-    assert.equal(followUp.secondActivation, 2);
-    assert.equal(followUp.secondCharacter, 'PURPLE');
-    assert.equal(followUp.secondCharacterSource, true);
+    assert.deepEqual(legacy,{active:false,protected:false,hidden:true,count:0});
     assert.deepEqual(errors, []);
 
     const sourceFiles = ['index.html', 'ui.js', 'ui.css', 'sw.js', 'game-safety.js', 'cosmii-power.js'];
@@ -115,7 +89,7 @@ const server = http.createServer((req, res) => {
       const source = fs.readFileSync(path.join(root, file), 'utf8');
       assert.doesNotMatch(source, /サンテレビ|おっ.?サン|SUN-TV|ohsun|SUN POWER|SUN FEVER|collaboration|COLLAB|sunRhythm/i, `${file} still contains removed collaboration content`);
     }
-    console.log('Coin-powered random Cosmiii ability: PASS');
+    console.log('FEVER suspended: normal coin values, collision death, hidden meter and legacy trigger PASS');
   } finally {
     await browser.close();
     server.close();

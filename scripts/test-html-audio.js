@@ -12,8 +12,9 @@ const server=http.createServer((req,res)=>{
  try{
   const context=await browser.newContext({serviceWorkers:'block'});await context.route('https://**',r=>r.abort());
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));const url='http://127.0.0.1:'+server.address().port;
-  await page.goto(url);await page.waitForFunction(()=>window.gameAudio&&bootDone&&getComputedStyle($('splash')).display==='none');
-  await page.evaluate(()=>$('loginov').style.display='none');
+  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(url);await page.waitForFunction(()=>window.gameAudio&&bootDone&&getComputedStyle($('splash')).display==='none');
+  await page.evaluate(()=>{ $('loginov').style.display='none';localStorage.setItem('cosmii_dash_story_v1',JSON.stringify({intro:true,opening:true})); });
+  await page.reload();await page.waitForFunction(()=>window.cosmiiWorld&&bootDone);await page.evaluate(()=>$('loginov').style.display='none');
   await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready'&&musicEl.readyState>=2);
   await page.locator('#cv').click({position:{x:200,y:150}});await page.waitForFunction(()=>state==='play'&&!musicEl.paused);
   assert.ok(await page.evaluate(()=>songPos<0),'lead-in remains before first beat');
@@ -25,7 +26,7 @@ const server=http.createServer((req,res)=>{
   for(const prefs of [{music:true,sound:false},{music:false,sound:true},{music:true,sound:true}]){
    await page.evaluate(p=>{gameAudio.setSettings(p);sfxOrb();},prefs);
    assert.equal(await page.evaluate(()=>musicEl.muted),!prefs.music);
-   assert.deepEqual(await page.evaluate(()=>gameAudio.settings()),prefs);
+   assert.deepEqual(await page.evaluate(()=>gameAudio.settings()),{...prefs,musicVolume:1,soundVolume:1});
   }
   const silentCoins=await page.evaluate(async()=>{
    stopEffects();
@@ -149,7 +150,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.evaluate(()=>songPos),paused);assert.equal(await page.evaluate(()=>musicEl.paused),true);
   await page.locator('#resume-game').click();await page.waitForFunction(()=>state==='play'&&!musicEl.paused);assert.ok(await page.evaluate(()=>songPos)>=paused-.05);
   await page.evaluate(()=>{gameAudio.setSettings({music:false,sound:false});backToMenu();});await page.reload();await page.waitForFunction(()=>window.gameAudio);
-  assert.deepEqual(await page.evaluate(()=>gameAudio.settings()),{music:false,sound:false});
+  assert.deepEqual(await page.evaluate(()=>gameAudio.settings()),{music:false,sound:false,musicVolume:1,soundVolume:1});
   await page.waitForFunction(()=>bootDone&&getComputedStyle($('splash')).display==='none');
   await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready'&&musicEl.readyState>=2);
   await page.evaluate(()=>{$('loginov').style.display='none';});await page.locator('#cv').click({position:{x:200,y:150}});

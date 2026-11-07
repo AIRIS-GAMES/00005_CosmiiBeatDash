@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8">
@@ -15,12 +15,16 @@
 <link rel="apple-touch-icon" href="Asset/IMG_3161.PNG">
 <link rel="icon" href="Asset/IMG_3161.PNG">
 <script src="Asset/audio/tracks.js"></script>
+<script src="Asset/audio/rhythm-beats.js"></script>
+<script src="beat-analytics.js"></script>
 <script>
+  if(window.beatAnalytics.enabled){
   (function(w,d,a,m){var s='script',g='GameAnalytics';w[g]=w[g]||function(){(w[g].q=w[g].q||[]).push(arguments)};a=d.createElement(s);m=d.getElementsByTagName(s)[0];a.async=1;a.src='https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js';m.parentNode.insertBefore(a,m)})(window,document);
-  GameAnalytics('configureBuild', 'web-1.0.0');
+  GameAnalytics('configureBuild', window.beatAnalytics.build);
   GameAnalytics('configureAvailableResourceCurrencies', ['Coins']);
   GameAnalytics('configureAvailableResourceItemTypes', ['Gameplay', 'Bonus', 'Skin', 'Revive', 'Mission']);
   GameAnalytics('initialize', '6ee205f93150fa936046a5dfd40979dd', 'cb4dcf676d38f05789db4c347a85544536f99a88');
+  }
 </script>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -148,6 +152,14 @@
     font-size:14px; z-index:50; display:none; }
 </style>
 <link rel="stylesheet" href="ui.css">
+<link rel="stylesheet" href="cosmii-world.css">
+<link rel="stylesheet" href="neon-theme.css">
+<link rel="stylesheet" href="cosmii-opening.css">
+<link rel="stylesheet" href="cosmii-home.css">
+<link rel="stylesheet" href="cosmii-ui-art.css">
+<link rel="stylesheet" href="cosmii-typography.css">
+<link rel="stylesheet" href="cosmii-calm.css">
+<link rel="stylesheet" href="cosmii-tutorial.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -240,15 +252,15 @@ const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
   file: i < LEGACY_NSTAGE ? ORIGINAL_SONGS[i % ORIGINAL_SONGS.length] : SONGS[(i - LEGACY_NSTAGE) % SONGS.length],
   hue: HUES[i],
   speed: i < LEGACY_NSTAGE ? 350 + i * 10 : 450 + (i - LEGACY_NSTAGE) * 6,
-  diff: i < LEGACY_NSTAGE ? i / (LEGACY_NSTAGE - 1) : 0.55 + (i - LEGACY_NSTAGE) / (NSTAGE - LEGACY_NSTAGE - 1) * 0.45,
+  diff: i / (NSTAGE - 1),
 }));
 
 const SKINS = [
-  { n: 'RED',    src: 'Asset/IMG_3161.PNG', need: 0, effect: 'score',  desc: 'PERFECT +10%' },
-  { n: 'BLUE',   src: 'Asset/IMG_3162.PNG', need: 1, effect: 'judge',  desc: 'WIDE' },
-  { n: 'PINK',   src: 'Asset/IMG_3160.PNG', need: 3, effect: 'coin',   desc: 'MAGNET +40%' },
-  { n: 'GREEN',  src: 'Asset/IMG_3158.PNG', need: 5, effect: 'hold',   desc: 'HOLD +' },
-  { n: 'PURPLE', src: 'Asset/IMG_3159.PNG', need: 7, effect: 'shield', desc: 'SHIELD x1' },
+  { n: 'RED',    src: 'Asset/world/cast-neon/red.png', need: 0, effect: 'score',  desc: 'PERFECTの得点 +10%' },
+  { n: 'BLUE',   src: 'Asset/world/cast-neon/blue.png', need: 1, effect: 'judge',  desc: 'タイミング判定がやさしく' },
+  { n: 'PINK',   src: 'Asset/world/cast-neon/pink.png', need: 3, effect: 'coin',   desc: 'コインを引き寄せる' },
+  { n: 'GREEN',  src: 'Asset/world/cast-neon/green.png', need: 5, effect: 'hold',   desc: '長押しジャンプを強化' },
+  { n: 'PURPLE', src: 'Asset/world/cast-neon/purple.png', need: 7, effect: 'shield', desc: 'ミスを1回ガード' },
 ];
 
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
@@ -301,7 +313,7 @@ function toast(msg) {
 const best = i => +(localStorage.getItem('rdash_best_' + i) || 0);
 const setBest = (i, p) => { if (i < NSTAGE && p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
 let runRecordMode = 'normal';
-const recordKey = (kind,i,mode='normal') => `rdash_v2_${mode}_${kind}_${i}`;
+const recordKey = (kind,i,mode='normal') => `rdash_${kind === 'ghost' ? 'v3beat' : 'v2'}_${mode}_${kind}_${i}`;
 const hiScore = (i,mode='normal') => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
 const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) { localStorage.setItem(recordKey('hs',i,runRecordMode), s); return true; } return false; };
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
@@ -320,11 +332,12 @@ let bootDone = false;
 
 // ============ GameAnalytics ============
 function gaSend(method, ...args) {
-  try { if (typeof GameAnalytics === 'function') GameAnalytics(method, ...args); } catch (e) {}
+  window.beatAnalytics?.send(method,...args);
 }
 const gaStageId = () => dailyMode() ? 'daily' : 'stage_' + String(stageIdx + 1).padStart(2, '0');
 const gaMode = () => dailyMode() ? 'daily' : practice ? 'practice' : 'normal';
 function gaDesign(id, value = 1) {
+  window.beatPSF?.legacy(id,value);
   gaSend('addDesignEvent', id, value);
 }
 function gaProgress(status) {
@@ -358,14 +371,13 @@ const dailyTriesLeft = () => Math.max(0, 3 - +(localStorage.getItem('rdash_dt_' 
 const useDailyTry = () => localStorage.setItem('rdash_dt_' + dayKey(), (+(localStorage.getItem('rdash_dt_' + dayKey()) || 0)) + 1);
 
 const MISSION_POOL = [
-  { id: 'coins30',   desc: 'COIN x30',     target: 30,   reward: 40 },
-  { id: 'perfect10', desc: 'PERFECT x10',  target: 10,   reward: 40 },
-  { id: 'combo15',   desc: 'COMBO x15',    target: 15,   reward: 50 },
-  { id: 'orb5',      desc: 'ORB x5',       target: 5,    reward: 40 },
-  { id: 'clear1',    desc: 'STAGE CLEAR',  target: 1,    reward: 60 },
-  { id: 'score3k',   desc: 'SCORE 3000',   target: 3000, reward: 50 },
-  { id: 'fever2',    desc: 'FEVER x2',     target: 2,    reward: 40 },
-  { id: 'risky5',    desc: 'RARE COIN x5', target: 5,    reward: 50 },
+  { id: 'coins30', desc: 'プレイ中にコインを合計30枚集めよう', hint:'何回遊んでも合計でOK。大きいコインは2枚分です。', target:30, reward:40 },
+  { id: 'perfect10', desc: 'PERFECTを合計10回出そう', hint:'音にぴったり合わせてジャンプ！何回かのプレイに分けてもOK。', target:10, reward:40 },
+  { id: 'combo15', desc: '1回のプレイで15コンボつなげよう', hint:'タイミング判定を連続で成功させよう。途中でミスするとコンボは0に戻ります。', target:15, reward:50 },
+  { id: 'orb5', desc: '空中のオーブを合計5回使おう', hint:'光るオーブの近くでタップすると追加ジャンプ。何回かのプレイに分けてもOK。', target:5, reward:40 },
+  { id: 'clear1', desc: 'ステージを1回クリアしよう', hint:'好きなステージを最後まで走ろう。練習モードのクリアは対象外です。', target:1, reward:60 },
+  { id: 'score3k', desc: '1回のプレイで3,000点を取ろう', hint:'ジャンプのタイミングを合わせて得点アップ。複数回のスコアは合算しません。', target:3000, reward:50 },
+  { id: 'risky5', desc: '大きいコインを合計5個集めよう', hint:'高い場所にある、ひと回り大きなコインが目印。何回かのプレイに分けてもOK。', target:5, reward:50 },
 ];
 let missions = [], missionProg = {}, missionDay = '';
 function initMissions() {
@@ -393,18 +405,20 @@ const setBestRank = (i, r) => {
 
 // 進捗を加算(isMax=true なら最大値更新)し、達成したら即コイン付与
 function mission(id, val, isMax) {
+  if(window.cosmiiTutorial?.active)return;
   initMissions();
   const m = missions.find(x => x.id === id);
   if (!m) return;
   const p = missionProg[id] || { v: 0, c: false };
   if (p.c) return;
   p.v = isMax ? Math.max(p.v, val) : p.v + val;
+  missionProg[id] = p;
   if (p.v >= m.target) {
     p.c = true;
     addCoins(m.reward);
     gaCoins('Source', m.reward, 'Mission', m.id);
     gaDesign('Mission:Complete:' + m.id, m.reward);
-    toast(`🎯 ${m.desc} +${m.reward}`);
+    window.gameUI?.notifyMission(m);
     missionSave();
   }
   missionProg[id] = p;
@@ -432,7 +446,9 @@ function trimSprite(img) {
   const S = 256, c = document.createElement('canvas');
   c.width = c.height = S;
   const g = c.getContext('2d');
-  g.drawImage(img, 0, 0, S, S);
+  const fit = S / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height);
+  const iw = (img.naturalWidth || img.width) * fit, ih = (img.naturalHeight || img.height) * fit;
+  g.drawImage(img, (S-iw)/2, (S-ih)/2, iw, ih);
   const id = g.getImageData(0, 0, S, S), d = id.data;
   let cr = 0, cg = 0, cb = 0, cn = 0;
   for (const [ox, oy] of [[0,0],[S-4,0],[0,S-4],[S-4,S-4]])
@@ -524,7 +540,8 @@ function buildLevel(beats, duration, seed, diff) {
     if (o.t < 2.0 || o.t > duration - 1.2) continue;
     if (o.s < dropThr) continue;
     if (o.t - last < minGap) continue;
-    if (burst >= 3 && rng() < 0.72) { burst = 0; last = o.t + 0.25; continue; }
+    if(diff>=.2&&phrase%5===3&&o.t-last<.85)continue;
+    if (burst >= 4 + Math.floor(diff*3) && rng() < 0.5-diff*0.2) { burst = 0; last = o.t + 0.15; continue; }
     const r = rng();
     let type;
     if (diff < 0.15) {
@@ -538,10 +555,17 @@ function buildLevel(beats, duration, seed, diff) {
       else if (r < 0.86) type = 'block';
       else type = 'block2';
     }
+    // Introduce one silhouette at a time; the first appearance has extra space.
+    const choices=[];
+    if(diff>=.2)choices.push('tower');
+    if(diff>=.4)choices.push('steps');
+    if(diff>=.6)choices.push('spike3');
+    if(diff>=.8)choices.push('bridge');
+    if(choices.length&&phrase%5===3&&o.t-last>=.85)type=choices[Math.floor(phrase/5)%choices.length];
     obs.push({ t: o.t + TAP_OFFSET, type });
     phrase++;
     burst++;
-    last = o.t + (type === 'spike2' || type === 'block2' || type === 'hold' ? 0.15 : 0);
+    last = o.t + (['tower','steps','spike3','bridge'].includes(type) ? .85-minGap : type === 'spike2' || type === 'block2' || type === 'hold' ? 0.15 : 0);
   }
   // 重力反転ゾーン: 障害物の広い隙間にポータルを置き、区間内は天井走行になる
   const zones = [];
@@ -586,7 +610,7 @@ function buildLevel(beats, duration, seed, diff) {
   }
   // コイン: 障害物の上(ジャンプ頂点)と、障害物のないビート上に配置
   for (const b of obsF) {
-    const high = b.type === 'hold' || b.type === 'block2';
+    const high = ['hold','block2','tower','steps','spike3','bridge'].includes(b.type);
     coins.push({ t: b.t, y: GROUND - B/2 - JUMP_H * (high ? 1.18 : 1) });
     if (high) coins.push({ t: b.t + 0.18, y: GROUND - B/2 - JUMP_H * 1.35, risky: true });
   }
@@ -676,7 +700,7 @@ function refreshMenu() {
     const p = missionProg[m.id] || { v: 0, c: false };
     const div = document.createElement('div');
     div.className = 'mission' + (p.c ? ' done' : '');
-    div.innerHTML = `<span>🎯 ${m.desc}</span><small>${p.c ? '✓' : Math.min(Math.floor(p.v), m.target) + '/' + m.target} · +${m.reward}</small>`;
+    div.innerHTML = `<div class="mission-copy"><strong>${m.desc}</strong><p>${m.hint}</p><progress value="${Math.min(p.v,m.target)}" max="${m.target}" aria-label="${m.desc}の進み具合"></progress><small>${p.c ? '✓ 達成・報酬受け取り済み' : '進み具合：'+Math.min(Math.floor(p.v),m.target).toLocaleString()+' / '+m.target.toLocaleString()}</small></div><span class="mission-reward">${p.c?'獲得済み':'達成報酬'}<b>＋${m.reward}</b>コイン</span>`;
     mi.appendChild(div);
   }
   // スキン
@@ -735,6 +759,8 @@ setTimeout(showHome, 2000);
 
 async function selectStage(i) {
   if (!Number.isInteger(i) || i < 0 || i > DAILY_IDX) return;
+  if (window.cosmiiWorld && !await window.cosmiiWorld.beforeStage(i)) return;
+  if (window.cosmiiTutorial && !await window.cosmiiTutorial.before(i)) return;
   await ensureAudio();
   try { await screen.orientation.lock('landscape'); } catch (e) {}
   if (i === DAILY_IDX) {
@@ -769,9 +795,10 @@ async function selectStage(i) {
 // ステージ準備の共通処理(通常/デイリー/MY MUSIC)
 function setupRun(i, buf, bts) {
   window.cosmiiPower?.reset();
+  window.cosmiiCharacterMotion?.reset();
   stageIdx = i;
   const cfg = STAGES[i];
-  buffer = buf; beats = bts;
+  buffer = buf; beats = RHYTHM_BEATS[cfg.file]?.beats || bts;
   setMusicTrack(AUDIO_TRACKS[cfg.file]);   // 曲ごとの実効ピークを揃える再生ゲインも同時に適用
   duration = Math.min(buffer.duration, cfg.duration || Infinity);
   SPEED = cfg.speed;
@@ -803,6 +830,7 @@ function saveGhost() {
 }
 
 function backToMenu() {
+  window.beatPSF?.end('exit');
   window.gameSafety?.dismiss();
   // 中断時もベスト%を保存
   if ((state === 'play' || state === 'dead') && songPos > 0)
@@ -817,6 +845,7 @@ function backToMenu() {
   }
   stopMusic(); state = 'menu';
   window.cosmiiPower?.reset();
+  window.cosmiiCharacterMotion?.reset();
   $('menu').style.display = 'flex';
   $('stageSelect').style.display = 'none';
   $('loading').style.display = 'none';
@@ -851,6 +880,10 @@ $('revivebtn').onclick = () => {
 
 // ============ 他ゲームのプロモバナー(順番に表示) ============
 const PROMO_GAMES = [
+  {id:'6811575619',key:'cosmii_rescue',title:'Cosmii Rescue',sub:'仲間を集めて、みんなで帰ろう',url:'https://apps.apple.com/jp/app/cosmii-rescue/id6811575619',emoji:'⭐'},
+  {id:'6809099787',key:'cosmii_cannon',title:'Cosmii Cannon',sub:'大砲でブロックを吹き飛ばそう',url:'https://apps.apple.com/jp/app/cosmii-cannon/id6809099787',emoji:'⭐'},
+  {id:'6829253493',key:'cosmii_roll',title:'ころがれ！Cosmii',sub:'コスミーの別の冒険へ',url:'https://apps.apple.com/jp/app/ころがれ-cosmii/id6829253493',emoji:'⭐'},
+  {id:'6797260932',key:'cosmii_sudoku',title:'Cosmii Sudoku -論理パズル',sub:'コスミーと楽しむ論理パズル',url:'https://apps.apple.com/jp/app/cosmii-sudoku-論理パズル/id6797260932',emoji:'⭐'},
   { id: '6784988703', key: 'arcade_heaven_star_match', url: 'https://apps.apple.com/jp/app/arcade-heaven-star-match/id6784988703',
     title: 'Arcade Heaven Star Match', sub: 'このキャラクターのパズルゲーム', emoji: '⭐' },
   { id: '6789935783', key: 'mogu_mogu_panic', url: 'https://apps.apple.com/jp/app/%E3%82%B3%E3%82%B9%E3%83%9F%E3%83%BC-mogu-mogu-panic/id6789935783',
@@ -875,7 +908,7 @@ function renderPromo(trackImpression = false) {
   } else {
     ic.textContent = g.emoji;
   }
-  if (trackImpression && promoLastImpressionSeq !== promoRenderSeq) {
+  if (trackImpression && $('promobanner').getClientRects().length && promoLastImpressionSeq !== promoRenderSeq) {
     promoLastImpressionSeq = promoRenderSeq;
     gaDesign('Promo:Impression:' + g.key, 1);
   }
@@ -925,6 +958,7 @@ function startAttempt(offset = 0) {
   stopMusic();
   if (offset === 0) {
     window.cosmiiPower?.reset();
+  window.cosmiiCharacterMotion?.reset();
     cpPct = 0; cpTime = 0; score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
     coinRun = 0; settledCoins = 0; revivesUsed = 0;
     judgedNotes.clear(); collectedOrbs.clear(); awardedNear.clear();
@@ -949,7 +983,7 @@ function startAttempt(offset = 0) {
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
   particles = []; floats = []; rings = []; trail = []; pulse = 0;
-  playTrack(offset, LEAD);
+  playTrack(offset, LEAD, offset===0);
   state = 'play';
   if (offset === 0) {
     gaProgress('Start');
@@ -966,6 +1000,7 @@ function die() {
   if (state === 'play' && nowT < invulnUntil) return;   // シールド後の無敵中
   if (shieldReady && state === 'play') {
     shieldReady = false;
+    window.cosmiiCharacterMotion?.emit('shield');
     gaDesign('Power:Shield:' + gaStageId(), Math.round(songPos));
     invulnUntil = nowT + 0.6;   // ブロック側面など重なりが続く衝突でも生き残れるように
     score = Math.max(0, score - 300);
@@ -1039,8 +1074,10 @@ function clearStage() {
       const powerStats=window.cosmiiPower?.inspect();
       if(powerStats?.activationCount)extra.push(`POWER ${powerStats.activationCount}回・${powerStats.activeSeconds.toFixed(1)}秒`);
       if (newHS || !localStorage.getItem(recordKey('ghost',stageIdx,runRecordMode))) saveGhost();
-      for (const s of SKINS) if (before < s.need && after >= s.need)
+      for (const [index,s] of SKINS.entries()) if (before < s.need && after >= s.need){
         extra.push(`🎁 ${s.n}`);
+        if(!skinBought(index))window.beatPSF?.event('character_unlock',['red','blue','pink','green','purple'][index],'stages');
+      }
       if (stageIdx + 1 < NSTAGE && after > before) extra.push(`🔓 ${STAGES[stageIdx+1].name}`);
     }
   }
@@ -1055,6 +1092,7 @@ function clearStage() {
     gaDesign('Run:Combo:' + gaStageId(), maxCombo);
   }
   $('cleartitle').textContent = practice ? '練習クリア' : 'ステージクリア！';
+  $('cleartitle').dataset.artClear=String(!practice);
   const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
   $('clearstats').innerHTML =
     `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
@@ -1068,6 +1106,7 @@ function clearStage() {
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
   $('clearov').style.display = 'flex';
+  window.cosmiiWorld?.onClear();
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
     x: Math.random()*W, y: -20 - Math.random()*DH,
@@ -1134,6 +1173,7 @@ function judge() {
   if (hitIdx < 0 || judgedNotes.has(hitIdx)) return;
   if (d <= maxWindow) judgedNotes.add(hitIdx);
   const px = player.x + B/2, py = player.y - 14;
+  if(skinEffect('judge')&&[.07,.13,.21].some(w=>d>w&&d<=w*judgeBoost))window.beatPSF?.skill('timing');
   if (d <= 0.07 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
@@ -1141,6 +1181,8 @@ function judge() {
     const mult = 1 + Math.floor(Math.min(combo, 60) / 15) * 0.25;
     score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1));
     judgeFlash = 'PERFECT';
+    if(skinEffect('score'))window.beatPSF?.skill('score');
+    window.cosmiiCharacterMotion?.emit('judge');
     mission('perfect10', 1); mission('combo15', combo, true);
     floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
   } else if (d <= 0.13 * judgeBoost) {
@@ -1149,6 +1191,7 @@ function judge() {
     runStats.g++;
     score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1));
     judgeFlash = 'GREAT';
+    if(skinEffect('judge')) window.cosmiiCharacterMotion?.emit('judge');
     mission('combo15', combo, true);
     floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
   } else if (d <= 0.21 * judgeBoost) {
@@ -1174,6 +1217,10 @@ function obstacleRects(ob) {
     case 'block':  return { spikes: [], blocks: [{x:cx-B/2, y:gy, w:B, h:B, f}] };
     case 'block2': return { spikes: [], blocks: [{x:cx-B, y:gy, w:B*2, h:B, f}] };
     case 'hold':   return { spikes: [], blocks: [{x:cx-B*0.75, y:gy, w:B*1.5, h:B, f}] };
+    case 'tower': return {spikes:[],blocks:[{x:cx-B/2,y:f?CEIL:GROUND-B*1.65,w:B,h:B*1.65,f}]};
+    case 'steps': return {spikes:[],blocks:[{x:cx-B,y:gy,w:B,h:B,f},{x:cx,y:f?CEIL:GROUND-B*1.65,w:B,h:B*1.65,f}]};
+    case 'spike3': return {spikes:[-1.5,-.5,.5].map(n=>({x:cx+B*n,y:gy,w:B,h:B,f})),blocks:[]};
+    case 'bridge': return {spikes:[],blocks:[{x:cx-B*1.5,y:gy,w:B*3,h:B,f}]};
   }
   return { spikes: [], blocks: [] };
 }
@@ -1187,7 +1234,7 @@ function update(dt, frameSongPos = null) {
     songPos = frameSongPos === null ? musicPosition() : frameSongPos;
     while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
       pulse = 1; beatIdx++;
-      rings.push({ r: B*0.8, a: 0.35 });
+      // Beat timing remains active; no continuous visual pulse around the player.
     }
     const missWindow = 0.21 * (skinEffect('judge') ? 1.18 : 1);
     while (noteJudgeIdx < level.length && level[noteJudgeIdx].t-TAP_OFFSET < songPos-missWindow) {
@@ -1219,6 +1266,7 @@ function update(dt, frameSongPos = null) {
     if (player.grounded && (isDown || now - tapAt < 0.1)) {
       player.vy = -V0 * gdir; player.grounded = false; tapAt = -9;
       holdJump = HOLD_MAX * (skinEffect('hold') ? 1.22 : 1);
+      window.cosmiiCharacterMotion?.emit('jump');
       judge();
     } else if (!player.grounded && (isDown || now - tapAt < 0.12)) {
       for (const orb of orbsLive) {
@@ -1242,12 +1290,14 @@ function update(dt, frameSongPos = null) {
     if (!player.grounded) {
       const holding = isDown && player.vy * gdir < 0 && holdJump > 0;
       const holdGrav = skinEffect('hold') ? HOLD_GRAV * 0.88 : HOLD_GRAV;
+      if(holding&&skinEffect('hold'))window.beatPSF?.skill('hold');
       player.vy += GRAV * gdir * (holding ? holdGrav : 1) * dt;
+      if(holding) window.cosmiiCharacterMotion?.emit('hold');
       holdJump = Math.max(0, holdJump - dt);
       player.y += player.vy * dt;
-      player.rot += (Math.PI / JUMP_T) * dt * gdir;
+      player.rot = 0;
       trailAcc += dt;
-      if (trailAcc > 0.045) { trailAcc = 0; trail.push({ x: player.x, y: player.y, rot: player.rot, l: 0.4, fv: feverOn }); }
+      if (trailAcc > 0.045) trailAcc = 0;
     }
     // 接地(通常=地面/ブロック上面、反転中=天井/ブロック下面)
     const pl = player.x + 4, pr = player.x + B - 4;
@@ -1262,7 +1312,7 @@ function update(dt, frameSongPos = null) {
       }
       if (!player.grounded && player.vy >= 0 && player.y + B >= floorY) {
         player.y = floorY - B; player.vy = 0; player.grounded = true;
-        player.rot = Math.round(player.rot / (Math.PI/2)) * (Math.PI/2);
+        player.rot = 0;
         landAt = now;
       }
       if (player.grounded && player.y + B < floorY - 1 && floorY === GROUND) player.grounded = false;
@@ -1277,7 +1327,7 @@ function update(dt, frameSongPos = null) {
       }
       if (!player.grounded && player.vy <= 0 && player.y <= ceilY) {
         player.y = ceilY; player.vy = 0; player.grounded = true;
-        player.rot = Math.round(player.rot / (Math.PI/2)) * (Math.PI/2);
+        player.rot = 0;
         landAt = now;
       }
       if (player.grounded && player.y > ceilY + 1 && ceilY === CEIL) player.grounded = false;
@@ -1308,8 +1358,10 @@ function update(dt, frameSongPos = null) {
       const ny = Math.max(player.y, Math.min(c.y, player.y + B));
       const coinRadius = 14 * (skinEffect('coin') ? 1.4 : 1);
       if ((ccx-nx)*(ccx-nx) + (c.y-ny)*(c.y-ny) < coinRadius*coinRadius) {
+        if(skinEffect('coin')&&((ccx-nx)**2+(c.y-ny)**2>=14**2||c.risky))window.beatPSF?.skill('coin');
         const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1);
         c.got = true; coinRun += gained;
+        window.cosmiiCharacterMotion?.emit('coin',ccx,c.y);
         window.cosmiiPower?.collect(gained);
         mission('coins30', gained);
         if (c.risky) { score += (skinEffect('coin') ? 180 : 120) * (feverOn ? 2 : 1); mission('risky5', 1); }
@@ -1346,6 +1398,7 @@ function update(dt, frameSongPos = null) {
         feverOn = false; fever = 0;
       }
     }
+    if (!practice) mission('score3k', score, true);
     if (songPos >= duration) { clearStage(); return; }
   }
 
@@ -1383,6 +1436,7 @@ function update(dt, frameSongPos = null) {
 
 // ============ 描画 ============
 function activateFever(seconds = 10) {
+  return; // FEVER temporarily disabled, including legacy activation callers.
   if (feverOn || state !== 'play') return;
   feverLength = seconds;
   feverOn = true; feverEnd = songPos + seconds; fever = 1;
@@ -1399,6 +1453,9 @@ function draw() {
   const hue = STAGES[stageIdx].hue;
   const inGame = state === 'ready' || state === 'play' || state === 'dead';
 
+  const worldArtwork = window.cosmiiWorld?.background();
+  ctx.clearRect(0, 0, W, DH);
+  if (!worldArtwork) {
   const gBg = ctx.createLinearGradient(0, 0, 0, DH);
   gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
   gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
@@ -1444,6 +1501,8 @@ function draw() {
       ctx.stroke();
       ctx.restore();
     }
+  }
+
   }
 
   if (inGame) {
@@ -1523,10 +1582,12 @@ function draw() {
         const cx = player.x + B/2 + (ob.t - TAP_OFFSET - songPos) * SPEED;
         if (cx > -B && cx < W + B) {
           ctx.textAlign = 'center';
-          ctx.font = '900 16px sans-serif';
+          ctx.font = 'italic 800 16px "Exo 2", "M PLUS 1p", sans-serif';
           ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffd94a';
+          if(!window.cosmiiUIArt?.label(ctx,'TAP!',cx,GROUND-B-16-bounce,58,21)){
           ctx.strokeText('TAP!', cx, GROUND - B - 16 - bounce);
           ctx.fillText('TAP!', cx, GROUND - B - 16 - bounce);
+          }
           ctx.textAlign = 'left';
         }
       }
@@ -1556,7 +1617,7 @@ function draw() {
     for (const t of trail) {
       ctx.save(); ctx.globalAlpha = Math.max(0, t.l) * 0.5;
       if (t.fv) ctx.filter = `hue-rotate(${(performance.now()/3 + t.l*500) % 360}deg) saturate(1.8)`;
-      ctx.translate(t.x + B/2, t.y + B/2); ctx.rotate(t.rot);
+      ctx.translate(t.x + B/2, t.y + B/2); ctx.scale(1,lastGdir);
       if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
       ctx.restore();
     }
@@ -1588,15 +1649,21 @@ function draw() {
       const k = Math.exp(-(now - landAt) / 0.09);
       if (player.grounded && k > 0.03) { sx = 1 + 0.28*k; sy = 1 - 0.28*k; }
       else if (!player.grounded) { sx = 0.94; sy = 1.08; }
+      const acting=window.cosmiiCharacterMotion?.pose(now);
+      if(acting){sx=acting.sx;sy=acting.sy;}
       ctx.save();
-      if (now < invulnUntil) ctx.globalAlpha = 0.45 + 0.3 * Math.sin(now * 40);  // 無敵中は点滅
-      ctx.translate(pcx, lastGdir === 1 ? player.y + B - (B*sy)/2 : player.y + (B*sy)/2);
-      ctx.rotate(player.rot);
-      ctx.scale(sx, sy);
-      if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
+      if (now < invulnUntil) ctx.globalAlpha = 0.7;  // 保護中は明滅させず半透明にする
+      // Enlarge only the artwork; keep collision/physics B unchanged and feet on the surface.
+      const artSize = B * 1.35;
+      ctx.translate(pcx, lastGdir === 1 ? player.y + B - (artSize*sy)/2 : player.y + (artSize*sy)/2);
+      ctx.rotate((acting?.tilt||0)*lastGdir);
+      ctx.scale(sx, sy*lastGdir);
+      const characterArt=acting?.image||sp;
+      if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
       else { ctx.fillStyle = '#e33'; ctx.fillRect(-B/2, -B/2, B, B); }
       ctx.restore();
     }
+    if(state==='play') window.cosmiiCharacterMotion?.drawEffects(ctx);
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.l);
       ctx.fillStyle = `hsl(${p.hue},90%,60%)`;
@@ -1606,9 +1673,9 @@ function draw() {
     // 判定テキスト
     for (const f of floats) {
       ctx.globalAlpha = Math.max(0, Math.min(1, f.l));
-      ctx.textAlign = 'center'; ctx.font = '900 15px sans-serif';
+      ctx.textAlign = 'center'; ctx.font = 'italic 800 15px "Exo 2", "M PLUS 1p", sans-serif';
       ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.fillStyle = f.c;
-      ctx.strokeText(f.text, f.x, f.y); ctx.fillText(f.text, f.x, f.y);
+      if(!window.cosmiiUIArt?.label(ctx,f.text,f.x,f.y,f.text.startsWith('PERFECT')?100:76,26)){ctx.strokeText(f.text, f.x, f.y);ctx.fillText(f.text,f.x,f.y);}
       ctx.textAlign = 'left';
     }
     ctx.globalAlpha = 1;
@@ -1636,6 +1703,7 @@ function roundRect(x, y, w, h, r) {
   ctx.closePath();
 }
 function drawSpike(s, hue) {
+  if(window.cosmiiWorld?.drawObstacle(ctx,'spike',s))return;
   ctx.beginPath();
   if (s.f) {  // 天井から下向きのトゲ
     ctx.moveTo(s.x, s.y);
@@ -1655,6 +1723,7 @@ function drawSpike(s, hue) {
   ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5; ctx.stroke();
 }
 function drawBlock(bl, hue) {
+  if(window.cosmiiWorld?.drawObstacle(ctx,'block',bl))return;
   const g = ctx.createLinearGradient(0, bl.y, 0, bl.y + bl.h);
   g.addColorStop(0, `hsl(${hue},55%,60%)`); g.addColorStop(1, `hsl(${hue},55%,32%)`);
   ctx.fillStyle = g; ctx.fillRect(bl.x, bl.y, bl.w, bl.h);
@@ -1684,11 +1753,12 @@ if (DEMO) {
 }
 function loop(t) {
   const dt = Math.min(0.033, (t - prevT) / 1000); prevT = t;
-  if (DEMO && state === 'play') {
+  if(window.cosmiiTutorial?.active){window.cosmiiTutorial.tick(dt);}
+  else if (DEMO && state === 'play') {
     songPos += dt;
     const now = performance.now()/1000;
     if (player.grounded && (isDown || now - tapAt < 0.1)) { player.vy = -V0; player.grounded = false; tapAt = -9; }
-    if (!player.grounded) { player.vy += GRAV*dt; player.y += player.vy*dt; player.rot += (Math.PI/JUMP_T)*dt; }
+    if (!player.grounded) { player.vy += GRAV*dt; player.y += player.vy*dt; player.rot = 0; }
     if (!player.grounded && player.vy >= 0 && player.y + B >= GROUND) { player.y = GROUND-B; player.vy = 0; player.grounded = true; }
   } else {
     if(state==='play'){
@@ -1739,8 +1809,14 @@ if ('serviceWorker' in navigator &&
 </script>
 <script src="html-audio.js"></script>
 <script src="cosmii-power.js"></script>
+<script src="cosmii-character-motion.js"></script>
 <script src="ui.js"></script>
 <script src="game-safety.js"></script>
 <script src="perf-hud.js"></script>
+<script src="cosmii-opening.js"></script>
+<script src="cosmii-world.js"></script>
+<script src="cosmii-home.js"></script>
+<script src="cosmii-ui-art.js"></script>
+<script src="cosmii-tutorial.js"></script>
 </body>
 </html>

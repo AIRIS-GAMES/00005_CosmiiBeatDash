@@ -1,0 +1,5 @@
+# Transparent boundary speaker
+
+Generated with built-in image_gen, transparent background. Source reference: rhythm-neon.png. Output: neon-speaker.png. Display only the prop over the active stage theme, with its base aligned to the gameplay floor. No legacy background or floor strip is composited.
+
+Extract/redesign ONLY ONE narrow vertical arcade speaker pillar from the left side of the reference into a standalone full-object transparent PNG. Tall narrow approximately1:5 aspect ratio speaker tower, two circular speaker cones (small above large), cyan/magenta luminous edge strips, dark glossy purple cabinet, cute yellow star medallion cap, small cyan vent marks below. Match reference cute neon arcade illustration exactly. Entire tower and small base visible with thin transparent margin. NO scenery, NO navy rectangular background, NO horizontal floor or floor rail, NO horizontal ceiling beam, no second speaker, no text. Outside the actual cabinet silhouette must be genuinely transparent, including around the rounded top and base. Isolated prop to place over arbitrary garden, ocean or aurora scenery. Keep glow restrained and clean edge.

@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const ENABLED = false; // Temporarily suspend FEVER and its meter.
   const COINS_PER_ACTIVATION = 10;
   const FEVER_SECONDS = 10;
   const art = new Image();
@@ -18,6 +19,7 @@
   app.appendChild(meter);
 
   function collect(coins) {
+    if (!ENABLED) return;
     if (!Number.isFinite(coins) || coins <= 0) {
       throw new RangeError('Collected coin amount must be a positive number');
     }
@@ -43,6 +45,7 @@
   }
 
   function tick() {
+    if (!ENABLED) { reset(); return; }
     meter.hidden = !['ready', 'play', 'dead'].includes(state);
 
     if (running && feverOn && state === 'play') {
@@ -69,7 +72,8 @@
 
     const active = running && feverOn;
     meter.classList.toggle('ending', active && feverEnd - songPos <= 3);
-    meter.querySelector('span').textContent = active ? 'FEVER ×2' : 'POWER';
+    const characterName = {RED:'赤',BLUE:'水色',PINK:'ピンク',GREEN:'黄緑',PURPLE:'紫'}[currentCharacter?.n];
+    meter.querySelector('span').textContent = active ? `${characterName || 'Cosmii'} POWER ×2` : 'POWER';
     meter.querySelector('progress').value = active
       ? Math.max(0, (feverEnd - songPos) * 100 / FEVER_SECONDS)
       : power;

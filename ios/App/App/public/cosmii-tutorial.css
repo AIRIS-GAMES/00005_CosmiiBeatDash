@@ -1,0 +1,16 @@
+.tutorial-overlay{z-index:60;background:#080d20ed;padding:12px;}
+#live-tutorial{position:absolute;inset:0;z-index:42;pointer-events:none;}
+.tutorial-instruction{position:absolute;top:72px;left:50%;transform:translateX(-50%);width:min(560px,80%);padding:12px 18px;background:#142239ed;border:1px solid #90b7c3;border-radius:14px;text-align:center;color:#fff;}
+.tutorial-instruction strong{font-size:17px;}.tutorial-instruction p{font-size:13px;line-height:1.6;margin:7px 0;}.tutorial-instruction small{font-size:11px;color:#bddbcc;}
+.tutorial-actions{position:absolute;bottom:12px;right:16px;display:flex;gap:8px;pointer-events:auto;}
+.tutorial-actions button{padding:10px 14px;background:#25445d;color:#fff;border:1px solid #a0bcc9;border-radius:9px;}
+@media(max-height:380px){.tutorial-instruction{top:58px;padding:8px 12px;}.tutorial-instruction strong{font-size:14px;}.tutorial-instruction p{font-size:11px;margin:4px 0;}}
+.tutorial-overlay .panel-shell{width:min(560px,96%);padding:14px;}
+.tutorial-overlay header{margin-bottom:8px;}.tutorial-overlay h2{font-size:18px;}
+#tutorial-pad{display:block;position:relative;width:100%;height:180px;margin:8px 0;border:1px solid #71849c;border-radius:12px;background:#15233b;touch-action:none;overflow:hidden;}
+#tutorial-pad img{position:absolute;bottom:8px;left:calc(50% - 24px);width:48px;height:48px;object-fit:contain;}
+.tutorial-target{position:absolute;left:15%;right:15%;border-top:2px dashed #94bacb;}
+.memory-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 16px;}.memory-tabs button[aria-pressed=true]{outline:2px solid #b9e4ed;}.memory-photo{width:50%;aspect-ratio:16/9;flex-shrink:0;background-image:url('Asset/world/memory-photos.png');background-size:200% 200%;border-radius:12px;filter:saturate(.85) brightness(.9);}
+.world-album-body>.memory-photo{width:100%;padding:0;border:2px solid #71849c;}
+#tutorial-message,#tutorial-feedback{font-size:12px;min-height:18px;}#tutorial-next,#tutorial-skip,#tutorial-replay{padding:9px 16px;background:#25445d;color:#fff;border:1px solid #9cb8c9;border-radius:8px;}
+@media(max-height:380px){.tutorial-overlay .panel-shell{padding:8px 14px;}#tutorial-pad{height:155px;margin:3px 0;}.tutorial-overlay header{margin-bottom:3px;}#tutorial-feedback{margin:3px 0;}}

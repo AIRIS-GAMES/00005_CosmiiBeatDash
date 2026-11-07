@@ -1,0 +1,40 @@
+#menu {padding:118px 6% 78px;gap:7%;align-items:center;background-image:linear-gradient(90deg,#090b3260,#090b3235),url('Asset/world/arcade-neon.png');}
+#menu #home-header {left:6%;right:6%;top:6px;height:24%;max-height:170px;min-height:80px;padding:0;border:0;background:none;box-shadow:none;justify-content:center;}
+#menu .wordmark {width:min(68%,620px);height:100%;line-height:0;}
+#menu .home-title-art {width:100%;height:100%;object-fit:contain;object-position:center;filter:drop-shadow(0 4px 5px #080b32);}
+#menu #home-header #coinsdisp {position:absolute;right:0;top:20px;}
+#menu #charcol {width:34%;max-width:260px;align-self:center;gap:3px;padding:10px 12px 8px;background:radial-gradient(ellipse at 50% 34%,#313363,#17152ff5 72%);border:1px solid #9290d060;border-radius:26px;box-shadow:0 9px 24px #06081c99,inset 0 -8px 20px #090a23;}
+#menu #avatar-btn {gap:3px;width:100%;}
+#menu #charimg {width:106px;height:106px;filter:drop-shadow(0 5px 3px #0008);}
+#menu #avatar-btn>span {background:#14152e;color:#d8faff;border-color:#7cb7d4;font-size:9px;padding:3px 8px;}
+#menu #charname {font-size:18px;text-shadow:none;margin-top:1px;}
+#menu #skineffect,#menu #cleared {font-size:9px;padding:2px 7px;background:transparent;}
+#menu #stagecol {padding:14px 16px;gap:9px!important;width:56%;border-width:2px;}
+#menu .world-plaque {margin:0;text-align:center;font-size:11px;}
+#menu #continue-btn {min-height:65px;padding:9px 17px;}
+#menu #continue-btn b {font-size:25px;}
+#menu #continue-btn>span {top:22px;right:18px;}
+#menu .home-nav {gap:8px;}
+#menu .home-nav button {position:relative;min-height:53px;padding:7px 6px 7px 42px!important;font-size:11px!important;}
+#menu .home-nav .home-menu-icon {position:absolute;left:5px;top:50%;transform:translateY(-50%);width:34px;height:34px;}
+#menu #dailybtn {gap:1px;align-content:center;}
+#menu #dailybtn small {font-size:9px;}
+#menu #home-footer {left:6%;right:6%;bottom:7px;justify-content:center;gap:12px;}
+#menu #home-footer>span {display:none;}
+#menu #home-footer button {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:100px;height:63px;padding:4px 7px;font-size:10px;background:#14132df5;border:1px solid #8d72b870;border-radius:16px;box-shadow:0 4px 8px #06081888;}
+.home-menu-icon {display:block;flex-shrink:0;width:37px;height:37px;background-image:url('Asset/world/menu-icons.png');background-size:300% 200%;border-radius:10px;}
+.home-profile-icon {width:37px;height:37px;object-fit:contain;}
+.world-scenery-frame {background:#080b24;}
+/* Ceiling clips must reveal the floor scenery underneath. */
+.world-scenery-frame:has(.world-scroll-ceiling),.world-scenery-frame:has(#world-ceiling) {background:transparent;}
+@media(max-height:350px){#menu{padding-top:80px;padding-bottom:68px;}#menu #home-header{height:69px;}#menu .home-title-art{height:69px;}#menu #charcol{padding:6px 9px;gap:1px;}#menu #charimg{width:84px;height:84px;}#menu #charname{font-size:16px;}#menu #stagecol{padding:10px 12px;gap:7px!important;}#menu #continue-btn{min-height:58px;}#menu #continue-btn b{font-size:22px;}#menu #home-footer button{height:55px;}#menu .home-menu-icon,#menu .home-profile-icon{width:30px;height:30px;}}
+
+#menu #continue-btn>span {background:transparent;box-shadow:none;top:12px;}
+#menu #continue-btn>span img {display:block;width:44px;height:44px;object-fit:contain;}
+#menu #home-footer{gap:8px;}
+#menu #home-footer button{width:100px;min-width:0;flex:0 1 100px;white-space:nowrap;padding-inline:3px;}
+.home-extra-icon{display:block;flex-shrink:0;width:37px;height:37px;background:url('Asset/world/menu-extra-icons.png') 0 50% / 300% 100%;border-radius:10px;}
+.home-link-list{display:grid;gap:12px;margin:16px 0;}
+.home-link-list a{display:block;padding:14px;border:1px solid #66dfff;border-radius:10px;background:#151731;color:#e9fbff;text-decoration:none;font-weight:700;}
+@media(max-width:700px),(max-height:450px){#menu #home-footer{left:3%;right:3%;gap:5px;}#menu #home-footer button{font-size:9px;}.home-extra-icon{width:30px;height:30px;}}
+@media(max-height:350px){#menu{padding-top:96px;}#menu #home-header{height:80px;min-height:0;}#menu .home-title-art{height:100%;}#menu #home-header #coinsdisp{top:8px;font-size:12px;padding:6px 8px;}}

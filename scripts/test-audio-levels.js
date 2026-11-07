@@ -118,7 +118,7 @@ function nativeAudioSessionLines(){
  let loudestTrack=0;
  try{
   const page=await browser.newPage();
-  await page.goto('http://127.0.0.1:'+server.address().port+'/Asset/audio/');
+  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto('http://127.0.0.1:'+server.address().port+'/Asset/audio/');
   for(const [key,track] of Object.entries(tracks)){
    assert.equal(typeof track.gain,'number',key+' has no playback gain; run scripts/update-track-gain.js');
    const peak=await page.evaluate(async url=>{

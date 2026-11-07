@@ -1,0 +1,7 @@
+# 水色：ボディと星の修正
+
+内蔵 image_gen で透過画像を編集。前の正面ネオン版のボディに戻し、顔の比率は直近の参照に合わせる。星は向かって左右それぞれ2つ、合計4つ。出力は blue.png。
+
+## プロンプト
+
+Edit reference 1 blue Cosmii neon sprite. Reference1 is authoritative for BODY: preserve its upright front facing symmetrical rounded squat body, scalloped blue hood, two pink bows, small mitten hands and little feet, thick plum outline, saturated blue, glossy cel shading and cyan/magenta rim lighting exactly. Reference2 is authoritative ONLY for FACE cuteness: adapt its cream oval face proportions, smaller delicately tilted sleepy eyes with rounded lavender upper lids, dark brown pupils, generous cream forehead/cheek space, tiny dot mouth and soft pink cheeks into the upright body of reference1. Do not copy reference2 tilted body pose or thin body outlines. Avoid the large stern horizontally flat eyes of reference1; preserve reference2 delicate eye size/spacing relative to cream face and playful sleepy expression. Exactly ONE short eyelash per eye; exposed sclera below lid is same lavender purple as upper lid, no white sclera except tiny pupil glints. CRITICAL STAR CORRECTION: exactly FOUR yellow five point star accessories, TWO on viewer LEFT and TWO on viewer RIGHT, vertically paired on both sides of the scalloped blue hood, symmetrical in position matching reference1 left pair. All four clearly visible outside cream face, below pink bows. No extra stars. Entire centered body with8% transparent margin, no ground/shadow, no text, no background, true transparency. Keep rest of reference1 design unchanged.

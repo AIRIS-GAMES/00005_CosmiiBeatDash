@@ -1,0 +1,55 @@
+/* Neon lighting is decorative; gameplay outlines and hitboxes do not change. */
+.world-scroll-floor,.world-scroll-ceiling {position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:0;}
+.world-scroll-ceiling {clip-path:inset(83.333333% 0 0);}
+#world-backdrop,#world-ceiling,.world-scroll-floor,.world-scroll-ceiling {will-change:transform;}
+#world-ceiling {position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:0;clip-path:inset(83.333333% 0 0);transform:scaleY(-1);}
+#menu,#stageSelect {background:linear-gradient(90deg,#090a2110,#090a2130),url('Asset/world/arcade-neon.png') center/cover;}
+#home-header {background:#100f32e8;border-color:#68f1ff;box-shadow:0 0 15px #29dfff40,inset 0 0 12px #34d7ff15;}
+#menu .wordmark {color:#fff;text-shadow:0 0 12px #51d8ff80;}
+#menu .wordmark span {color:#99efff;}
+#menu #stagecol {background:#100d30ec;border-color:#be7cff;box-shadow:0 5px 0 #240d48,0 0 24px #d44dff35;}
+.world-plaque {color:#d7bbf2;}
+#menu #continue-btn {background:linear-gradient(120deg,#135879,#243879);color:#ecffff;border-color:#66f5ff;box-shadow:0 4px 0 #0c2c52,0 0 18px #31ddff40;}
+#menu #continue-btn>span {background:#d5ffff;color:#153366;box-shadow:0 0 10px #4ff4ff;}
+#menu .home-nav button {background:#1c204e!important;color:#d8faff!important;border-color:#61dcef!important;box-shadow:0 3px 0 #10152c,0 0 10px #4ad1ff25!important;}
+#menu .home-nav #dailybtn {background:#361750!important;border-color:#ed82eb!important;color:#ffe6ff!important;}
+#menu #dailybtn small {color:#f1b7eb;}
+#menu #charname {color:#fff;text-shadow:0 0 10px #e86bff,0 2px 3px #160c2e;}
+#menu #charimg {filter:drop-shadow(0 0 9px #41d9fc70);}
+#menu #skineffect,#menu #cleared {background:#130e38e8;color:#e9defe;}
+#menu #avatar-btn>span {color:#d9fdff;background:#10233ae8;border-color:#55dceb;}
+#menu #home-footer>span {color:#cbdcff;background:#100f32df;}
+#menu #home-footer button {background:#20153e;color:#e9dcff;border-color:#c280f3;box-shadow:0 0 9px #d25dff25;}
+#coinsdisp {background:#2c1746;color:#ffe591;border:1px solid #e6b15e;}
+#stageSelect h2,#stageprogress {background:#100d34eb;color:#eef2ff;border:1px solid #8377c7;}
+#stageSelect .tile {border-color:#9bdcff;box-shadow:0 0 10px #44d7ff35;}
+#clearov {background:linear-gradient(#0d0c32d9,#150c35e8),url('Asset/world/arcade-neon.png') center/cover;}
+#clearov #tomenu,#clearov #world-result-album {background:#261444;color:#f7dfff;border:2px solid #ec8ce7;box-shadow:0 0 12px #dc56e52e;}
+#clearov #nextbtn,#revivebtn {background:#173d66;color:#dfffff;border:2px solid #73f2ff;box-shadow:0 0 15px #36d9fa35;}
+#backbtn,#stageback {background:#141436;color:#e2fcff;border:2px solid #7be6fb;box-shadow:0 0 12px #56e9ff35;}
+#cosmii-power {background:#17113de8;color:#fff2b4;border-color:#e8bc68;box-shadow:0 0 12px #f3ac3c35;}
+#world-dialog {background:#080723d9;}
+.world-story {background-image:url('Asset/world/arcade-neon.png');}
+.world-paper {color:#e6e9ff;background:#15122f;border-color:#ae77db;box-shadow:0 0 24px #b846ee25;}
+.world-paper small {color:#c2a6eb;}
+.world-instruction {color:#bdd4e7;background:#202340;}
+#world-dialog button,#world-dialog a {background:#20435f;color:#e1fcff;border-color:#6fe0ef;box-shadow:0 0 8px #46ddff20;}
+#world-dialog .secondary {background:#281a43;color:#eedcff;border-color:#ba85e2;}
+#world-dialog .world-profile-tabs button {background:#24213f;color:#d2dcff;border-color:#696394;}
+#world-dialog .world-profile-tabs button[aria-pressed=true] {background:#244365;border-color:#7de5f4;}
+#world-dialog .world-profile-body nav a {background:#251c49;color:#e2e2ff;border-color:#a89af0;}
+.world-album-body>img {border-color:#ae7bd5;}
+.panel-shell,#loginov,#result-details .result-sheet {background:#15122f;color:#edf1ff;border-color:#a27be0;}
+#pause-panel {background:#080723eb;}
+#pause-panel button,#effects-setting,#panel-close,#result-details button {background:#262044;color:#e2f5ff;border:2px solid #8bcbdc;box-shadow:0 0 10px #9d72ed25;}
+#skins .skinbtn {background:#241d43;color:#edf0ff;border-color:#70608c;}
+#skins .skinbtn.sel {border-color:#66efff;box-shadow:0 0 12px #5cdef94d;}
+#loginclaim {background:#194d6b;color:#e8fcff;border:2px solid #74efff;}
+button:focus-visible,a:focus-visible {outline:3px solid #fff4a6!important;outline-offset:3px;}
+
+.world-scenery-frame {position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;will-change:transform;}
+.world-boundary {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+/* Transparent prop: its visible base meets the same 5/6 floor as every theme.
+   Source alpha bounds: (129,168)-(594,1995), image 724x2172. */
+.world-boundary img {position:absolute;width:15.57%;height:99.07%;top:-7.67%;left:-2.77%;object-fit:fill;}
+#world-gate-finish img {left:auto;right:-2.77%;transform:scaleX(-1);}
