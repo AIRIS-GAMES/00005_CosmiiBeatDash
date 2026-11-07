@@ -7,7 +7,7 @@ const dirs = ['Asset'];
 // Retain source masters and store artwork in the repository, not the app bundle.
 const sourceOnlyAssets = new Set(['stage01.mp3', 'stage2.mp3', 'stage03.mp3', 'bgm1.mp3', 'bgm2.mp3', 'bgm3.mp3', 'bgm4.mp3', 'icon.png', 'appstore-icon.png', 'appstore-icon-cosmy-purple.png'].map(file => path.join(root, 'Asset', file)));
 // Keep reference artwork for future edits, but ship only the active designs.
-for (const file of ['IMG_3158.PNG', 'IMG_3159.PNG', 'IMG_3160.PNG', 'IMG_3162.PNG',
+for (const file of ['IMG_3158.PNG', 'IMG_3159.PNG', 'IMG_3160.PNG', 'IMG_3161.PNG', 'IMG_3162.PNG',
   'world/cast', 'world/title-options.png', 'world/rhythm-cabinet.png',
   'world/cast-neon/reactions.png']) sourceOnlyAssets.add(path.join(root, 'Asset', file));
 // Only the resolved generated output directory may be rebuilt.

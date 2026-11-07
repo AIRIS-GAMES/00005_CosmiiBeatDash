@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v101-hide-ghost';
+const CACHE = 'rdash-v103-purple-icon';
 const ASSETS = [
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
@@ -46,7 +46,7 @@ const ASSETS = [
   ...['arcade-neon.png','rhythm-neon.png','neon-spike.png','neon-block.png'].map(file=>'Asset/world/'+file),
   ...['arcade-night.png','first-night.png'].map(file=>'Asset/world/'+file),
   ...['red','blue','pink','green','purple'].map(file=>'Asset/world/cast-neon/'+file+'.png'),
-  'Asset/IMG_3161.PNG',
+  'Asset/app-icon.png',
   'Asset/cosmo-coin.png',
   'Asset/黒背景.png',
 ];
