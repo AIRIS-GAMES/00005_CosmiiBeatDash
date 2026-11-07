@@ -1,6 +1,15 @@
 # Beat Dash：PSF計測設定
 
-更新：2026-11-07。ゲーム側の実装と送信直前の自動検証は完了。GameAnalytics管理画面への受信、実ユーザーの継続率・改善効果は未確認。
+更新：2026-11-08。ゲーム側の実装と送信直前の自動検証は完了。GameAnalytics管理画面への受信、実ユーザーの継続率・改善効果は未確認。
+
+## のりもの追加の補助計測
+
+- `BeatPSF:v1:ride_shop:home:{character}`：のりもの画面を開く。
+- `BeatPSF:v1:ride_unlock:{skate|bike}:{character}`：購入と保存の成功後だけ記録。Resource Sink / Coins / Ride にも実消費額を記録。
+- `BeatPSF:v1:ride_select:{run|skate|bike}:{character}`：保存に成功した選択。
+- `BeatPSF:v1:ride_play:{run|skate|bike}:{character}`：通常プレイの実音声開始時の選択。チュートリアル・練習・通常の一時停止復帰は除外。
+
+のりものの利用は補助指標であり、PSFの「キャラへの関心反応」の分子には加えない。Web/iOSの管理画面での実受信確認は別途必要。
 
 ## 根拠と対象
 

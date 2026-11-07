@@ -37,6 +37,7 @@
     run={kind,track:mode()+'_'+stage(),character:color(),ended:false,resumed:false,skills:new Set()};
     event('run_start',run.track,kind+'_'+run.character);
     event('character_play',run.character,mode());
+    event('ride_play',window.cosmiiRides?.selected()||'run',run.character);
   }
   function end(outcome){
     if(!run||run.ended||practice||window.cosmiiTutorial?.active)return;

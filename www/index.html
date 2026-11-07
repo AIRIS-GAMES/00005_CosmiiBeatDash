@@ -160,6 +160,8 @@
 <link rel="stylesheet" href="cosmii-typography.css">
 <link rel="stylesheet" href="cosmii-calm.css">
 <link rel="stylesheet" href="cosmii-tutorial.css">
+<link rel="stylesheet" href="cosmii-rides.css">
+<link rel="stylesheet" href="cosmii-mobile-dialogs.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -1451,7 +1453,7 @@ function draw() {
   ctx.setTransform(SC, 0, 0, SC, 0, 0);
   if (shake > 0.3) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   const hue = STAGES[stageIdx].hue;
-  const inGame = state === 'ready' || state === 'play' || state === 'dead';
+  const inGame = state === 'ready' || state === 'play' || state === 'paused' || state === 'dead';
 
   const worldArtwork = window.cosmiiWorld?.background();
   ctx.clearRect(0, 0, W, DH);
@@ -1600,19 +1602,8 @@ function draw() {
       ctx.beginPath(); ctx.arc(pcx, pcy, r.r, 0, 6.283); ctx.stroke();
     }
     ctx.globalAlpha = 1;
-    // ゴースト(ベストランの再生)
+    // Keep best-run records, but render only the current player.
     const sp = skinImage(skinIdx);
-    if (ghost && state === 'play' && !practice) {
-      while (ghostIdx + 3 < ghost.length && ghost[ghostIdx + 2] / 100 <= songPos) ghostIdx += 2;
-      if (ghostIdx + 3 < ghost.length && songPos >= ghost[ghostIdx] / 100) {
-        const t0 = ghost[ghostIdx] / 100, y0 = ghost[ghostIdx + 1];
-        const t1 = ghost[ghostIdx + 2] / 100, y1 = ghost[ghostIdx + 3];
-        const k = Math.min(1, Math.max(0, (songPos - t0) / Math.max(0.01, t1 - t0)));
-        ctx.save(); ctx.globalAlpha = 0.22;
-        if (sp) ctx.drawImage(sp, player.x, y0 + (y1 - y0) * k, B, B);
-        ctx.restore();
-      }
-    }
     // 残像(FEVER中はレインボー)
     for (const t of trail) {
       ctx.save(); ctx.globalAlpha = Math.max(0, t.l) * 0.5;
@@ -1654,7 +1645,7 @@ function draw() {
       ctx.save();
       if (now < invulnUntil) ctx.globalAlpha = 0.7;  // 保護中は明滅させず半透明にする
       // Enlarge only the artwork; keep collision/physics B unchanged and feet on the surface.
-      const artSize = B * 1.35;
+      const artSize = B * (acting?.artScale||1.35);
       ctx.translate(pcx, lastGdir === 1 ? player.y + B - (artSize*sy)/2 : player.y + (artSize*sy)/2);
       ctx.rotate((acting?.tilt||0)*lastGdir);
       ctx.scale(sx, sy*lastGdir);
@@ -1811,6 +1802,7 @@ if ('serviceWorker' in navigator &&
 <script src="cosmii-power.js"></script>
 <script src="cosmii-character-motion.js"></script>
 <script src="ui.js"></script>
+<script src="cosmii-rides.js"></script>
 <script src="game-safety.js"></script>
 <script src="perf-hud.js"></script>
 <script src="cosmii-opening.js"></script>

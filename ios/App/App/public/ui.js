@@ -133,12 +133,6 @@
     }
   }
   let previousCombo=0,milestone=0,milestoneUntil=0;
-  let pauseSpace=72;
-  function measurePauseSpace(){
-    const style=getComputedStyle($('backbtn'));
-    pauseSpace=parseFloat(style.right)+parseFloat(style.width)+12;
-  }
-  addEventListener('resize',measurePauseSpace);measurePauseSpace();
   function drawHUD(g){
     const now=performance.now()/1000;
     if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=now+0.8;}previousCombo=combo;
@@ -149,7 +143,12 @@
     if(percent>0){g.fillStyle='#82def2';roundRect(W/2-width/2,21,width*percent/100,5,2.5);g.fill();}
     }
     g.font='600 10px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#d7e2f1';g.textAlign='center';g.fillText(Math.floor(percent)+'%  ·  GOAL',W/2,39);
-    const scoreRight=W-pauseSpace*DH/Math.min(innerWidth,innerHeight);
+    // Use layout coordinates before #app's portrait rotation. Measuring the
+    // visible button also includes safe-area insets, borders and later styles.
+    const pauseButton=$('backbtn'),appWidth=$('app').clientWidth;
+    const scoreRight=pauseButton.offsetWidth&&appWidth
+      ? (pauseButton.offsetLeft-12)*W/appWidth
+      : W-72*DH/Math.min(innerWidth,innerHeight);
     const scoreLeft=Math.max(scoreRight-141,W/2+width/2+24);
     if(!window.cosmiiUIArt?.panel(g,scoreLeft,10,scoreRight-scoreLeft,41)){g.fillStyle='#101b32e8';roundRect(scoreLeft,10,scoreRight-scoreLeft,41,10);g.fill();}
     g.textAlign='right';g.fillStyle='#91a5c1';g.font='600 9px "Exo 2", "M PLUS 1p", sans-serif';g.fillText('SCORE',scoreRight-12,24);
@@ -164,5 +163,5 @@
     }
     g.textAlign='left';
   }
-  window.gameUI={refresh,drawHUD,notifyMission};refresh();
+  window.gameUI={refresh,drawHUD,notifyMission,openPanel,addSection(key,section){section.classList.add('panel-section');section.hidden=true;sections[key]=section;$('panel-content').append(section);}};refresh();
 })();

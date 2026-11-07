@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v96-asset-cleanup';
+const CACHE = 'rdash-v101-hide-ghost';
 const ASSETS = [
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
@@ -10,6 +10,10 @@ const ASSETS = [
   'manifest.json',
   'cosmii-power.js',
   'cosmii-character-motion.js',
+  'cosmii-rides.js','cosmii-rides.css',
+  'cosmii-mobile-dialogs.css',
+  ...['skate','bike'].flatMap(type=>['red','blue','pink','green','purple'].map(name=>'Asset/world/rides/'+type+'-'+name+'.png')),
+  ...['red','blue','pink','green','purple'].map(name=>'Asset/world/run/'+name+'.png'),
   ...['red','blue','pink','green','purple'].map(name=>'Asset/world/cast-neon/'+name+'-hands.png'),
   'ui.js',
   'game-safety.js',

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
 const out = path.join(root, 'www');
-const files = ['beat-analytics.js', 'index.html', 'manifest.json', 'sw.js', 'cosmii-power.js', 'cosmii-character-motion.js', 'ui.js', 'ui.css', 'game-safety.js', 'html-audio.js', 'perf-hud.js', 'cosmii-world.js', 'cosmii-world.css', 'neon-theme.css', 'cosmii-opening.js', 'cosmii-opening.css', 'cosmii-home.js', 'cosmii-home.css', 'cosmii-ui-art.js', 'cosmii-ui-art.css', 'cosmii-typography.css', 'cosmii-calm.css', 'cosmii-tutorial.js', 'cosmii-tutorial.css'];
+const files = ['beat-analytics.js', 'index.html', 'manifest.json', 'sw.js', 'cosmii-power.js', 'cosmii-character-motion.js', 'cosmii-rides.js', 'cosmii-rides.css', 'cosmii-mobile-dialogs.css', 'ui.js', 'ui.css', 'game-safety.js', 'html-audio.js', 'perf-hud.js', 'cosmii-world.js', 'cosmii-world.css', 'neon-theme.css', 'cosmii-opening.js', 'cosmii-opening.css', 'cosmii-home.js', 'cosmii-home.css', 'cosmii-ui-art.js', 'cosmii-ui-art.css', 'cosmii-typography.css', 'cosmii-calm.css', 'cosmii-tutorial.js', 'cosmii-tutorial.css'];
 const dirs = ['Asset'];
 // Retain source masters and store artwork in the repository, not the app bundle.
 const sourceOnlyAssets = new Set(['stage01.mp3', 'stage2.mp3', 'stage03.mp3', 'bgm1.mp3', 'bgm2.mp3', 'bgm3.mp3', 'bgm4.mp3', 'icon.png', 'appstore-icon.png', 'appstore-icon-cosmy-purple.png'].map(file => path.join(root, 'Asset', file)));

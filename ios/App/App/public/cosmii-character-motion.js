@@ -1,6 +1,6 @@
 // Visual-only character acting. Physics, judgement and ability values stay in the game.
 (() => {
-  const poses = [], events = [], started = new Map();
+  const poses = [], runs = [], events = [], started = new Map();
   const clock = () => performance.now()/1000;
   const colors = ['#ffe16a','#81eaff','#ff92cc','#c5ff82','#d5a0ff'];
   const labels = ['リズム上手！','ナイスステップ','みーつけた！','ふわ〜り','いたずら回避！'];
@@ -8,6 +8,19 @@
     const image=new Image();
     image.onload=()=>{poses[i]=trimSprite(image);};
     image.src=`Asset/world/cast-neon/${name}-hands.png`;
+    const run=new Image();
+    run.onload=()=>{
+      if(run.naturalWidth!==run.naturalHeight||run.naturalWidth%2)return;
+      const size=run.naturalWidth/2;
+      // Preserve the shared scale and foot anchor baked into the generated sheet.
+      // Do not trim each frame separately: that would make the body pulse in size.
+      runs[i]=Array.from({length:4},(_,frame)=>{
+        const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+        canvas.getContext('2d').drawImage(run,(frame%2)*size,Math.floor(frame/2)*size,size,size,0,0,size,size);
+        return canvas;
+      });
+    };
+    run.src=`Asset/world/run/${name}.png`;
   });
   function emit(kind, x, y) {
     const now=clock();
@@ -40,7 +53,14 @@
     const reacting=now-(started.get('reaction')??-9)<.65;
     const airborne=!player.grounded && (skinIdx!==4 || reacting);
     if(window.reducedEffects){sx=1;sy=1;tilt=0;}
-    return {sx,sy,tilt,image:(reacting||airborne)&&poses[skinIdx]||skinImage(skinIdx),reacting};
+    // Distance-driven stride stays in sync with scrolling, freezes on pause and
+    // restarts deterministically on retry. A tucked-foot frame is used in the air.
+    const frame=window.reducedEffects||!player.grounded||state==='ready'?1:
+      Math.floor(Math.max(0,songPos)*SPEED/160*4)%4;
+    const ride=window.cosmiiRides?.art(skinIdx,frame);
+    const rideType=ride?cosmiiRides.selected():'run';
+    if(ride){sx=1;sy=1;tilt*=.4;}
+    return {sx,sy,tilt,image:ride||runs[skinIdx]?.[frame]||((reacting||airborne)&&poses[skinIdx])||skinImage(skinIdx),reacting,frame,artScale:rideType==='bike'?1.9:rideType==='skate'?1.65:1.35};
   }
   function drawEffects(ctx) {
     if(window.reducedEffects){events.length=0;return;}
@@ -53,7 +73,7 @@
         const t=Math.min(1,k*2);ctx.drawImage(coinImg,e.x+(cx-e.x)*t-6,e.y+(cy-e.y)*t-6,12,12);
       } else {
         // Image echoes convey floating, a proud pose, or a disappearing trick.
-        const im=poses[e.idx]||skinImage(e.idx);
+        const im=window.cosmiiRides?.art(e.idx,1)||runs[e.idx]?.[1]||poses[e.idx]||skinImage(e.idx);
         if(im){ctx.globalAlpha=(1-k)*.22;const s=B*(1+k*.65);ctx.drawImage(im,cx-s/2,cy-s/2,s,s);}
       }
       ctx.globalAlpha=1-k;ctx.font='700 10px "Exo 2", "M PLUS 1p", sans-serif';ctx.textAlign='center';
@@ -62,5 +82,5 @@
       ctx.restore();
     }
   }
-  window.cosmiiCharacterMotion={emit,pose,drawEffects,reset(){events.length=0;started.clear();},poses};
+  window.cosmiiCharacterMotion={emit,pose,drawEffects,reset(){events.length=0;started.clear();},poses,runs};
 })();

@@ -1,7 +1,7 @@
 {
   "name": "cosmii-rhythm-dash",
   "scripts": {
-    "test": "node scripts/test-build.js && node scripts/test-rhythm-chart.js && node scripts/test-audio-levels.js && node scripts/test-html-audio.js && node scripts/test-cosmii-power.js && node scripts/test-cosmii-world.js && node scripts/test-opening.js && node scripts/test-home-themes.js && node scripts/test-ui-art.js && node scripts/test-character-motion.js && node scripts/test-review-improvements.js && node scripts/test-live-tutorial.js && node scripts/test-obstacle-patterns.js && node scripts/test-psf-analytics.js",
+    "test": "node scripts/test-build.js && node scripts/test-rhythm-chart.js && node scripts/test-audio-levels.js && node scripts/test-html-audio.js && node scripts/test-cosmii-power.js && node scripts/test-cosmii-world.js && node scripts/test-opening.js && node scripts/test-home-themes.js && node scripts/test-ui-art.js && node scripts/test-character-motion.js && node scripts/test-review-improvements.js && node scripts/test-live-tutorial.js && node scripts/test-obstacle-patterns.js && node scripts/test-psf-analytics.js && node scripts/test-rides.js",
     "test:setup": "playwright install chromium",
     "preview": "node scripts/preview.js",
     "preview:phone": "npm run web:build && node scripts/preview.js --lan",
@@ -21,7 +21,8 @@
     "test:review": "node scripts/test-review-improvements.js",
     "test:tutorial": "node scripts/test-live-tutorial.js",
     "test:obstacles": "node scripts/test-obstacle-patterns.js",
-    "test:analytics": "node scripts/test-psf-analytics.js"
+    "test:analytics": "node scripts/test-psf-analytics.js",
+    "test:rides": "node scripts/test-rides.js"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.2",
