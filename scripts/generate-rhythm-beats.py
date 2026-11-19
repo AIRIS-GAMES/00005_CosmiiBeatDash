@@ -19,6 +19,7 @@ FILES = ['stage01.mp3', 'stage2.mp3', 'stage03.mp3', 'bgm1.mp3', 'bgm2.mp3', 'bg
 #         phase histogram in the beat grid.
 WORLD_FILES = {
     'world-bgm/rescue.mp3': {},
+    'world-bgm/rescue-normal.mp3': {},
     'world-bgm/cannon.mp3': {},
     'world-bgm/roll.m4a': {'half': True},
     'world-bgm/sudoku.mp3': {},

@@ -70,7 +70,7 @@
     2:  { world: 'dash',   title: 'ホップステップ',   g: { route: 2 }, hint: '長押しジャンプで上の道へ' },
     3:  { world: 'dash',   title: 'クラゲの夜',       g: { jelly: 0.8 } },
     4:  { world: 'dash',   title: 'ハイジャンプ',     g: { pad: 2, flip: 1 }, hint: 'ジャンプ台は跳ばずに乗ろう' },
-    5:  { world: 'rescue', title: 'そらのレスキュー', g: { ring: 0.9 } },
+    5:  { world: 'rescue', title: 'そらのレスキュー', bgm: 'Asset/world-bgm/rescue-normal.mp3', length: 24, g: { ring: 0.9 } },
     6:  { world: 'rescue', title: 'さかさまのそら',   g: { ring: 0.3, cake: 0.95, cakeHigh: true }, hint: '頭の高さのケーキはくぐろう' },
     7:  { world: 'cannon', title: 'ドッカン大砲',     g: { cannon: ['blue', 'gold'] } },
     8:  { world: 'cannon', title: '大砲リレー',       g: { cannon: [['blue', 'gold']] }, hint: '大砲から大砲へ！ 色の段で撃とう' },
@@ -110,7 +110,9 @@
     const s = STAGES[+n - 1]; if (!s) continue;
     const w = WORLDS[plan.world];
     s.world = w.name; s.title = plan.title || '';
-    if (w.bgm && window.AUDIO_TRACKS?.[w.bgm]) s.file = w.bgm;
+    const bgm = plan.bgm || w.bgm;
+    if (bgm && window.AUDIO_TRACKS?.[bgm]) s.file = bgm;
+    if (plan.length) s.length = plan.length;
     if (!plan.g) continue;
     s.gimmick = { sabi: true, ...plan.g };
     s.hint = plan.hint || HINTS[Object.keys(plan.g).find(k => HINTS[k])];
@@ -150,6 +152,13 @@
     const f = (w - 1.35) / 0.65; return { h: 0.96 * (1 - sm(f)), mode: 'sink', k: f };
   }
   const jellyY = (ob, t) => JELLY_LOW + (JELLY_HIGH - JELLY_LOW) * jellyPhase(ob, t).h;
+  function drawJellyCap(g, radius) {
+    const im = window.worldSkins?.art('dash', 'jelly.png');
+    if (!im) return false;
+    const iw = im.naturalWidth, ih = im.naturalHeight, r = radius;
+    g.drawImage(im, iw * 0.13, ih * 0.13, iw * 0.74, ih * 0.72, -r, -r, 2 * r, r * 1.35);
+    return true;
+  }
   OBSTACLES.jelly = {
     free: false,
     parts(cx, gy, f, ob, d) {
@@ -181,10 +190,12 @@
         g.bezierCurveTo(x0 + bend * sw, y + len * 0.35, x0 - bend * sw, y + len * 0.7, x0 + bend * 0.5 * sw + i * 3 * wave, y + len); g.stroke();
       }
       g.save(); g.translate(cx, y); g.scale(sx, sy);
-      g.fillStyle = '#ff9df0e0'; g.strokeStyle = '#ffd0f6'; g.lineWidth = 2;
-      g.beginPath(); g.arc(0, 0, r, Math.PI, 0); g.quadraticCurveTo(r, r * 0.35, 0, r * 0.3); g.quadraticCurveTo(-r, r * 0.35, -r, 0); g.closePath(); g.fill(); g.stroke();
-      g.fillStyle = '#ffffffaa'; g.beginPath(); g.ellipse(-r * 0.35, -r * 0.45, r * 0.22, r * 0.12, -0.4, 0, 6.283); g.fill();
-      g.fillStyle = '#5a2a4a'; g.beginPath(); g.arc(-r * 0.25, -r * 0.1, 2.2, 0, 6.283); g.arc(r * 0.25, -r * 0.1, 2.2, 0, 6.283); g.fill();
+      if (!drawJellyCap(g, r)) {
+        g.fillStyle = '#ff9df0e0'; g.strokeStyle = '#ffd0f6'; g.lineWidth = 2;
+        g.beginPath(); g.arc(0, 0, r, Math.PI, 0); g.quadraticCurveTo(r, r * 0.35, 0, r * 0.3); g.quadraticCurveTo(-r, r * 0.35, -r, 0); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = '#ffffffaa'; g.beginPath(); g.ellipse(-r * 0.35, -r * 0.45, r * 0.22, r * 0.12, -0.4, 0, 6.283); g.fill();
+        g.fillStyle = '#5a2a4a'; g.beginPath(); g.arc(-r * 0.25, -r * 0.1, 2.2, 0, 6.283); g.arc(r * 0.25, -r * 0.1, 2.2, 0, 6.283); g.fill();
+      }
       g.restore();
       g.restore();
     },
@@ -231,7 +242,7 @@
     // The head, rolling (never in the player's own colour: the player is a Cosmii too).
     let c = ob.c || 'blue'; const own = BALL_COLORS[typeof skinIdx === 'number' ? skinIdx : 0];
     if (c === own) c = BALL_COLORS[(BALL_COLORS.indexOf(c) + 2) % BALL_COLORS.length];
-    const im = ROLL_ART[c];
+    const im = window.worldSkins?.art('roll', c + '.png') || ROLL_ART[c];
     if (im?.naturalWidth) g.drawImage(im, -d * 0.55, -d * 0.55, d * 1.1, d * 1.1);
     else if (window.worldSkins?.head) window.worldSkins.head(g, c, 0, 0, d);
     g.restore();
@@ -388,6 +399,7 @@
       }
       g.strokeStyle = '#c7d2e8'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(cx, 18); g.lineTo(cx, songPos < land ? y - B * 0.45 : 26); g.stroke();
+      if (window.worldSkins?.drawArt(g, 'catch', 'leek.png', cx - B * 0.4, y - B * 0.45, B * 0.8, B * 0.9)) return;
       g.fillStyle = '#7df'; g.beginPath(); g.arc(cx, y, B * 0.45, 0, 6.283); g.fill();
       g.fillStyle = '#ff9df0'; g.beginPath(); g.arc(cx, y, B * 0.45, Math.PI, 0); g.fill();
       g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, y, B * 0.45, 0, 6.283); g.stroke();
@@ -479,6 +491,7 @@
   // Asset/worlds/rescue/home-ring.png, if present, replaces the drawing.
   const RING_T = 16, RING_ORY = RING_RY + RING_T / 2, RING_ORX = RING_ORY * 0.62;
   const ringImg = new Image(); ringImg.src = 'Asset/worlds/rescue/home-ring.png';
+  const rescueCakeImg = new Image(); rescueCakeImg.src = 'Asset/worlds/rescue/cake.png';
   let ringBake = null;
   function bakeRing() {
     const sc = typeof SC === 'number' && SC > 0 ? SC : 1;
@@ -488,7 +501,11 @@
       const c = document.createElement('canvas'); c.width = Math.ceil(w * sc); c.height = Math.ceil(h * sc);
       const g = c.getContext('2d'); g.scale(sc, sc);
       if (front) { g.beginPath(); g.rect(0, cy + RING_ORY * 0.55, w, h); g.clip(); }
-      if (ringImg.naturalWidth) { g.drawImage(ringImg, 4, 4, w - 8, h - 8); return c; }
+      if (ringImg.naturalWidth) {
+        const iw = ringImg.naturalWidth, ih = ringImg.naturalHeight;
+        g.drawImage(ringImg, iw * 0.09, ih * 0.04, iw * 0.84, ih * 0.92, 4, 4, w - 8, h - 8);
+        return c;
+      }
       const orx = RING_ORX, ory = RING_ORY, irx = orx - RING_T, iry = ory - RING_T;
       const seg = (a0, a1) => { g.beginPath(); g.ellipse(cx, cy, orx, ory, 0, a0, a1); g.ellipse(cx, cy, irx, iry, 0, a1, a0, true); g.closePath(); };
       const cols = ['#ff8fb8', '#fff4e6', '#ff8fb8', '#a8e07a', '#fff4e6', '#ff8fb8', '#a8e07a', '#fff4e6', '#ff8fb8', '#a8e07a'];
@@ -529,12 +546,7 @@
     },
     draw(g, ob, parts) {
       const pit = parts.hole, x0 = pit.x - B * 0.15, x1 = pit.x + pit.w + B * 0.15;
-      const sky = g.createLinearGradient(0, GROUND, 0, DH);
-      sky.addColorStop(0, '#bfeaff'); sky.addColorStop(1, '#5fb8f0');
-      g.fillStyle = sky; g.fillRect(x0, GROUND - 1, x1 - x0, DH - GROUND + 1);
-      g.fillStyle = '#ffffffd0';
-      const cl = x0 + ((ob.t * 37) % 1) * (x1 - x0 - 30) + 10;
-      g.beginPath(); g.arc(cl, GROUND + 30, 8, 0, 6.283); g.arc(cl + 10, GROUND + 26, 10, 0, 6.283); g.arc(cl + 21, GROUND + 31, 7, 0, 6.283); g.fill();
+      g.clearRect(x0, GROUND - 2, x1 - x0, DH - GROUND + 2);
       g.strokeStyle = '#e9fbff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(x0, GROUND); g.lineTo(x0, DH); g.moveTo(x1, GROUND); g.lineTo(x1, DH); g.stroke();
       drawHomeRing(g, parts.cx, false, ob.inAt !== undefined && songPos - ob.inAt < 0.5);
@@ -579,9 +591,20 @@
         if (cx < W * 1.6) { g.fillStyle = '#ffb14a'; g.beginPath(); g.moveTo(W - 6, cy); g.lineTo(W - 20, cy - 9); g.lineTo(W - 20, cy + 9); g.closePath(); g.fill(); }
         return;
       }
-      const s = ob.high ? 1.15 : 1, w = B * 0.8 * s, h = B * 0.55 * s, x = cx - w / 2, y = cy - h / 2;
+      const s = ob.high ? 1.15 : 1;
+      const world = window.worldSkins?.current(true);
+      const useCakeArt = (world === 'rescue' || world === 'mogu') && rescueCakeImg.naturalWidth;
+      const artScale = world === 'rescue' ? 1.5 : 1;
+      const hazard = parts.hazards[0];
+      const w = useCakeArt ? Math.max(B * 0.8 * s, hazard.h * 0.85) * artScale : B * 0.8 * s;
+      const h = useCakeArt ? hazard.h * artScale : B * 0.55 * s;
+      const x = cx - w / 2, y = useCakeArt ? hazard.y + hazard.h - h : cy - h / 2;
       g.strokeStyle = '#ffffff66'; g.lineWidth = 2;
       for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(x + w + 6, y + 4 + k * h / 3); g.lineTo(x + w + 22 + k * 4, y + 4 + k * h / 3); g.stroke(); }
+      if (useCakeArt) {
+        g.drawImage(rescueCakeImg, x, y, w, h);
+        return;
+      }
       g.fillStyle = '#f7d9a8'; g.fillRect(x, y + h * 0.35, w, h * 0.65);
       g.fillStyle = '#ffffff'; g.fillRect(x, y + h * 0.15, w, h * 0.25);
       g.fillStyle = '#ff9db5'; g.fillRect(x, y + h * 0.6, w, h * 0.1);
@@ -669,6 +692,12 @@
     return moguBake;
   }
   function drawMoguSide(g, cx, cy, R, lunge, o, t) {
+    const im = window.worldSkins?.art('mogu', 'green.png');
+    if (im) {
+      const w = R * (2.12 + lunge * 0.16), h = R * (2.22 + o * 0.14);
+      g.drawImage(im, cx - w / 2, cy + R - h, w, h);
+      return;
+    }
     const b = bakeMoguBody(R);
     g.save(); g.translate(cx, cy);   // no tilt: a rotated big image costs a resample every frame
     // Feet running on the road (behind the body).
@@ -701,7 +730,8 @@
                      pink: ['#ffc0dc', '#f06aa8'], blue: ['#a8d6ff', '#3a8bff'] };
   const tileBakes = new Map();
   function tileBlock(kind) {   // one baked block: 'plain' or a colour
-    const sc = typeof SC === 'number' && SC > 0 ? SC : 1, key = kind + '|' + sc;
+    const face = kind === 'plain' ? null : window.worldSkins?.art('match', kind + '.png');
+    const sc = typeof SC === 'number' && SC > 0 ? SC : 1, key = kind + '|' + sc + '|' + !!face;
     let c = tileBakes.get(key); if (c) return c;
     c = document.createElement('canvas'); c.width = c.height = Math.ceil(B * sc);
     const g = c.getContext('2d'); g.scale(sc, sc);
@@ -715,6 +745,8 @@
     if (kind === 'plain') {
       g.fillStyle = '#ffffff'; g.font = '800 18px "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillText('?', B / 2, B / 2 + 2);
+    } else if (face) {
+      window.worldSkins.drawArt(g, 'match', kind + '.png', 4, 4, B - 8, B - 8);
     }
     tileBakes.set(key, c); return c;
   }
@@ -778,7 +810,7 @@
   };
 
   function drawArm(g, x, y, closed) {
-    g.fillStyle = '#ff9dc4'; g.beginPath(); g.roundRect(x - B * 0.35, y - B * 0.75, B * 0.7, B * 0.4, 6); g.fill();
+    g.fillStyle = '#c78b53'; g.beginPath(); g.roundRect(x - B * 0.35, y - B * 0.75, B * 0.7, B * 0.4, 6); g.fill();
     g.strokeStyle = '#4a2a3a'; g.lineWidth = 2; g.stroke();
     g.fillStyle = '#ffd94a'; g.beginPath(); g.arc(x, y - B * 0.55, 3.5, 0, 6.283); g.fill();
     g.strokeStyle = '#fff4e6'; g.lineWidth = 4; g.lineCap = 'round';
@@ -790,14 +822,17 @@
 
   function drawCannon(g, x, groundY, col, angle) {
     g.save(); g.translate(x, groundY - B * 0.45); g.rotate(angle);
-    g.fillStyle = col; g.fillRect(-B * 0.2, -B * 0.38, B * 1.15, B * 0.76);
-    g.fillStyle = '#ffffff55'; g.fillRect(-B * 0.1, -B * 0.3, B * 0.9, B * 0.16);
-    g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.strokeRect(-B * 0.2, -B * 0.38, B * 1.15, B * 0.76);
-    g.fillStyle = '#e7c46a'; g.fillRect(B * 0.85, -B * 0.45, B * 0.22, B * 0.9); g.strokeRect(B * 0.85, -B * 0.45, B * 0.22, B * 0.9);
+    if (!window.worldSkins?.drawArt(g, 'cannon', 'barrel.png', -B * 0.35, -B * 0.43, B * 1.55, B * 0.86)) {
+      g.fillStyle = col; g.fillRect(-B * 0.2, -B * 0.38, B * 1.15, B * 0.76);
+      g.fillStyle = '#ffffff55'; g.fillRect(-B * 0.1, -B * 0.3, B * 0.9, B * 0.16);
+      g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.strokeRect(-B * 0.2, -B * 0.38, B * 1.15, B * 0.76);
+      g.fillStyle = '#e7c46a'; g.fillRect(B * 0.85, -B * 0.45, B * 0.22, B * 0.9); g.strokeRect(B * 0.85, -B * 0.45, B * 0.22, B * 0.9);
+    }
     g.restore();
     g.fillStyle = '#e7c46a'; g.beginPath(); g.arc(x, groundY - B * 0.25, B * 0.34, 0, 6.283); g.fill();
     g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.stroke();
-    g.fillStyle = '#8a6fd0'; g.beginPath(); g.arc(x, groundY - B * 0.25, B * 0.14, 0, 6.283); g.fill();
+    g.fillStyle = col; g.beginPath(); g.arc(x, groundY - B * 0.25, B * 0.21, 0, 6.283); g.fill();
+    g.strokeStyle = '#4a2a3a'; g.lineWidth = 1.5; g.stroke();
   }
 
   // ---------- Chart building ----------
@@ -1557,9 +1592,7 @@
       const beatPh = (songPos % run.p) / run.p, open = 0.35 + 0.35 * Math.abs(Math.sin(beatPh * Math.PI));
       g.save();
       if (lastGdir === -1) { g.translate(0, DH); g.scale(1, -1); }   // on the ceiling with the player in a flip zone
-      // The green Cosmii in profile on the road behind the player, always after
-      // it: each MISS brings it closer, and on every beat it lunges forward with
-      // its mouth wide open ("あーん") and snaps shut.
+      // Each MISS brings the green Cosmii closer, and it lunges forward on the beat.
       const R = B * 1.5, lunge = Math.abs(Math.sin(beatPh * Math.PI));
       const near = Math.min(1, chaseShow / 2.2), x0 = -R * 0.3, x1 = player.x - B * 0.5 - R * 1.15;
       const cx = x0 + (x1 - x0) * near + lunge * B * 0.55, cy = GROUND - R - lunge * B * 0.2;
@@ -1601,13 +1634,32 @@
       if (key === 'pad') { g.fillStyle = '#e9fbff'; g.strokeStyle = '#5fe8ff'; g.lineWidth = 3; g.beginPath(); g.roundRect(-B * 0.6, B * 0.3, B * 1.2, B * 0.25, 5); g.fill(); g.stroke(); g.lineCap = 'round'; for (const y of [-B * 0.45, -B * 0.05]) { g.beginPath(); g.moveTo(-B * 0.3, y + B * 0.2); g.lineTo(0, y); g.lineTo(B * 0.3, y + B * 0.2); g.stroke(); } }
       else if (key === 'ring') { g.lineWidth = 9; for (let i = 0; i < 8; i++) { g.strokeStyle = ['#ff8fb8', '#fff4e6', '#a8e07a'][i % 3]; g.beginPath(); g.ellipse(0, 0, B * 0.42, B * 0.62, 0, i * Math.PI / 4, (i + 1) * Math.PI / 4 + 0.02); g.stroke(); } g.lineWidth = 2; g.strokeStyle = OUTL; g.beginPath(); g.ellipse(0, 0, B * 0.55, B * 0.75, 0, 0, 7); g.stroke(); g.beginPath(); g.ellipse(0, 0, B * 0.29, B * 0.49, 0, 0, 7); g.stroke(); }
       else if (key === 'cannon') drawCannon(g, 0, B * 0.45, '#8a6fd0', -0.6);
-      else if (key === 'ball') { if (window.worldSkins?.head) window.worldSkins.head(g, 'pink', 0, B * 0.05, B * 1.1); }
+      else if (key === 'ball') {
+        if (!window.worldSkins?.drawArt(g, 'roll', 'pink.png', -B * 0.55, -B * 0.5, B * 1.1, B * 1.1)) {
+          window.worldSkins?.head(g, 'pink', 0, B * 0.05, B * 1.1);
+        }
+      }
       else if (key === 'stairs') { [['#2ec8bb', 1], ['#2f4bb8', 2], ['#e04436', 3]].forEach(([c, l], i) => { g.fillStyle = c; g.beginPath(); g.roundRect(-B * 0.6 + i * B * 0.4, B * 0.5 - l * B * 0.3, B * 0.38, l * B * 0.3, 4); g.fill(); g.strokeStyle = OUTL; g.lineWidth = 2; g.stroke(); }); }
-      else if (key === 'prize' || key === 'arm') { g.fillStyle = '#7df'; g.beginPath(); g.arc(0, B * 0.1, B * 0.4, 0, 7); g.fill(); g.fillStyle = '#ff9df0'; g.beginPath(); g.arc(0, B * 0.1, B * 0.4, Math.PI, 0); g.fill(); g.strokeStyle = OUTL; g.lineWidth = 2; g.beginPath(); g.arc(0, B * 0.1, B * 0.4, 0, 7); g.stroke(); if (key === 'arm') drawArm(g, 0, -B * 0.55, true); }
+      else if (key === 'prize') {
+        if (!window.worldSkins?.drawArt(g, 'catch', 'leek.png', -B * 0.55, -B * 0.62, B * 1.1, B * 1.24)) {
+          g.fillStyle = '#7df'; g.strokeStyle = OUTL; g.lineWidth = 2;
+          g.beginPath(); g.arc(0, 0, B * 0.4, 0, 7); g.fill(); g.stroke();
+        }
+      }
+      else if (key === 'arm') drawArm(g, 0, B * 0.1, true);
       else if (key === 'mogu') { g.translate(-B * 0.05, 0); drawMoguSide(g, 0, 0, B * 0.5, 1, 1, 0); }
       else if (key === 'match') { g.drawImage(tileBlock('plain'), -B * 0.5, -B * 0.5, B, B); }
       else if (key === 'dark') { g.fillStyle = '#1e0b40'; g.beginPath(); g.roundRect(-B * 0.55, -B * 0.55, B * 1.1, B * 1.1, 8); g.fill(); g.strokeStyle = '#ffe2c4'; g.lineWidth = 2; g.beginPath(); g.moveTo(-B * 0.3, B * 0.3); g.lineTo(0, -B * 0.3); g.lineTo(B * 0.3, B * 0.3); g.closePath(); g.stroke(); }
-      else if (key === 'jelly') { g.fillStyle = '#ff9df0'; g.beginPath(); g.arc(0, 0, B * 0.45, Math.PI, 0); g.closePath(); g.fill(); g.strokeStyle = '#ffd0f6'; g.lineWidth = 2; g.stroke(); for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(i * B * 0.2, 0); g.quadraticCurveTo(i * B * 0.2 + 4, B * 0.25, i * B * 0.2, B * 0.45); g.stroke(); } }
+      else if (key === 'jelly') {
+        g.strokeStyle = '#ffd0f6'; g.lineWidth = 2;
+        for (let i = -1; i <= 1; i++) {
+          g.beginPath(); g.moveTo(i * B * 0.2, 0);
+          g.quadraticCurveTo(i * B * 0.2 + 4, B * 0.25, i * B * 0.2, B * 0.45); g.stroke();
+        }
+        if (!drawJellyCap(g, B * 0.45)) {
+          g.fillStyle = '#ff9df0'; g.beginPath(); g.arc(0, 0, B * 0.45, Math.PI, 0); g.closePath(); g.fill(); g.stroke();
+        }
+      }
       else if (key === 'cake') { g.fillStyle = '#f7d9a8'; g.fillRect(-B * 0.4, -B * 0.05, B * 0.8, B * 0.35); g.fillStyle = '#fff'; g.fillRect(-B * 0.4, -B * 0.2, B * 0.8, B * 0.16); g.strokeStyle = OUTL; g.lineWidth = 2; g.strokeRect(-B * 0.4, -B * 0.2, B * 0.8, B * 0.5); g.fillStyle = '#e8364a'; g.beginPath(); g.arc(0, -B * 0.28, B * 0.1, 0, 7); g.fill(); }
       g.restore();
     },

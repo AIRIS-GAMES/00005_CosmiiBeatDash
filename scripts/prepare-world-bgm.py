@@ -24,6 +24,7 @@ TARGET_PEAK = float(subprocess.run(['node', '-p', "require('./scripts/audio-leve
 # downbeat, so a short game loop reaches the planned stage length.
 WORLD_BGM = {
     'rescue': {'master': '00011_Rescue.mp3'},
+    'rescue-normal': {'master': '00011_Rescue_Normal.mp3'},
     'cannon': {'master': '00010_Cannon.mp3'},
     'roll':   {'master': '00013_KOROGARE.m4a'},
     'sudoku': {'master': '00006_Sudoku.mp3'},

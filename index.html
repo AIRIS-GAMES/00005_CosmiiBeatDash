@@ -361,7 +361,9 @@ try { if (!localStorage.getItem('rdash_ghosts_cleared')) {
 const hiScore = (i,mode='normal') => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
 const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) { localStorage.setItem(recordKey('hs',i,runRecordMode), s); return true; } return false; };
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
-const unlocked = i => i === 0 || best(i - 1) >= 60;
+const localStageTesting = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+  && !window.Capacitor?.isNativePlatform?.();
+const unlocked = i => localStageTesting || i === 0 || best(i - 1) >= 60;
 let skinIdx = Math.max(0, Math.min(SKINS.length - 1, +(localStorage.getItem('rdash_skin') || 0)));
 const totalCoins = () => +(localStorage.getItem('rdash_coins') || 0);
 const addCoins = n => localStorage.setItem('rdash_coins', totalCoins() + n);
@@ -1692,6 +1694,7 @@ function draw() {
       og.addColorStop(0, '#fff6c8'); og.addColorStop(0.7, '#ffb14a'); og.addColorStop(1, 'rgba(255,177,74,0)');
       ctx.fillStyle = og;
       ctx.beginPath(); ctx.arc(ox, oy, rr, 0, 6.283); ctx.fill();
+      if (skin === 'rescue') window.worldSkins.drawRescueOrb(ctx, ox, oy, rr);
       ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.arc(ox, oy, rr + 3 + Math.sin(nowS*8)*1.2, 0, 6.283); ctx.stroke();
       ctx.restore();
