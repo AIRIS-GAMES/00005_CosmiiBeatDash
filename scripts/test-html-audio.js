@@ -112,14 +112,22 @@ const server=http.createServer((req,res)=>{
    restore.forEach(fn=>fn());
    stopEffects();
    await new Promise(r=>setTimeout(r,150));
+   // The 180ms orb is played at half speed here so that "still sounding after
+   // the 100ms retrigger guard" holds with a wide margin on a loaded machine;
+   // the end is then awaited by event rather than by a fixed sleep.
+   const orbEl=gameAudio.inspect().sfx.orb[0];orbEl.playbackRate=.5;
    sfxOrb();sfxOrb();await new Promise(r=>setTimeout(r,0));
+   const firstAt=performance.now();
    const first=gameAudio.inspect().sfx.orb.filter(a=>!a.paused).length;
    sfxOrb();await new Promise(r=>setTimeout(r,0));
    const repeat=gameAudio.inspect().sfx.orb.filter(a=>!a.paused).length;
-   await new Promise(r=>setTimeout(r,150));
+   while(performance.now()-firstAt<120)await new Promise(r=>setTimeout(r,5));
    sfxOrb();await new Promise(r=>setTimeout(r,0));
    const spaced=gameAudio.inspect().sfx.orb.filter(a=>!a.paused).length;
-   await new Promise(r=>setTimeout(r,250));
+   const spacedValid=performance.now()-firstAt<300;   // still inside the slowed 360ms tail
+   orbEl.playbackRate=1;
+   if(!orbEl.paused)await new Promise(r=>{orbEl.addEventListener('ended',r,{once:true});setTimeout(r,3000);});
+   await new Promise(r=>setTimeout(r,20));
    const ended=gameAudio.inspect().sfx.orb.every(a=>a.paused);
    sfxOrb();await new Promise(r=>setTimeout(r,0));
    const afterEnd=gameAudio.inspect().sfx.orb.filter(a=>!a.paused).length;
@@ -131,7 +139,7 @@ const server=http.createServer((req,res)=>{
    stopMusic();sfxClear();await new Promise(r=>setTimeout(r,0));
    const clear=gameAudio.inspect().sfx.clear.filter(a=>!a.paused).length;
    stopEffects();playTrack(12);
-   return {concurrent,saturatedOps,playsAfterEnd,idleAfterEnd,first,repeat,spaced,ended,afterEnd,death,clear,stoppedCoins};
+   return {concurrent,saturatedOps,playsAfterEnd,idleAfterEnd,first,repeat,spaced,spacedValid,ended,afterEnd,death,clear,stoppedCoins};
   });
   assert.equal(bounded.concurrent,1,'four different effects must start only one voice');
   assert.deepEqual(bounded.saturatedOps,['play'],'saturation must not stop, seek, or restart active voices');
@@ -139,7 +147,8 @@ const server=http.createServer((req,res)=>{
   assert.equal(bounded.idleAfterEnd,true,'all effects must be idle after the first sound ends');
   assert.equal(bounded.first,1,'first orb must take one voice');
   assert.equal(bounded.repeat,1,'a repeat inside 100ms must be dropped, not given a second voice');
-  assert.equal(bounded.spaced,1,'a orb after 150ms must not overlap the 180ms orb tail');
+  assert.equal(bounded.spacedValid,true,'test timing: the spaced request must land inside the orb tail');
+  assert.equal(bounded.spaced,1,'an orb after the retrigger guard must not overlap a sounding orb');
   assert.equal(bounded.ended,true,'orb must finish naturally');
   assert.equal(bounded.afterEnd,1,'a new pickup after the tail must sound again');
   assert.equal(bounded.death,1,'death cue must still sound after an explicit stop');

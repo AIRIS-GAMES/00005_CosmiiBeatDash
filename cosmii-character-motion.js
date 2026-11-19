@@ -62,6 +62,24 @@
     if(ride){sx=1;sy=1;tilt*=.4;}
     return {sx,sy,tilt,image:ride||runs[skinIdx]?.[frame]||((reacting||airborne)&&poses[skinIdx])||skinImage(skinIdx),reacting,frame,artScale:rideType==='bike'?1.9:rideType==='skate'?1.65:1.35};
   }
+  // Stroked Japanese text is rasterised once per label and scale instead of
+  // every frame for the 0.7s each reaction is shown (the default character
+  // reacts on every PERFECT).
+  const labelCache=new Map();
+  const clearLabels=()=>labelCache.clear();
+  addEventListener('resize',clearLabels);document.fonts?.addEventListener?.('loadingdone',clearLabels);
+  function labelSprite(idx){
+    const scale=typeof SC==='number'&&SC>0?SC:1,key=idx+'|'+scale.toFixed(3);
+    let c=labelCache.get(key);if(c)return c;
+    const font='700 10px "Exo 2", "M PLUS 1p", sans-serif',pad=3;
+    const probe=document.createElement('canvas').getContext('2d');probe.font=font;
+    const w=Math.ceil(probe.measureText(labels[idx]).width)+pad*2,h=16,base=12;
+    c=document.createElement('canvas');c.width=Math.ceil(w*scale);c.height=Math.ceil(h*scale);
+    const g=c.getContext('2d');g.scale(scale,scale);g.font=font;g.textAlign='center';
+    g.lineWidth=3;g.strokeStyle='#15112c';g.fillStyle=colors[idx];
+    g.strokeText(labels[idx],w/2,base);g.fillText(labels[idx],w/2,base);
+    c.cssW=w;c.cssH=h;c.cssBase=base;labelCache.set(key,c);return c;
+  }
   function drawEffects(ctx) {
     if(window.reducedEffects){events.length=0;return;}
     const now=clock();
@@ -70,15 +88,15 @@
       const k=age/.7,cx=player.x+B/2,cy=player.y+B/2;
       ctx.save();ctx.globalAlpha=(1-k)*.85;
       if(e.kind==='coin' && coinImg.complete && coinImg.naturalWidth) {
-        const t=Math.min(1,k*2);ctx.drawImage(coinImg,e.x+(cx-e.x)*t-6,e.y+(cy-e.y)*t-6,12,12);
+        const t=Math.min(1,k*2);ctx.drawImage(coinSprite,e.x+(cx-e.x)*t-6,e.y+(cy-e.y)*t-6,12,12);
       } else {
         // Image echoes convey floating, a proud pose, or a disappearing trick.
         const im=window.cosmiiRides?.art(e.idx,1)||runs[e.idx]?.[1]||poses[e.idx]||skinImage(e.idx);
         if(im){ctx.globalAlpha=(1-k)*.22;const s=B*(1+k*.65);ctx.drawImage(im,cx-s/2,cy-s/2,s,s);}
       }
-      ctx.globalAlpha=1-k;ctx.font='700 10px "Exo 2", "M PLUS 1p", sans-serif';ctx.textAlign='center';
-      ctx.lineWidth=3;ctx.strokeStyle='#15112c';ctx.fillStyle=colors[e.idx];
-      ctx.strokeText(labels[e.idx],cx,cy-B*.85-k*14);ctx.fillText(labels[e.idx],cx,cy-B*.85-k*14);
+      ctx.globalAlpha=1-k;
+      const tag=labelSprite(e.idx);
+      ctx.drawImage(tag,cx-tag.cssW/2,cy-B*.85-k*14-tag.cssBase,tag.cssW,tag.cssH);
       ctx.restore();
     }
   }

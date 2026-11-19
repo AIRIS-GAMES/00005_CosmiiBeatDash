@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-const context=vm.createContext({DH:360,GROUND:300,B:36,JUMP_H:73.8,TAP_OFFSET:.25});
+const context=vm.createContext({DH:360,GROUND:300,B:36,JUMP_H:73.8,JUMP_T:.5,TAP_OFFSET:.25});
 for(const file of ['tracks.js','rhythm-beats.js'])vm.runInContext(fs.readFileSync(path.join(root,'Asset/audio',file),'utf8'),context);
 vm.runInContext(html.slice(html.indexOf('function mulberry32('),html.indexOf('// ============ ゲーム状態')),context);
 const reports=[];
@@ -26,4 +26,4 @@ for(const [file,grid] of Object.entries(context.RHYTHM_BEATS)){
 }
 assert(fs.readFileSync(path.join(root,'www/Asset/audio/rhythm-beats.js')).equals(fs.readFileSync(path.join(root,'Asset/audio/rhythm-beats.js'))));
 console.log(reports);
-console.log('Rhythm charts: all 7 tracks / 4 difficulties aligned, safe gaps, deterministic, bundled PASS');
+console.log('Rhythm charts: all '+reports.length+' tracks / 4 difficulties aligned, safe gaps, deterministic, bundled PASS');

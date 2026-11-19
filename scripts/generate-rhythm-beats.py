@@ -11,9 +11,25 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 FILES = ['stage01.mp3', 'stage2.mp3', 'stage03.mp3', 'bgm1.mp3', 'bgm2.mp3', 'bgm3.mp3', 'bgm4.mp3']
+# World BGM (scripts/prepare-world-bgm.py). Tracked exactly like the others;
+# the uneven gaps the tracker reports are the songs' own feel (beats sit within
+# ~12 ms of the drum hits), so they are kept as they are.
+#   half: the tracker locked onto the off-beat; each beat moves half a beat later
+#         (half of its own gap), onto the kick drum - checked with the kick's
+#         phase histogram in the beat grid.
+WORLD_FILES = {
+    'world-bgm/rescue.mp3': {},
+    'world-bgm/cannon.mp3': {},
+    'world-bgm/roll.m4a': {'half': True},
+    'world-bgm/sudoku.mp3': {},
+    'world-bgm/catch.mp3': {},
+    'world-bgm/mogu.mp3': {},
+    'world-bgm/match.mp3': {},
+}
 
 
-def track(path):
+def track(path, opts=None):
+    opts = opts or {}
     y, sr = librosa.load(path, sr=22050, mono=True)
     hop = 256
     onset = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
@@ -22,18 +38,43 @@ def track(path):
     times = librosa.frames_to_time(frames, sr=sr, hop_length=hop)
     if len(times) < 8:
         raise ValueError(f'Insufficient tracked beats: {path}')
+    note = ''
+    if opts:
+        duration = len(y) / sr
+        if opts.get('half'):
+            gaps = np.diff(times)
+            times = times[:-1] + gaps / 2
+            note += ', moved half a beat onto the kick'
+        frames = librosa.time_to_frames(times, sr=sr, hop_length=hop)
     # Strength changes obstacle variety; timing always stays on the tracked beat.
     strengths = np.array([max(onset[max(0, f-2):min(len(onset), f+3)]) for f in frames])
     strengths /= max(float(np.median(strengths)), 1e-6)
+    if note:
+        print(f'  {Path(path).name}{note}', flush=True)
     return {'bpm': round(float(np.asarray(tempo).item()), 3),
             'beats': [{'t': round(float(t), 6), 's': round(float(s), 4)}
                       for t, s in zip(times, strengths)]}
 
 
 if __name__ == '__main__':
+    import re, sys
+    out = ROOT / 'Asset/audio/rhythm-beats.js'
+    # The original stages' grids are kept as shipped (re-tracking can differ in
+    # the last digits and would move their charts); --retrack-original redoes them.
+    old = {}
+    if out.exists() and '--retrack-original' not in sys.argv:
+        old = json.loads(re.sub(r'^//.*\n|globalThis\.RHYTHM_BEATS = |;\s*$', '', out.read_text(encoding='utf-8')))
     tracks = {}
     for file in FILES:
+        if 'Asset/' + file in old:
+            tracks['Asset/' + file] = old['Asset/' + file]
+            print(f'{file}: kept', flush=True)
+            continue
         result = track(ROOT / 'Asset' / file)
+        tracks['Asset/' + file] = result
+        print(f'{file}: {result["bpm"]} BPM, {len(result["beats"])} beats', flush=True)
+    for file, opts in WORLD_FILES.items():
+        result = track(ROOT / 'Asset' / file, opts)
         tracks['Asset/' + file] = result
         print(f'{file}: {result["bpm"]} BPM, {len(result["beats"])} beats', flush=True)
     (ROOT / 'Asset/audio/rhythm-beats.js').write_text(

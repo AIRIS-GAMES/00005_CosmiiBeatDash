@@ -11,6 +11,18 @@ web assets. Do not edit generated files directly; regenerate after source change
 Source audio masters and store artwork in Asset remain available for regeneration, but are excluded from www and the app bundle.
 Keep official character PNGs and font license files unchanged.
 
+## Image sizes
+
+Some shipped images are resized to what the screen can actually show. Full-size
+masters live in `Asset/masters/` (same relative paths, excluded from www and the
+app bundle); `python scripts/resize-display-assets.py` writes the display copies
+into `Asset/`. Each target keeps at least 1.5x the largest on-screen size measured
+on iPhone at 3x and on iPad at 2x (for example characters are shown at most
+410px and ship at 640px). Backgrounds, opening art, judgement words, the speaker
+and run/ride sheets are already shown at or above their own size and are not
+resized. To replace one of the listed images, replace its master and rerun the
+script; bump `CACHE` in `sw.js`.
+
 ## Audio
 
 `npm test` includes `scripts/test-audio-levels.js`, which measures the audio files that actually ship
@@ -39,9 +51,9 @@ Check portrait-device landscape overlays, long gameplay frame pacing, and backgr
 Then record via Control Center with the microphone **OFF**, in three modes: BGM only, effects only,
 both enabled. Judge from the recording, not the live speaker output.
 
-- long coin chain with overlapping orb and fever — dropouts, and frame hitching on collection
+- long coin chain with overlapping orb — dropouts, and frame hitching on collection
 - death and clear immediately after a chain
-- mid-track continue, practice checkpoint, paid continue
+- paid continue (mid-track resume)
 - background → foreground, and stage change
 - silent switch ON — the game is expected to be silent
 - Bluetooth connect/disconnect, interrupting call

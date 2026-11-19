@@ -54,7 +54,7 @@ if(!sfxOnly){
  for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3']){
   const input=path.join(root,'Asset',file);
   const buf=decodeFloat(input);
-  const encoded=spawnSync(ffmpeg,['-v','error','-y','-i',input,'-af','volume=0.6,adelay=900|900','-codec:a','libmp3lame','-q:a','2',path.join(out,file)]);
+  const encoded=spawnSync(ffmpeg,['-v','error','-y','-i',input,'-af','volume=0.6,adelay=900|900','-codec:a','libmp3lame','-q:a','5',path.join(out,file)]);
   if(encoded.status!==0)throw new Error(String(encoded.stderr));
   // Measure what actually ships: lossy encoding does not preserve the input peak.
   const played=decodeFloat(path.join(out,file));

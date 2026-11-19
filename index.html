@@ -160,6 +160,7 @@
 <link rel="stylesheet" href="cosmii-typography.css">
 <link rel="stylesheet" href="cosmii-calm.css">
 <link rel="stylesheet" href="cosmii-tutorial.css">
+<link rel="stylesheet" href="stage-select.css">
 <link rel="stylesheet" href="cosmii-rides.css">
 <link rel="stylesheet" href="cosmii-mobile-dialogs.css">
 </head>
@@ -238,6 +239,8 @@ const DH = 360, GROUND = 300, B = 36;
 const JUMP_T = 0.5, JUMP_H = 2.05 * B;
 const V0 = 4 * JUMP_H / JUMP_T, GRAV = 2 * V0 / JUMP_T;
 const HOLD_MAX = 0.18, HOLD_GRAV = 0.46;
+const JUMP_BUFFER = 0.15;          // 先行入力: タップを覚えておく秒数
+const COYOTE = 0.15;               // 足場から落ちはじめて、まだ跳べる秒数
 const LEAD = 0.9, TAP_OFFSET = 0.25;
 const CEIL = DH - GROUND;          // 重力反転ゾーンの天井位置(上下ミラー対称)
 const REVIVE_COST = 50;            // コンティニュー費用(コイン)
@@ -248,6 +251,10 @@ const SONGS = ['Asset/bgm1.mp3', 'Asset/bgm2.mp3', 'Asset/bgm3.mp3', 'Asset/bgm4
 const HUES = [210, 285, 140, 25, 330, 185, 55, 260, 100, 0,
   225, 300, 155, 40, 345, 200, 70, 275, 115, 15];
 const LEGACY_NSTAGE = 10;
+// Target lengths (s); null plays the whole song. Stages 7-10 use world songs of
+// 2-3 minutes, cut on a downbeat so the stages still grow step by step.
+const STAGE_LENGTHS = [null, null, null, null, null, null, 30, 34, 37, 40,
+  45, 60, 75, 90, 105, 115, 125, 135, null, null];
 const NSTAGE = 20;
 const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
   name: 'STAGE ' + (i + 1),
@@ -255,7 +262,21 @@ const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
   hue: HUES[i],
   speed: i < LEGACY_NSTAGE ? 350 + i * 10 : 450 + (i - LEGACY_NSTAGE) * 6,
   diff: i / (NSTAGE - 1),
+  // Target play length in seconds (null = whole song). Stages 1-10 use 23-31s
+  // songs; the long songs are cut so stage 11 is not suddenly six times longer.
+  length: STAGE_LENGTHS[i] ?? null,
 }));
+// Where a stage ends: the strongest beat within 3s of its target length, so the
+// cut lands on a downbeat. Charts, progress % and the finish gate all use this.
+function stageEnd(cfg, bts, full) {
+  if (!cfg || !cfg.length || cfg.length >= full - 1) return full;
+  let best = null;
+  for (const b of bts) {
+    if (Math.abs(b.t - cfg.length) > 3) continue;
+    if (!best || (b.s || 0) > (best.s || 0)) best = b;
+  }
+  return Math.min(full, best ? best.t : cfg.length);
+}
 
 const SKINS = [
   { n: 'RED',    src: 'Asset/world/cast-neon/red.png', need: 0, effect: 'score',  desc: 'PERFECTの得点 +10%' },
@@ -268,6 +289,21 @@ const SKINS = [
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const app = document.getElementById('app');
 const coinImg = new Image();
+// The coin source is 512px but is drawn at 12-24px for every visible coin each
+// frame. Downscaling it once keeps per-frame draws cheap; coinSprite is the
+// image to draw, and stays the original until the small copy exists.
+let coinSprite = coinImg;
+function bakeCoin() {
+  if (!coinImg.complete || !coinImg.naturalWidth) return;
+  try {
+    // 1.5x the largest drawn size (24 css px) in device pixels, never above the source.
+    const size = Math.min(coinImg.naturalWidth, Math.ceil(24 * SC * 1.5));
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+    g.drawImage(coinImg, 0, 0, size, size); coinSprite = c;
+  } catch (e) { coinSprite = coinImg; }
+}
+coinImg.onload = bakeCoin;
 coinImg.src = 'Asset/cosmo-coin.png';
 let W = 640, SC = 1;
 // Backing-store resolution cap. This was min(dpr, 2) until commit de95037,
@@ -302,6 +338,7 @@ function resize() {
   SC = cv.height / DH; W = cv.width / SC;
 }
 addEventListener('resize', resize);
+addEventListener('resize', () => bakeCoin());
 addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
 
@@ -315,7 +352,12 @@ function toast(msg) {
 const best = i => +(localStorage.getItem('rdash_best_' + i) || 0);
 const setBest = (i, p) => { if (i < NSTAGE && p > best(i)) localStorage.setItem('rdash_best_' + i, p); };
 let runRecordMode = 'normal';
-const recordKey = (kind,i,mode='normal') => `rdash_${kind === 'ghost' ? 'v3beat' : 'v2'}_${mode}_${kind}_${i}`;
+const recordKey = (kind,i,mode='normal') => `rdash_v2_${mode}_${kind}_${i}`;
+// Ghost runs were recorded but never drawn; free the space they used once.
+try { if (!localStorage.getItem('rdash_ghosts_cleared')) {
+  for (const k of Object.keys(localStorage)) if (/^rdash_v3beat_.*_ghost_\d+$/.test(k)) localStorage.removeItem(k);
+  localStorage.setItem('rdash_ghosts_cleared', '1');
+} } catch (e) {}
 const hiScore = (i,mode='normal') => +(localStorage.getItem(recordKey('hs',i,mode)) || 0);
 const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) { localStorage.setItem(recordKey('hs',i,runRecordMode), s); return true; } return false; };
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
@@ -435,9 +477,13 @@ function skinSprite(idx) {
 function skinImage(idx) {
   return skinCache[idx] || skinRawCache[idx] || null;
 }
+// toDataURL() PNG-encodes the sprite; the menu asks for these ~14 times per
+// refresh, so encode each sprite once.
+const skinUrlCache = {};
 function skinImageUrl(idx) {
   const sp = skinSprite(idx);
-  return sp ? sp.toDataURL() : (SKINS[idx] && SKINS[idx].src) || '';
+  if (!sp) return (SKINS[idx] && SKINS[idx].src) || '';
+  return skinUrlCache[idx] || (skinUrlCache[idx] = sp.toDataURL());
 }
 function drawSkin(ctx, idx, x, y, w, h) {
   const img = skinImage(idx);
@@ -527,8 +573,52 @@ function mulberry32(seed) {
     return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
 
+// ============ 障害物の定義表 ============
+// One entry per obstacle type; adding a type (or a stage gimmick) means adding a
+// row here rather than editing buildLevel, collision and drawing separately.
+//   parts(cx, gy, f): spikes/blocks for collision and drawing. cx = centre x,
+//                     gy = top of the one-block band, f = on the ceiling (flip zone)
+//   unlock:    difficulty from which the chart may use it as a silhouette (in order)
+//   gapAfter:  extra time kept clear after it (s); silhouettes use .85 - minGap
+//   highCoin:  the coin over it sits higher, plus a risky bonus coin
+//   nearMiss:  passing just over it scores NEAR!
+// Stage gimmicks (stage-gimmicks.js) add rows that may also use:
+//   parts(cx, gy, f, ob, d) with d = seconds until the player reaches it, and may
+//                     return hazards (deadly boxes) and pits (deadly floor) too
+//   offset(ob, d):    x distance from the player in px, for obstacles that move
+//   draw(ctx, ob, parts, hue): own drawing instead of the default spikes/blocks
+//   free:             not a note - not judged, never a MISS (e.g. "stay low")
+//   span(ob):         extra seconds the obstacle reaches either side of ob.t
+const OBSTACLES = {
+  spike:  { nearMiss: true,
+    parts: (cx, gy, f) => ({ spikes: [{ x: cx-B/2, y: gy, w: B, h: B, f }], blocks: [] }) },
+  spike2: { nearMiss: true, gapAfter: 0.15,
+    parts: (cx, gy, f) => ({ spikes: [{ x: cx-B, y: gy, w: B, h: B, f }, { x: cx, y: gy, w: B, h: B, f }], blocks: [] }) },
+  block:  {
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B/2, y: gy, w: B, h: B, f }] }) },
+  block2: { gapAfter: 0.15, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B, y: gy, w: B*2, h: B, f }] }) },
+  hold:   { gapAfter: 0.15, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B*0.75, y: gy, w: B*1.5, h: B, f }] }) },
+  tower:  { unlock: 0.2, silhouette: true, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B/2, y: f ? CEIL : GROUND-B*1.65, w: B, h: B*1.65, f }] }) },
+  steps:  { unlock: 0.4, silhouette: true, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B, y: gy, w: B, h: B, f }, { x: cx, y: f ? CEIL : GROUND-B*1.65, w: B, h: B*1.65, f }] }) },
+  spike3: { unlock: 0.6, silhouette: true, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [-1.5, -.5, .5].map(n => ({ x: cx+B*n, y: gy, w: B, h: B, f })), blocks: [] }) },
+  bridge: { unlock: 0.8, silhouette: true, highCoin: true,
+    parts: (cx, gy, f) => ({ spikes: [], blocks: [{ x: cx-B*1.5, y: gy, w: B*3, h: B, f }] }) },
+};
+const SILHOUETTES = Object.keys(OBSTACLES).filter(k => OBSTACLES[k].unlock !== undefined);
+const obSpan = ob => ob.span || 0;
+const obNear = (ob, sec) => Math.abs(ob.t - songPos) <= sec + obSpan(ob);
+const isFreeNote = ob => !!(ob.free || OBSTACLES[ob.type]?.free);
+// Score/coin multiplier from a stage gimmick (the chorus highlight doubles).
+const gimmickMult = () => window.stageGimmicks?.mult() || 1;
+const judgeableCount = () => level.reduce((n, ob) => n + (isFreeNote(ob) ? 0 : 1), 0);
+
 // ビート列 → 障害物列(難易度でギャップ・種類・密度を調整)
-function buildLevel(beats, duration, seed, diff) {
+function buildLevel(beats, duration, seed, diff, gimmick = null) {
   const rng = mulberry32(seed * 1337 + 7);
   const ss = beats.map(o => o.s).sort((x, y) => x - y);
   const dropThr = ss[Math.floor(ss.length * 0.35 * (1 - diff))] || 0;
@@ -558,16 +648,16 @@ function buildLevel(beats, duration, seed, diff) {
       else type = 'block2';
     }
     // Introduce one silhouette at a time; the first appearance has extra space.
-    const choices=[];
-    if(diff>=.2)choices.push('tower');
-    if(diff>=.4)choices.push('steps');
-    if(diff>=.6)choices.push('spike3');
-    if(diff>=.8)choices.push('bridge');
+    const choices=SILHOUETTES.filter(k=>diff>=OBSTACLES[k].unlock);
     if(choices.length&&phrase%5===3&&o.t-last>=.85)type=choices[Math.floor(phrase/5)%choices.length];
+    // A jump lasts JUMP_T: the next obstacle has to come after landing, with a
+    // little more room before a wide one, or tapping on the beat cannot clear it.
+    const wide = type !== 'spike' && type !== 'block';
+    if (obs.length && o.t + TAP_OFFSET - obs[obs.length - 1].t < JUMP_T + (wide ? 0.08 : 0)) continue;
     obs.push({ t: o.t + TAP_OFFSET, type });
     phrase++;
     burst++;
-    last = o.t + (['tower','steps','spike3','bridge'].includes(type) ? .85-minGap : type === 'spike2' || type === 'block2' || type === 'hold' ? 0.15 : 0);
+    last = o.t + (OBSTACLES[type].silhouette ? .85-minGap : OBSTACLES[type].gapAfter || 0);
   }
   // 重力反転ゾーン: 障害物の広い隙間にポータルを置き、区間内は天井走行になる
   const zones = [];
@@ -593,8 +683,10 @@ function buildLevel(beats, duration, seed, diff) {
   }
   const portalTimes = [];
   for (const z of zones) portalTimes.push(z.start, z.end);
-  // ポータル直前直後は障害物なしの助走スペースにする
-  const obsF = obs.filter(o => portalTimes.every(pt => Math.abs(o.t - pt) > 0.45));
+  // ポータル直前直後は障害物なしの助走スペースにする。
+  // After a portal the player first falls to the new floor (~0.42s), so the next
+  // tap must come after that: keep 0.75s clear after a portal, 0.45s before it.
+  const obsF = obs.filter(o => portalTimes.every(pt => o.t - pt > 0.75 || pt - o.t > 0.45));
   const inZone = t => zones.some(z => t >= z.start && t < z.end);
   // オーブ: 障害物の隙間に置く空中タップ用ボーナス(使わなくてもクリア可能)
   const orbs = [];
@@ -612,7 +704,7 @@ function buildLevel(beats, duration, seed, diff) {
   }
   // コイン: 障害物の上(ジャンプ頂点)と、障害物のないビート上に配置
   for (const b of obsF) {
-    const high = ['hold','block2','tower','steps','spike3','bridge'].includes(b.type);
+    const high = !!OBSTACLES[b.type].highCoin;
     coins.push({ t: b.t, y: GROUND - B/2 - JUMP_H * (high ? 1.18 : 1) });
     if (high) coins.push({ t: b.t + 0.18, y: GROUND - B/2 - JUMP_H * 1.35, risky: true });
   }
@@ -629,7 +721,10 @@ function buildLevel(beats, duration, seed, diff) {
   for (const c of coins) if (inZone(c.t)) c.y = DH - c.y;
   for (const o of orbs) if (inZone(o.t)) o.y = DH - o.y;
   coins.sort((a, b) => a.t - b.t);
-  return { obs: obsF, coins, zones, orbs };
+  const built = { obs: obsF, coins, zones, orbs };
+  // A stage gimmick reshapes the chart deterministically (its own seeded rng).
+  if (gimmick && window.stageGimmicks) window.stageGimmicks.build(built, { beats, duration, seed, diff, gimmick });
+  return built;
 }
 
 // ============ ゲーム状態 ============
@@ -639,9 +734,9 @@ let attempts = 0, songPos = -LEAD, attemptOffset = 0;
 let beatIdx = 0, noteJudgeIdx = 0, pulse = 0, deadAt = 0;
 let score = 0, combo = 0, maxCombo = 0;
 let perfectRun = 0, fever = 0, judgeFlash = '';
-let practice = false, cpPct = 0, cpTime = 0;
+let practice = false, showTapGuide = false;   // practice: reward-free runs (the live tutorial)
 let shieldReady = false, invulnUntil = 0;
-let particles = [], confetti = [], floats = [], rings = [], trail = [];
+let particles = [], confetti = [], floats = [], rings = [];
 let coinDefs = [], coinsLive = [], coinRun = 0;
 let flipZones = [], orbDefs = [], orbsLive = [];
 let lastGdir = 1, ceilAlpha = 0;
@@ -659,11 +754,10 @@ function settleRunCoins() {
   settledCoins = coinRun;
   return pending;
 }
-let ghost = null, ghostIdx = 0, ghostTrace = [], ghostAcc = 0;
 const inFlipT = t => { for (const z of flipZones) if (t >= z.start && t < z.end) return true; return false; };
 const player = { x: 0, y: GROUND - B, vy: 0, rot: 0, grounded: true };
-let landAt = -9, trailAcc = 0, holdJump = 0;
-let isDown = false, tapAt = -9;
+let landAt = -9, holdJump = 0;
+let isDown = false, tapAt = -9, offLedgeAt = -9;
 const cache = {};
 
 // ============ メニュー ============
@@ -678,7 +772,8 @@ function refreshMenu() {
   $('coinsdisp').innerHTML = `<img src="Asset/cosmo-coin.png" alt=""> <span>${totalCoins()}</span>`;
   // ステージグリッド
   const grid = $('grid'); grid.innerHTML = '';
-  for (let i = 0; i < NSTAGE; i++) {
+  if (window.stageSelectView) window.stageSelectView.render(grid);   // stage-select.js: the world map
+  else for (let i = 0; i < NSTAGE; i++) {
     const b = document.createElement('button');
     b.className = 'tile' + (unlocked(i) ? '' : ' lock') + (best(i) >= 100 ? ' done' : '');
     b.style.background = `linear-gradient(135deg,hsl(${STAGES[i].hue},70%,45%),hsl(${STAGES[i].hue+30},70%,35%))`;
@@ -802,33 +897,22 @@ function setupRun(i, buf, bts) {
   const cfg = STAGES[i];
   buffer = buf; beats = RHYTHM_BEATS[cfg.file]?.beats || bts;
   setMusicTrack(AUDIO_TRACKS[cfg.file]);   // 曲ごとの実効ピークを揃える再生ゲインも同時に適用
-  duration = Math.min(buffer.duration, cfg.duration || Infinity);
+  duration = stageEnd(cfg, beats, Math.min(buffer.duration, cfg.duration || Infinity));
   SPEED = cfg.speed;
-  const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff);
+  const built = buildLevel(beats, duration, cfg.seed || (i + 1), cfg.diff, cfg.gimmick || null);
   level = built.obs; coinDefs = built.coins;
+  window.stageGimmicks?.setup(built, cfg);
   flipZones = built.zones; orbDefs = built.orbs;
   coinsLive = coinDefs.map(c => ({ ...c, got: false }));
   orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: false }));
   coinRun = 0;
   lastGdir = 1; ceilAlpha = 0; feverOn = false; fever = 0;
-  attempts = 0; cpPct = 0; cpTime = 0;
-  ghost = null; ghostIdx = 0;
-  if (i < NSTAGE) {   // デイリーはゴーストなし
-    try { const raw = localStorage.getItem(recordKey('ghost',i,runRecordMode)); if (raw) ghost = JSON.parse(raw); } catch (e) {}
-  }
+  attempts = 0;
   $('backbtn').style.display = 'block';
   practice = false;
+  showTapGuide = i === 0 && best(0) < 100;   // read storage once per run, not every frame
   state = 'ready'; songPos = -LEAD; attemptOffset = 0;
   player.y = GROUND - B; player.rot = 0;
-}
-
-// ゴースト: ベストラン(スコア更新時)の軌跡を保存して半透明で再生する
-function saveGhost() {
-  if (stageIdx >= NSTAGE) return;
-  if (ghostTrace.length < 10) return;
-  const flat = [];
-  for (const p of ghostTrace) flat.push(Math.round(p.t * 100), Math.round(p.y));
-  try { localStorage.setItem(recordKey('ghost',stageIdx,runRecordMode), JSON.stringify(flat)); } catch (e) {}
 }
 
 function backToMenu() {
@@ -958,22 +1042,26 @@ function startAttempt(offset = 0) {
   }
   attempts++;
   stopMusic();
+  // Never resume inside a gimmick section (cannon ride, pit): start just before it.
+  if (offset > 0 && window.stageGimmicks) offset = window.stageGimmicks.safeOffset(offset);
   if (offset === 0) {
     window.cosmiiPower?.reset();
   window.cosmiiCharacterMotion?.reset();
-    cpPct = 0; cpTime = 0; score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
+    score = 0; combo = 0; maxCombo = 0; perfectRun = 0; fever = 0; judgeFlash = '';
     coinRun = 0; settledCoins = 0; revivesUsed = 0;
     judgedNotes.clear(); collectedOrbs.clear(); awardedNear.clear();
+    level.forEach((ob, k) => { if (isFreeNote(ob)) judgedNotes.add(k); });
     coinsLive = coinDefs.map(c => ({ ...c, got: false }));
     runStats = { p: 0, g: 0, o: 0 };
-    ghostTrace = []; ghostAcc = 0;
-  } else {
-    ghostTrace = ghostTrace.filter(pt => pt.t < offset);   // 巻き戻し分は録り直し
   }
   nearIdx = level.findIndex(o => o.t >= offset);
   if (nearIdx < 0) nearIdx = level.length;
-  ghostIdx = 0;
+  // The next note to judge restarts here too; it used to stay where the last
+  // run ended, so after a retry (or another stage) earlier jumps got no rating.
+  noteJudgeIdx = level.findIndex(o => o.t - TAP_OFFSET >= offset - 0.3);
+  if (noteJudgeIdx < 0) noteJudgeIdx = level.length;
   attemptOffset = offset;
+  window.stageGimmicks?.reset(offset);
   feverOn = false; feverEnd = 0;
   feverGraceUntil = 0;
   reviveOffered = false; $('revivebtn').style.display = 'none';
@@ -981,10 +1069,10 @@ function startAttempt(offset = 0) {
   lastGdir = inFlipT(offset - LEAD) ? -1 : 1;   // 助走開始時点の重力向き
   player.y = lastGdir === -1 ? CEIL : GROUND - B;
   player.vy = 0; player.rot = 0; player.grounded = true;
-  holdJump = 0;
+  holdJump = 0; offLedgeAt = -9;
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
-  particles = []; floats = []; rings = []; trail = []; pulse = 0;
+  particles = []; floats = []; rings = []; pulse = 0;
   playTrack(offset, LEAD, offset===0);
   state = 'play';
   if (offset === 0) {
@@ -1055,6 +1143,8 @@ function clearStage() {
   stopMusic(); state = 'clear';
   const extra = [];
   let isNewBest=false;
+  const gimmickResult = practice ? null : window.stageGimmicks?.onClear();
+  if (gimmickResult) { score += gimmickResult.bonus || 0; if (gimmickResult.text) extra.push(gimmickResult.text); }
   if (!practice) {
     if (coinRun > 0) {
       const banked=settleRunCoins();
@@ -1075,7 +1165,6 @@ function clearStage() {
       if (newHS) extra.push('🏆 自己ベスト更新！');
       const powerStats=window.cosmiiPower?.inspect();
       if(powerStats?.activationCount)extra.push(`POWER ${powerStats.activationCount}回・${powerStats.activeSeconds.toFixed(1)}秒`);
-      if (newHS || !localStorage.getItem(recordKey('ghost',stageIdx,runRecordMode))) saveGhost();
       for (const [index,s] of SKINS.entries()) if (before < s.need && after >= s.need){
         extra.push(`🎁 ${s.n}`);
         if(!skinBought(index))window.beatPSF?.event('character_unlock',['red','blue','pink','green','purple'][index],'stages');
@@ -1084,7 +1173,8 @@ function clearStage() {
     }
   }
   // ランク評価: PERFECT/GREAT/OK の精度から算出
-  const acc = Math.min(1, (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, level.length));
+  const notes = judgeableCount();
+  const acc = Math.min(1, (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, notes));
   const rank = acc >= 0.9 ? 'S' : acc >= 0.7 ? 'A' : acc >= 0.5 ? 'B' : 'C';
   if (!practice && !dailyMode()) setBestRank(stageIdx, rank);
   if (!practice) {
@@ -1098,10 +1188,10 @@ function clearStage() {
   const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
   $('clearstats').innerHTML =
     `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
-    `<p class="result-summary">${STAGES[stageIdx].name}　最大 ${maxCombo} コンボ</p>` +
+    `<p class="result-summary">${STAGES[stageIdx].name}${STAGES[stageIdx].title ? '「' + STAGES[stageIdx].title + '」' : ''}　最大 ${maxCombo} コンボ</p>` +
     (isNewBest?'<p class="result-best">自己ベスト更新！</p>':'') +
     `<div class="result-bottom">${practice?'<span>練習モード</span>':`<span class="result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン">＋${coinRun}</span>`}<button id="result-details-open" type="button">詳細</button></div>` +
-    `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,level.length-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
+    `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,notes-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
   $('result-details-open').onclick=()=>window.openResultDetails();
   $('nextbtn').style.display = 'inline-block';
   $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
@@ -1165,10 +1255,14 @@ function judge() {
   const maxWindow = 0.21 * judgeBoost;
   while (noteJudgeIdx < level.length && level[noteJudgeIdx].t - TAP_OFFSET < songPos - maxWindow)
     noteJudgeIdx++;
+  // Skip notes that are never judged (e.g. "stay low under the jellyfish").
+  while (noteJudgeIdx < level.length && isFreeNote(level[noteJudgeIdx])) noteJudgeIdx++;
   const prev = level[noteJudgeIdx - 1], next = level[noteJudgeIdx];
   const prevTap = prev ? prev.t - TAP_OFFSET : null;
   const nextTap = next ? next.t - TAP_OFFSET : null;
-  const prevD = prevTap === null ? 9 : Math.abs(songPos - prevTap);
+  // A note that is already judged cannot take this jump; otherwise an early
+  // jump for the next note right after a judged one is silently ignored.
+  const prevD = prevTap === null || judgedNotes.has(noteJudgeIdx - 1) ? 9 : Math.abs(songPos - prevTap);
   const nextD = nextTap === null ? 9 : Math.abs(nextTap - songPos);
   let d = prevD, hitIdx = noteJudgeIdx - 1;
   if (nextD < prevD) { d = nextD; hitIdx = noteJudgeIdx; }
@@ -1181,8 +1275,9 @@ function judge() {
     combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
     runStats.p++;
     const mult = 1 + Math.floor(Math.min(combo, 60) / 15) * 0.25;
-    score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1));
+    score += Math.round((130 + combo * 6) * mult * (skinEffect('score') ? 1.1 : 1) * (feverOn ? 2 : 1) * gimmickMult());
     judgeFlash = 'PERFECT';
+    window.stageGimmicks?.onJudge('perfect');
     if(skinEffect('score'))window.beatPSF?.skill('score');
     window.cosmiiCharacterMotion?.emit('judge');
     mission('perfect10', 1); mission('combo15', combo, true);
@@ -1191,8 +1286,9 @@ function judge() {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
     runStats.g++;
-    score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1));
+    score += Math.round((85 + combo * 4) * (feverOn ? 2 : 1) * gimmickMult());
     judgeFlash = 'GREAT';
+    window.stageGimmicks?.onJudge('great');
     if(skinEffect('judge')) window.cosmiiCharacterMotion?.emit('judge');
     mission('combo15', combo, true);
     floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
@@ -1200,8 +1296,9 @@ function judge() {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
     runStats.o++;
-    score += Math.round((45 + combo * 2) * (feverOn ? 2 : 1));
+    score += Math.round((45 + combo * 2) * (feverOn ? 2 : 1) * gimmickMult());
     judgeFlash = 'GOOD';
+    window.stageGimmicks?.onJudge('good');
     mission('combo15', combo, true);
     floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
   } else {
@@ -1210,21 +1307,11 @@ function judge() {
 }
 // ============ Obstacle geometry ============
 function obstacleRects(ob) {
-  const cx = player.x + B/2 + (ob.t - songPos) * SPEED;
+  const def = OBSTACLES[ob.type], d = ob.t - songPos;
+  const cx = player.x + B/2 + (def?.offset ? def.offset(ob, d) : d * SPEED);
   const f = inFlipT(ob.t);              // 反転ゾーン内の障害物は天井側に付く
   const gy = f ? CEIL : GROUND - B;     // 障害物が占める1マス帯の上端
-  switch (ob.type) {
-    case 'spike':  return { spikes: [{x:cx-B/2, y:gy, w:B, h:B, f}], blocks: [] };
-    case 'spike2': return { spikes: [{x:cx-B, y:gy, w:B, h:B, f},{x:cx, y:gy, w:B, h:B, f}], blocks: [] };
-    case 'block':  return { spikes: [], blocks: [{x:cx-B/2, y:gy, w:B, h:B, f}] };
-    case 'block2': return { spikes: [], blocks: [{x:cx-B, y:gy, w:B*2, h:B, f}] };
-    case 'hold':   return { spikes: [], blocks: [{x:cx-B*0.75, y:gy, w:B*1.5, h:B, f}] };
-    case 'tower': return {spikes:[],blocks:[{x:cx-B/2,y:f?CEIL:GROUND-B*1.65,w:B,h:B*1.65,f}]};
-    case 'steps': return {spikes:[],blocks:[{x:cx-B,y:gy,w:B,h:B,f},{x:cx,y:f?CEIL:GROUND-B*1.65,w:B,h:B*1.65,f}]};
-    case 'spike3': return {spikes:[-1.5,-.5,.5].map(n=>({x:cx+B*n,y:gy,w:B,h:B,f})),blocks:[]};
-    case 'bridge': return {spikes:[],blocks:[{x:cx-B*1.5,y:gy,w:B*3,h:B,f}]};
-  }
-  return { spikes: [], blocks: [] };
+  return def ? def.parts(cx, gy, f, ob, d) : { spikes: [], blocks: [] };
 }
 
 // ============ 更新 ============
@@ -1243,16 +1330,10 @@ function update(dt, frameSongPos = null) {
       if (!judgedNotes.has(noteJudgeIdx)) {
         judgedNotes.add(noteJudgeIdx);combo=0;perfectRun=0;
         floats.push({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});
+        window.stageGimmicks?.onJudge('miss');
+        if (state !== 'play') return;   // a gimmick may end the run on a miss
       }
       noteJudgeIdx++;
-    }
-    // チェックポイント(練習モード)
-    if (practice) {
-      const pct = Math.floor(Math.max(0, songPos / duration * 100) / 25) * 25;
-      if (pct > cpPct && pct < 100) {
-        cpPct = pct; cpTime = duration * pct / 100;
-        floats.push({ text: '🚩 25%', x: player.x + B/2, y: player.y - 30, l: 1.4, c: '#8f8' });
-      }
     }
     // 重力方向(反転ゾーン)
     const gdir = inFlipT(songPos) ? -1 : 1;
@@ -1263,10 +1344,18 @@ function update(dt, frameSongPos = null) {
       rings.push({ r: B, a: 0.5 });
       if (navigator.vibrate) { try { navigator.vibrate(25); } catch (e) {} }
     }
-    // ジャンプ / 空中オーブ
     const now = performance.now()/1000;
-    if (player.grounded && (isDown || now - tapAt < 0.1)) {
-      player.vy = -V0 * gdir; player.grounded = false; tapAt = -9;
+    // A gimmick (e.g. riding a cannon) can take over the player for a while;
+    // judging, coins, near-miss and the clear check still run.
+    const owned = window.stageGimmicks?.ownsPlayer(dt, now) === true;
+    if (!owned) {
+    // ジャンプ / 空中オーブ
+    // A tap is remembered for JUMP_BUFFER, so a tap made just before landing
+    // still jumps (an ordinary 0.1s touch also lengthens the jump through hold).
+    // Just after walking off a ledge (not after a jump) a tap still jumps.
+    const canJump = player.grounded || now - offLedgeAt < COYOTE;
+    if (canJump && (isDown || now - tapAt < JUMP_BUFFER)) {
+      player.vy = -V0 * gdir; player.grounded = false; tapAt = -9; offLedgeAt = -9;
       holdJump = HOLD_MAX * (skinEffect('hold') ? 1.22 : 1);
       window.cosmiiCharacterMotion?.emit('jump');
       judge();
@@ -1278,7 +1367,7 @@ function update(dt, frameSongPos = null) {
         orb.used = true; collectedOrbs.add(orb.t); tapAt = -9;
         player.vy = -V0 * 0.9 * gdir; holdJump = HOLD_MAX * 0.6;
         combo++; perfectRun++; maxCombo = Math.max(maxCombo, combo);
-        score += Math.round((150 + combo * 5) * (feverOn ? 2 : 1) * (skinEffect('score') ? 1.1 : 1));
+        score += Math.round((150 + combo * 5) * (feverOn ? 2 : 1) * (skinEffect('score') ? 1.1 : 1) * gimmickMult());
         judgeFlash = 'ORB';
         mission('orb5', 1); mission('combo15', combo, true);
         floats.push({ text: 'ORB!', x: player.x + B/2, y: player.y - 14, l: 1, c: '#ffb14a' });
@@ -1298,15 +1387,13 @@ function update(dt, frameSongPos = null) {
       holdJump = Math.max(0, holdJump - dt);
       player.y += player.vy * dt;
       player.rot = 0;
-      trailAcc += dt;
-      if (trailAcc > 0.045) trailAcc = 0;
     }
     // 接地(通常=地面/ブロック上面、反転中=天井/ブロック下面)
     const pl = player.x + 4, pr = player.x + B - 4;
     if (gdir === 1) {
       let floorY = GROUND;
       for (const ob of level) {
-        if (Math.abs(ob.t - songPos) > 1.5) continue;
+        if (!obNear(ob, 1.5)) continue;
         for (const bl of obstacleRects(ob).blocks) {
           if (bl.f) continue;
           if (pr > bl.x && pl < bl.x + bl.w && prevBottom <= bl.y + 6) floorY = Math.min(floorY, bl.y);
@@ -1317,11 +1404,14 @@ function update(dt, frameSongPos = null) {
         player.rot = 0;
         landAt = now;
       }
-      if (player.grounded && player.y + B < floorY - 1 && floorY === GROUND) player.grounded = false;
+      // A floor that rose a little under the player (moving platform) carries it up.
+      if (player.grounded && player.y + B > floorY && player.y + B - floorY <= 8) player.y = floorY - B;
+      // Walking off any ledge starts a fall, including onto a lower block.
+      if (player.grounded && player.y + B < floorY - 1) { player.grounded = false; offLedgeAt = now; }
     } else {
       let ceilY = CEIL;
       for (const ob of level) {
-        if (Math.abs(ob.t - songPos) > 1.5) continue;
+        if (!obNear(ob, 1.5)) continue;
         for (const bl of obstacleRects(ob).blocks) {
           if (!bl.f) continue;
           if (pr > bl.x && pl < bl.x + bl.w && prevTop >= bl.y + bl.h - 6) ceilY = Math.max(ceilY, bl.y + bl.h);
@@ -1332,23 +1422,38 @@ function update(dt, frameSongPos = null) {
         player.rot = 0;
         landAt = now;
       }
-      if (player.grounded && player.y > ceilY + 1 && ceilY === CEIL) player.grounded = false;
+      if (player.grounded && player.y > ceilY + 1) { player.grounded = false; offLedgeAt = now; }
     }
     // 衝突
     const hx = player.x + B*0.2, hw = B*0.6, hy = player.y + B*0.2, hh = B*0.6;
+    let hit = false;
+    const pcx = player.x + B/2, onFloor = gdir === 1 && player.y + B >= GROUND - 1;
     for (const ob of feverProtected() ? [] : level) {
-      if (Math.abs(ob.t - songPos) > 1.5) continue;
+      if (!obNear(ob, 1.5)) continue;
       const parts = obstacleRects(ob);
+      if (parts.hazards) for (const z of parts.hazards) {
+        if (hx < z.x + z.w && hx + hw > z.x && hy < z.y + z.h && hy + hh > z.y) { hit = true; break; }
+      }
+      if (!hit && onFloor && parts.pits) for (const pit of parts.pits) {
+        if (pcx > pit.x && pcx < pit.x + pit.w) { hit = true; break; }
+      }
       for (const s of parts.spikes) {
         const sx = s.x + s.w*0.36, sw = s.w*0.28;
         const sy = s.y + (s.f ? 0 : s.h*0.4), sh = s.h*0.6;
-        if (hx < sx+sw && hx+hw > sx && hy < sy+sh && hy+hh > sy) { die(); return; }
+        if (hx < sx+sw && hx+hw > sx && hy < sy+sh && hy+hh > sy) { hit = true; break; }
       }
-      for (const bl of parts.blocks) {
+      if (!hit) for (const bl of parts.blocks) {
+        if (bl.oneWay) continue;   // pass-through from below and the sides; land from above
         if (player.x + B - 5 > bl.x && player.x + 5 < bl.x + bl.w &&
             (bl.f ? (player.y < bl.y + bl.h - 9 && player.y + B > bl.y)
-                  : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { die(); return; }
+                  : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { hit = true; break; }
       }
+      if (hit) break;
+    }
+    // A shield or the post-revive grace keeps the run going: only stop this
+    // step if the hit actually ended it, so coins, effects and the clear check
+    // keep running while the player is protected inside an obstacle.
+    if (hit) { die(); if (state !== 'play') return; }
     }
     // コイン取得
     for (const c of coinsLive) {
@@ -1361,7 +1466,7 @@ function update(dt, frameSongPos = null) {
       const coinRadius = 14 * (skinEffect('coin') ? 1.4 : 1);
       if ((ccx-nx)*(ccx-nx) + (c.y-ny)*(c.y-ny) < coinRadius*coinRadius) {
         if(skinEffect('coin')&&((ccx-nx)**2+(c.y-ny)**2>=14**2||c.risky))window.beatPSF?.skill('coin');
-        const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1);
+        const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1) * gimmickMult();
         c.got = true; coinRun += gained;
         window.cosmiiCharacterMotion?.emit('coin',ccx,c.y);
         window.cosmiiPower?.collect(gained);
@@ -1375,14 +1480,10 @@ function update(dt, frameSongPos = null) {
         }
       }
     }
-    // ゴースト記録 & ニアミスボーナス
-    ghostAcc += dt;
-    if (ghostAcc > 0.08 && songPos > 0 && ghostTrace.length < 6000) {
-      ghostAcc = 0; ghostTrace.push({ t: songPos, y: player.y });
-    }
+    // ニアミスボーナス
     while (nearIdx < level.length && level[nearIdx].t <= songPos) {
       const ob = level[nearIdx++];
-      if (ob.type === 'spike' || ob.type === 'spike2') {
+      if (OBSTACLES[ob.type]?.nearMiss) {
         const f = inFlipT(ob.t);
         const clearance = f ? (player.y - (CEIL + B)) : ((GROUND - B) - (player.y + B));
         if (clearance > -2 && clearance < 13 && !awardedNear.has(nearIdx-1)) {   // トゲすれすれ通過
@@ -1420,7 +1521,7 @@ function update(dt, frameSongPos = null) {
           lastGdir = 1; player.y = GROUND - B; player.vy = 0; player.rot = 0; player.grounded = true;
           particles = [];
         } else { backToMenu(); toast('DAILY 0/3'); }
-      } else startAttempt(practice ? cpTime : 0);
+      } else startAttempt(0);
     }
   }
 
@@ -1432,32 +1533,35 @@ function update(dt, frameSongPos = null) {
   floats = floats.filter(f => f.l > 0);
   for (const r of rings) { r.r += 170*dt; r.a -= dt*1.1; }
   rings = rings.filter(r => r.a > 0);
-  for (const t of trail) t.l -= dt*2.2;
-  trail = trail.filter(t => t.l > 0);
 }
 
 // ============ 描画 ============
+// FEVER/POWER is switched off by cosmiiPower.enabled (cosmii-power.js); this
+// is the only way it starts, so the one flag turns the whole feature on or off.
 function activateFever(seconds = 10) {
-  return; // FEVER temporarily disabled, including legacy activation callers.
-  if (feverOn || state !== 'play') return;
+  if (!window.cosmiiPower?.enabled || feverOn || state !== 'play') return;
   feverLength = seconds;
   feverOn = true; feverEnd = songPos + seconds; fever = 1;
-  mission('fever2', 1);
   floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
   rings.push({ r: B, a: 0.8 });
   sfxFever();
 }
 
 function draw() {
-  if(window.reducedEffects){shake=0;particles=[];rings=[];trail=[];confetti=[];}
+  if(window.reducedEffects){shake=0;particles.length=0;rings.length=0;confetti.length=0;}
   ctx.setTransform(SC, 0, 0, SC, 0, 0);
   if (shake > 0.3) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
   const hue = STAGES[stageIdx].hue;
   const inGame = state === 'ready' || state === 'play' || state === 'paused' || state === 'dead';
 
-  const worldArtwork = window.cosmiiWorld?.background();
+  // A stage world (Rescue, Cannon, ...) paints its own scenery; Rhythm Dash
+  // stages, menus and the tutorial keep the original artwork.
+  const skin = window.worldSkins?.current(inGame || state === 'clear');
+  const worldArtwork = window.cosmiiWorld?.background(!!skin);
   ctx.clearRect(0, 0, W, DH);
-  if (!worldArtwork) {
+  if (skin) window.worldSkins.drawBackground(ctx, skin);
+  else window.worldSkins?.hideLayer();
+  if (!skin && !worldArtwork) {
   const gBg = ctx.createLinearGradient(0, 0, 0, DH);
   gBg.addColorStop(0, `hsl(${hue + fever*35},${60 + fever*18}%,${14 + fever*5}%)`);
   gBg.addColorStop(1, `hsl(${hue+30 + fever*50},${65 + fever*15}%,${26 + fever*7}%)`);
@@ -1510,12 +1614,15 @@ function draw() {
   if (inGame) {
     player.x = W * 0.3;
     for (const ob of level) {
-      const dt0 = ob.t - songPos;
-      if (dt0 * SPEED > W || dt0 * SPEED < -W*0.5) continue;
+      const def = OBSTACLES[ob.type], dt0 = ob.t - songPos, reach = obSpan(ob) * SPEED;
+      const dx = def?.offset ? def.offset(ob, dt0) : dt0 * SPEED;
+      if (dx - reach > W || dx + reach < -W*0.5) continue;
       const parts = obstacleRects(ob);
+      if (def?.draw) { def.draw(ctx, ob, parts, hue); continue; }
       for (const s of parts.spikes) drawSpike(s, hue);
       for (const bl of parts.blocks) drawBlock(bl, hue);
     }
+    drawJumpMarks();
     // コイン
     const nowS = performance.now()/1000;
     for (const c of coinsLive) {
@@ -1528,7 +1635,7 @@ function draw() {
       ctx.save(); ctx.translate(ccx, ccy); ctx.scale(sq, 1);
       if (coinImg.complete && coinImg.naturalWidth) {
         const sz = c.risky ? 24 : 20;
-        ctx.drawImage(coinImg, -sz/2, -sz/2, sz, sz);
+        ctx.drawImage(coinSprite, -sz/2, -sz/2, sz, sz);
         if (c.risky) {
           ctx.strokeStyle = '#ff7ad9'; ctx.lineWidth = 2;
           ctx.beginPath(); ctx.arc(0, 0, sz * 0.58, 0, 6.283); ctx.stroke();
@@ -1577,7 +1684,7 @@ function draw() {
       ctx.restore();
     }
     // TAP! ガイド(ステージ1・未クリアのみ、最初の2つ)
-    if (stageIdx === 0 && best(0) < 100) {
+    if (showTapGuide && stageIdx === 0) {
       const bounce = Math.abs(Math.sin(performance.now()/180)) * 8;
       for (let i = 0; i < 2 && i < level.length; i++) {
         const ob = level[i];
@@ -1604,14 +1711,6 @@ function draw() {
     ctx.globalAlpha = 1;
     // Keep best-run records, but render only the current player.
     const sp = skinImage(skinIdx);
-    // 残像(FEVER中はレインボー)
-    for (const t of trail) {
-      ctx.save(); ctx.globalAlpha = Math.max(0, t.l) * 0.5;
-      if (t.fv) ctx.filter = `hue-rotate(${(performance.now()/3 + t.l*500) % 360}deg) saturate(1.8)`;
-      ctx.translate(t.x + B/2, t.y + B/2); ctx.scale(1,lastGdir);
-      if (sp) ctx.drawImage(sp, -B/2, -B/2, B, B);
-      ctx.restore();
-    }
     // FEVER中のオーラ
     if (feverProtected() && state === 'play') {
       ctx.save();
@@ -1633,8 +1732,9 @@ function draw() {
       ctx.beginPath(); ctx.arc(pcx, pcy, B * 0.95, 0, 6.283); ctx.stroke();
       ctx.restore();
     }
+    window.stageGimmicks?.drawOverlay(ctx);
     // プレイヤー(着地スクワッシュ & 空中ストレッチ)
-    if (state !== 'dead') {
+    if (state !== 'dead' && !window.stageGimmicks?.hidesPlayer()) {
       const now = performance.now()/1000;
       let sx = 1, sy = 1;
       const k = Math.exp(-(now - landAt) / 0.09);
@@ -1654,6 +1754,7 @@ function draw() {
       else { ctx.fillStyle = '#e33'; ctx.fillRect(-B/2, -B/2, B, B); }
       ctx.restore();
     }
+    window.stageGimmicks?.drawFront?.(ctx);   // things the player passes behind (rescue rings)
     if(state==='play') window.cosmiiCharacterMotion?.drawEffects(ctx);
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.l);
@@ -1693,7 +1794,32 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r);
   ctx.closePath();
 }
+// Jump marks: a small glowing diamond on the floor where a jump must start for a
+// PERFECT. It reaches the player's feet at the exact moment to tap. Shown for
+// notes only (not for "stay down" notes), hidden in blackouts and when the
+// player turns it off in the settings.
+function drawJumpMarks() {
+  if (!window.jumpMarks || state === 'menu') return;
+  const dark = window.stageGimmicks?.darkness?.() || 0;
+  if (dark > 0.05) return;
+  const feet = player.x + B / 2;
+  for (let k = Math.max(0, noteJudgeIdx - 1); k < level.length; k++) {
+    const ob = level[k], tap = ob.t - TAP_OFFSET, dx = (tap - songPos) * SPEED;
+    if (dx > W) break;
+    if (dx < -B || isFreeNote(ob) || judgedNotes.has(k)) continue;
+    const x = feet + dx, f = inFlipT(tap), near = Math.max(0, 1 - Math.abs(dx) / 60);
+    const y = f ? CEIL : GROUND, s = f ? -1 : 1;
+    ctx.save();
+    ctx.globalAlpha = 0.55 + 0.45 * near;
+    ctx.fillStyle = '#ffd94a';
+    ctx.beginPath(); ctx.moveTo(x, y + 2 * s); ctx.lineTo(x + 8, y + 11 * s); ctx.lineTo(x, y + 20 * s); ctx.lineTo(x - 8, y + 11 * s); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#4a2a3a'; ctx.lineWidth = 1.5; ctx.stroke();
+    if (near > 0) { ctx.globalAlpha = near * 0.8; ctx.strokeStyle = '#ffd94a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 6 * s); ctx.lineTo(x, y + 1 * s); ctx.stroke(); }
+    ctx.restore();
+  }
+}
 function drawSpike(s, hue) {
+  if(window.worldSkins?.drawObstacle(ctx,'spike',s))return;
   if(window.cosmiiWorld?.drawObstacle(ctx,'spike',s))return;
   ctx.beginPath();
   if (s.f) {  // 天井から下向きのトゲ
@@ -1714,6 +1840,7 @@ function drawSpike(s, hue) {
   ctx.strokeStyle = '#0a0a14'; ctx.lineWidth = 2.5; ctx.stroke();
 }
 function drawBlock(bl, hue) {
+  if(window.worldSkins?.drawObstacle(ctx,'block',bl))return;
   if(window.cosmiiWorld?.drawObstacle(ctx,'block',bl))return;
   const g = ctx.createLinearGradient(0, bl.y, 0, bl.y + bl.h);
   g.addColorStop(0, `hsl(${hue},55%,60%)`); g.addColorStop(1, `hsl(${hue},55%,32%)`);
@@ -1728,7 +1855,7 @@ function drawBlock(bl, hue) {
 const DEMO = location.search.includes('demo');
 if (DEMO) {
   document.getElementById('menu').style.display = 'none';
-  stageIdx = 0; duration = 60; attempts = 1; beats = [];
+  stageIdx = 0; duration = 60; attempts = 1; beats = []; showTapGuide = best(0) < 100;
   level = [];
   for (let t = 1; t < 58; t += 0.9)
     level.push({ t, type: ['spike','spike2','block','block2'][Math.floor(t) % 4] });
@@ -1800,6 +1927,9 @@ if ('serviceWorker' in navigator &&
 </script>
 <script src="html-audio.js"></script>
 <script src="cosmii-power.js"></script>
+<script src="stage-gimmicks.js"></script>
+<script src="world-skins.js"></script>
+<script src="stage-select.js"></script>
 <script src="cosmii-character-motion.js"></script>
 <script src="ui.js"></script>
 <script src="cosmii-rides.js"></script>

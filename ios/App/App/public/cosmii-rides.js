@@ -77,7 +77,7 @@
     $('ride-confirm').hidden=!pending;
     if(pending){const item=catalog.find(c=>c.id===pending);$('ride-confirm').querySelector('span').textContent=item.name+'を'+item.price+'コインで解放しますか？';$('ride-confirm-buy').disabled=totalCoins()<item.price;}
   }
-  const originalRefresh=gameUI.refresh;gameUI.refresh=()=>{originalRefresh();refresh();};
+  gameUI.onRefresh(refresh);
   addEventListener('storage',e=>{if(e.key===KEY||e.key===COINS){saved=read();pending=null;refresh();}});
   window.cosmiiRides={selected,select,buy,catalog,sheets,refresh,art(index,frame){return sheets[saved.selected]?.[index]?.[frame]||null;}};
   refresh();

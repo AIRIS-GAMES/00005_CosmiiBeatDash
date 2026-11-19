@@ -1,6 +1,5 @@
 /* Diagnostic only. Counts the canvas operations that are cheap on a desktop GPU
-   and expensive on a mobile one, per rendered frame, during real gameplay with
-   fever active.
+   and expensive on a mobile one, per rendered frame, during real gameplay.
 
    ctx.filter and shadowBlur are the two that matter: both can drop canvas2d off
    the fast path on iOS, and neither shows up in desktop frame times. Counting
@@ -48,17 +47,15 @@ const server=http.createServer((req,res)=>{
    const realDraw=window.draw;
    const times=[];
    window.draw=function(){const s=performance.now();realDraw.apply(this,arguments);times.push(performance.now()-s);n.frames++;};
-   // Fever is where the per-trail ctx.filter path runs.
-   activateFever(60);
    await new Promise(d=>setTimeout(d,ms));
    window.draw=realDraw;
    times.sort((a,b)=>a-b);
    return {n,p50:times[Math.floor(times.length*0.5)],p95:times[Math.floor(times.length*0.95)],max:times[times.length-1],
-    trail:trail.length,particles:particles.length};
+    particles:particles.length};
   },seconds*1000);
   const f=r.n.frames||1;
   console.log('frames measured: '+f+'   draw() p50='+r.p50.toFixed(2)+'ms p95='+r.p95.toFixed(2)+'ms max='+r.max.toFixed(2)+'ms');
-  console.log('per frame, during fever:');
+  console.log('per frame:');
   for(const [k,label] of [['filter','ctx.filter assignments'],['shadowBlur','ctx.shadowBlur assignments'],
    ['linearGradient','createLinearGradient'],['radialGradient','createRadialGradient'],
    ['save','ctx.save'],['drawImage','drawImage']]){

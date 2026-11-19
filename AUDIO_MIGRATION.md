@@ -13,7 +13,7 @@ Before migration: this game's BGM used a native player on iOS, browser decoded-b
 | Entry | Calls / purpose | Replacement |
 |---|---|---|
 | ensureAudio | stage selection, first input, resume | media gesture unlock, every pooled voice |
-| playTrack | new attempt, practice checkpoint, paid continue, pause resume | single HTML BGM, seek by original track time |
+| playTrack | new attempt, paid continue, pause resume | single HTML BGM, seek by original track time |
 | stopMusic | stage exit, death, clear, pause, next attempt | pause BGM and all effect voices |
 | sfxDeath | death | death.wav / gain 0.45 |
 | sfxClear | stage clear | clear.wav / gain 0.50 |
@@ -116,12 +116,20 @@ Music OFF mutes the single media element while preserving the rhythm clock. It d
 
 None of that certifies the device. Only an iPhone shows recording quality, perceived frame pacing, speaker timbre, silent-switch behaviour and BGM-versus-effect balance. On macOS, build in Xcode and then on iPhone record via Control Center with the microphone **OFF**, in all three settings (BGM only, effects only, both):
 
-1. A long coin chain and overlapping orb/fever — listen for dropouts and for frame hitching on collection.
+1. A long coin chain and overlapping orb — listen for dropouts and for frame hitching on collection.
 2. Death and clear, each immediately after a chain.
-3. Mid-track continue, practice checkpoint, and paid continue.
+3. Paid continue (mid-track resume).
 4. Background → foreground, and stage change.
 5. Silent switch ON — expect silence; confirm that is still acceptable.
 6. Bluetooth connect/disconnect and an interrupting call.
 7. Audio-OFF persistence across a relaunch.
 
 Judge from the recording itself, not the live speaker output. Compare against a recording of the previous build: effects are now 14–17 dB louder in absolute terms and about 5 dB above BGM rather than 7 dB below it, which is the intended change but is large enough to want a listen before release.
+
+## BGM encoding (size)
+
+All BGM playback files are VBR MP3 `-q:a 5` (~135 kbps), made by `python3 scripts/encode-bgm.py` from each track's source (the key in `tracks.js`) with the same 900 ms lead-in and 60 % attenuation; it re-measures each playback gain. This took the 14 BGM files from 41 MB to 29 MB. `prepare-world-bgm.py` and `generate-audio-assets.js` use the same quality. The lead-in was re-checked by cross-correlation against the source: 900.0 ms on every track, so beat grids are unchanged.
+
+`tracks.js` no longer carries the old onset lists (`beats: []`): charts always use `rhythm-beats.js`, which has every track. That took `tracks.js` from 336 KB to 2 KB.
+
+Shipped PNGs were optimised losslessly (oxipng, kept only where every pixel is identical): 46 MB to 40 MB.

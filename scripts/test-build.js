@@ -10,6 +10,11 @@ for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3
 for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav']){
   assert(fs.existsSync(path.join(out,'Asset/audio',file)),`Missing playback asset: ${file}`);
 }
+// World BGM: playback files ship, the beat-tracking sources and masters do not.
+for(const id of ['rescue','cannon','roll','sudoku','catch','mogu','match'])
+  assert(fs.existsSync(path.join(out,'Asset/audio','world-'+id+'.mp3')),`Missing world playback: ${id}`);
+assert(!fs.existsSync(path.join(out,'Asset','world-bgm')),'World BGM sources bundled');
+assert(!fs.existsSync(path.join(out,'Asset','masters')),'Masters bundled');
 for(const file of ['index.html','sw.js','ui.js','ui.css','html-audio.js','cosmii-power.js','cosmii-world.js','cosmii-world.css','neon-theme.css', 'cosmii-opening.js', 'cosmii-opening.css', 'cosmii-home.js', 'cosmii-home.css', 'cosmii-ui-art.js', 'cosmii-ui-art.css']){
   assert(fs.readFileSync(path.join(root,file)).equals(fs.readFileSync(path.join(out,file))),`Stale build: ${file}`);
 }

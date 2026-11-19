@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v103-purple-icon';
+const CACHE = 'rdash-v123-lighter';
 const ASSETS = [
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
@@ -9,6 +9,10 @@ const ASSETS = [
   'index.html',
   'manifest.json',
   'cosmii-power.js',
+  'stage-gimmicks.js',
+  'world-skins.js',
+  'stage-select.js',
+  'stage-select.css',
   'cosmii-character-motion.js',
   'cosmii-rides.js','cosmii-rides.css',
   'cosmii-mobile-dialogs.css',
@@ -22,6 +26,7 @@ const ASSETS = [
   'Asset/audio/tracks.js',
   'Asset/audio/rhythm-beats.js',
   ...['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav'].map(file=>'Asset/audio/'+file),
+  ...['rescue','cannon','roll','sudoku','catch','mogu','match'].map(id=>'Asset/audio/world-'+id+'.mp3'),
   'ui.css',
   'cosmii-world.js',
   'Asset/world/neon-speaker.png',

@@ -1,6 +1,8 @@
 (() => {
   'use strict';
-  const ENABLED = false; // Temporarily suspend FEVER and its meter.
+  // The one switch for FEVER/POWER. While false, coins keep their ordinary value,
+  // the meter stays hidden and activateFever() in index.html does nothing.
+  const ENABLED = false;
   const COINS_PER_ACTIVATION = 10;
   const FEVER_SECONDS = 10;
   const art = new Image();
@@ -44,8 +46,10 @@
     art.removeAttribute('src');
   }
 
+  let disabledReset = false;
   function tick() {
-    if (!ENABLED) { reset(); return; }
+    // While disabled, reset once instead of rewriting the meter DOM every frame.
+    if (!ENABLED) { if (!disabledReset) { reset(); disabledReset = true; } return; }
     meter.hidden = !['ready', 'play', 'dead'].includes(state);
 
     if (running && feverOn && state === 'play') {
@@ -109,6 +113,7 @@
   }
 
   window.cosmiiPower = {
+    enabled: ENABLED,
     collect,
     reset,
     tick,

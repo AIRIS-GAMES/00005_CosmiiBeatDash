@@ -163,8 +163,7 @@
   $('home-footer').querySelector('span').textContent='閉店後は、コスミーたちの時間。';
   $('home-header').querySelector('.wordmark').innerHTML='COSMII <span>RHYTHM DASH · よるのゲームセンター</span>';
   const plaque=document.createElement('p');plaque.className='world-plaque';plaque.textContent='今夜は、どの曲であそぶ？';$('stagecol').prepend(plaque);
-  const originalRefresh=gameUI.refresh;
-  gameUI.refresh=()=>{originalRefresh();$('charname').textContent=names[skinIdx]+'コスミー';const next=memories.find(m=>!memoryUnlocked(m));plaque.textContent=next?`ステージ${next.stage}クリアで、新しい思い出`:'5枚の思い出がそろいました';};gameUI.refresh();
+  gameUI.onRefresh(()=>{$('charname').textContent=names[skinIdx]+'コスミー';const next=memories.find(m=>!memoryUnlocked(m));plaque.textContent=next?`ステージ${next.stage}クリアで、新しい思い出`:'5枚の思い出がそろいました';});gameUI.refresh();
   let resultBtn;
   function onClear(){
     if(resultBtn)resultBtn.hidden=true;
@@ -187,27 +186,35 @@
   let lastActive=false;
   window.cosmiiWorld={
     beforeStage(i){if(i!==0||progress.intro||DEMO)return Promise.resolve(true);if(pending)return Promise.resolve(false);return new Promise(resolve=>{pending=resolve;intro(true);});},
-    background(){
+    // suppressed: a stage world paints its own scenery, so the neon layers hide.
+    background(suppressed=false){
       applyTheme(stageIdx);
-      const active=['ready','play','dead','paused','clear'].includes(state)&&layer.complete&&layer.naturalWidth>0;
+      const active=!suppressed&&['ready','play','dead','paused','clear'].includes(state)&&layer.complete&&layer.naturalWidth>0;
       if(active!==lastActive){app.classList.toggle('world-stage',active);lastActive=active;}
       const showCeiling=active&&flipZones.some(z=>z.start-.6<songPos+W*.8/SPEED&&z.end+.6>songPos-W*.4/SPEED);
       // Song position freezes during pause/death and rewinds with retries/checkpoints.
       // Alternating mirrored panels meet at identical image edges without a hard wrap.
       const distance=Math.max(0,songPos)*scenerySpeed();
       const phase=((distance/W)%2)*100;
+      // Write only what changed: the DOM is otherwise dirtied every frame even
+      // while paused, dead or in the menu.
       scenery.forEach((panel,i)=>{
-        const x=i*100-phase,flip=i%2?-1:1;
-        panel.floor.hidden=!active;panel.ceiling.hidden=!showCeiling;
-        panel.floorFrame.style.transform=`translateX(${x}%) scaleX(${flip})`;
-        panel.ceilingFrame.style.transform=`translateX(${x}%) scale(${flip},-1)`;
+        const x=(i*100-phase).toFixed(3),flip=i%2?-1:1;
+        if(panel.floor.hidden!==!active)panel.floor.hidden=!active;
+        if(panel.ceiling.hidden!==!showCeiling)panel.ceiling.hidden=!showCeiling;
+        if(!active)return;
+        if(panel.lastX!==x){panel.lastX=x;panel.floorFrame.style.transform=`translateX(${x}%) scaleX(${flip})`;}
+        if(showCeiling&&panel.ceilingX!==x){panel.ceilingX=x;panel.ceilingFrame.style.transform=`translateX(${x}%) scale(${flip},-1)`;}
       });
       const gatePositions=[-distance,Math.max(0,duration-songPos)*scenerySpeed()-W*.9+player.x];
       gates.forEach((gate,i)=>{
         const x=gatePositions[i];
         const visible=i===0?x>-W*.1:x<W*.1&&x>-W;
-        gate.hidden=!active||!visible;
-        gate.style.transform=`translateX(${x/W*100}%)`;
+        const hidden=!active||!visible;
+        if(gate.hidden!==hidden)gate.hidden=hidden;
+        if(hidden)return;
+        const transform=`translateX(${(x/W*100).toFixed(3)}%)`;
+        if(gate.lastTransform!==transform){gate.lastTransform=transform;gate.style.transform=transform;}
       });
       return active;
     },

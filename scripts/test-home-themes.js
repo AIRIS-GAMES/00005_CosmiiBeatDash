@@ -15,7 +15,9 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
  await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready');
  const variants=new Set();
  for(let i=0;i<20;i++){
-   await page.evaluate(i=>{stageIdx=i;songPos=4;flipZones=[];draw();},i);
+   const skin=await page.evaluate(i=>{stageIdx=i;songPos=4;flipZones=[];draw();return window.worldSkins.current(true);},i);
+   // Stages of another world paint their own scenery: the neon layers stay hidden.
+   if(skin){assert(await page.evaluate(()=>document.querySelector('#world-backdrop').hidden),`stage ${i+1} (${skin}) hides the neon backdrop`);variants.add('skin:'+skin);if(i<5)await page.screenshot({path:path.join(root,`test-results/stage-theme-${i+1}.png`)});continue;}
    await page.waitForFunction(()=>{const im=document.querySelector('#world-backdrop');return im.complete&&im.naturalWidth>0&&!im.hidden;});
    const result=await page.evaluate(()=>{
      const im=document.querySelector('#world-backdrop'),t=cosmiiWorld.themeFor(stageIdx);
@@ -24,10 +26,12 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
    assert(Math.abs(result.floor-5/6)<0.0001,'Generated floor must align within 0.04 game pixels');variants.add(result.src+result.filter);
    if(i<5)await page.screenshot({path:path.join(root,`test-results/stage-theme-${i+1}.png`)});
  }
- assert.equal(variants.size,20,'Every stage has a distinct theme/palette combination');
- await page.evaluate(()=>{flipZones=[{start:0,end:20}];draw();});assert(await page.locator('#world-ceiling').isVisible());
+ const skins=[...variants].filter(v=>v.startsWith('skin:')).length,dash=await page.evaluate(()=>Object.values(stageGimmicks.PLAN).filter(p=>p.world==='dash').length);
+ assert.equal(variants.size-skins,dash,'Every Rhythm Dash stage has a distinct theme/palette combination');
+ assert.equal(skins,await page.evaluate(()=>new Set(Object.values(stageGimmicks.PLAN).map(p=>p.world).filter(w=>w!=='dash')).size),'Each other world has its own skin');
+ await page.waitForFunction(()=>{stageIdx=0;flipZones=[{start:0,end:20}];draw();return !document.querySelector('#world-ceiling').hidden;});assert(await page.locator('#world-ceiling').isVisible());
  // Failed theme requests use the original generated background.
  await context.route('**/theme-sea.png',r=>r.abort());await page.evaluate(()=>{stageIdx=1;draw();});await page.waitForFunction(()=>document.querySelector('#world-backdrop').src.endsWith('/rhythm-neon.png'));await context.unroute('**/theme-sea.png');
  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base+'/www/');await page.waitForFunction(()=>bootDone&&document.querySelector('.home-title-art')?.naturalWidth>0);
- assert.deepEqual(errors,[]);console.log('Home/themes: title, icon actions, character selector, no duplicate icons, all 20 palettes, floor alignment and fallback PASS');
+ assert.deepEqual(errors,[]);console.log('Home/themes: title, icon actions, character selector, no duplicate icons, distinct Rhythm Dash palettes, a skin per world, floor alignment and fallback PASS');
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

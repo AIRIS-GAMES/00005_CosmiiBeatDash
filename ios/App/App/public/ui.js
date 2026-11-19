@@ -96,6 +96,11 @@
   const effectsButton=document.createElement('button');effectsButton.id='effects-setting';
   const renderEffects=()=>{effectsButton.textContent='演出を控えめに：'+(window.reducedEffects?'ON':'OFF');effectsButton.setAttribute('aria-pressed',String(window.reducedEffects));};
   effectsButton.onclick=()=>{window.reducedEffects=!window.reducedEffects;localStorage.setItem('rdash_reduced_effects',window.reducedEffects?'1':'0');renderEffects();window.dispatchEvent(new Event('cosmii-effects-change'));};renderEffects();sections.more.prepend(effectsButton);
+  // Jump marks on the floor (ON unless turned off).
+  window.jumpMarks=localStorage.getItem('rdash_jump_marks')!=='0';
+  const marksButton=document.createElement('button');marksButton.id='marks-setting';
+  const renderMarks=()=>{marksButton.textContent='ジャンプの目印：'+(window.jumpMarks?'ON':'OFF');marksButton.setAttribute('aria-pressed',String(window.jumpMarks));};
+  marksButton.onclick=()=>{window.jumpMarks=!window.jumpMarks;localStorage.setItem('rdash_jump_marks',window.jumpMarks?'1':'0');renderMarks();};renderMarks();effectsButton.after(marksButton);
   function openPanel(key,title,from){opener=from;panel.dataset.section=key;panel.classList.toggle('social-panel',key==='social');$('panel-title').textContent=key==='social'?'SNS・LINEスタンプ':title;for(const [k,s] of Object.entries(sections))s.hidden=k!==key;panel.hidden=false;panel.querySelector('.panel-shell').scrollTop=0;$('panel-close').focus();}
   function closePanel(){panel.hidden=true;opener?.focus();}
   $('panel-close').onclick=closePanel;
@@ -105,7 +110,14 @@
   $('more-open').onclick=()=>openPanel('more','設定',$('more-open'));
   for(const [id,key,label] of [['help-open','help','遊び方'],['social-open','social','SNS'],['games-open','games','ほかのゲーム']]){const button=document.createElement('button');button.id=id;button.textContent=label;button.onclick=()=>openPanel(key,label,button);footer.append(button);}
   const effects=Object.fromEntries(SKINS.map(s=>[s.effect,s.desc]));
+  // Modules add to the menu refresh with gameUI.onRefresh(fn) instead of wrapping
+  // gameUI.refresh; hooks run in registration (script) order after the base refresh.
+  const refreshHooks=[];
   function refresh(){
+    baseRefresh();
+    for(const hook of refreshHooks)hook();
+  }
+  function baseRefresh(){
     help.textContent='画面タップ／スペースキーでジャンプ。長押しで高く跳べます。光るタイミングに合わせて跳び、空中のオーブはタップで追加ジャンプ。FLIP区間では天井を走ります。Ⅱボタン／Escで一時停止。';
     let last=Number(localStorage.getItem('rdash_last_stage'));
     if(!Number.isInteger(last)||last<0||last>=NSTAGE||!unlocked(last))last=0;
@@ -133,6 +145,10 @@
     }
   }
   let previousCombo=0,milestone=0,milestoneUntil=0;
+  const hudLayout={key:'',scoreRight:null};
+  const invalidateHud=()=>{hudLayout.key='';};
+  addEventListener('resize',invalidateHud);addEventListener('orientationchange',()=>setTimeout(invalidateHud,150));
+  document.fonts?.addEventListener?.('loadingdone',invalidateHud);
   function drawHUD(g){
     const now=performance.now()/1000;
     if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=now+0.8;}previousCombo=combo;
@@ -145,9 +161,16 @@
     g.font='600 10px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#d7e2f1';g.textAlign='center';g.fillText(Math.floor(percent)+'%  ·  GOAL',W/2,39);
     // Use layout coordinates before #app's portrait rotation. Measuring the
     // visible button also includes safe-area insets, borders and later styles.
-    const pauseButton=$('backbtn'),appWidth=$('app').clientWidth;
-    const scoreRight=pauseButton.offsetWidth&&appWidth
-      ? (pauseButton.offsetLeft-12)*W/appWidth
+    // Layout reads are cached: reading offsetLeft every frame right after the
+    // scenery transforms are written forces a synchronous style/layout pass.
+    const pauseButton=$('backbtn'),layoutKey=pauseButton.style.display+'|'+W;
+    if(hudLayout.key!==layoutKey){
+      const appWidth=$('app').clientWidth;
+      hudLayout.scoreRight=pauseButton.offsetWidth&&appWidth?(pauseButton.offsetLeft-12)/appWidth:null;
+      if(hudLayout.scoreRight!==null)hudLayout.key=layoutKey;
+    }
+    const scoreRight=hudLayout.scoreRight!==null
+      ? hudLayout.scoreRight*W
       : W-72*DH/Math.min(innerWidth,innerHeight);
     const scoreLeft=Math.max(scoreRight-141,W/2+width/2+24);
     if(!window.cosmiiUIArt?.panel(g,scoreLeft,10,scoreRight-scoreLeft,41)){g.fillStyle='#101b32e8';roundRect(scoreLeft,10,scoreRight-scoreLeft,41,10);g.fill();}
@@ -156,12 +179,12 @@
     if(now<milestoneUntil&&state==='play'){g.textAlign='center';g.font='italic 800 19px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#ffe58a';g.fillText(milestone+' COMBO',W/2,76);}
     if(state==='ready'){
       if(!window.cosmiiUIArt?.panel(g,W/2-175,92,350,113)){g.fillStyle='#101b32ee';roundRect(W/2-175,92,350,113,16);g.fill();}
-      g.textAlign='center';g.fillStyle='#94afca';g.font='600 12px "Exo 2", "M PLUS 1p", sans-serif';g.fillText(STAGES[stageIdx].name,W/2,115);
+      g.textAlign='center';g.fillStyle='#94afca';g.font='600 12px "Exo 2", "M PLUS 1p", sans-serif';g.fillText(STAGES[stageIdx].name+(STAGES[stageIdx].title?'「'+STAGES[stageIdx].title+'」':'')+(STAGES[stageIdx].world?'  ·  '+STAGES[stageIdx].world:''),W/2,115);
       g.fillStyle='#fff';g.font='900 23px "Exo 2", "M PLUS 1p", sans-serif';if(!window.cosmiiUIArt?.japanese(g,W/2-135,125,270,32))g.fillText('タップしてスタート',W/2,146);
-      g.font='12px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#c6d5e6';g.fillText(effects[currentSkin().effect]||currentSkin().desc,W/2,171);
+      g.font='12px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#c6d5e6';const hint=STAGES[stageIdx].hint;if(hint){g.fillStyle='#ffe58a';g.font='700 12px "M PLUS 1p", sans-serif';g.fillText(hint,W/2,171,330);g.fillStyle='#c6d5e6';g.font='12px "Exo 2", "M PLUS 1p", sans-serif';}else g.fillText(effects[currentSkin().effect]||currentSkin().desc,W/2,171);
       g.fillText('タップでジャンプ · 長押しで高く',W/2,190);
     }
     g.textAlign='left';
   }
-  window.gameUI={refresh,drawHUD,notifyMission,openPanel,addSection(key,section){section.classList.add('panel-section');section.hidden=true;sections[key]=section;$('panel-content').append(section);}};refresh();
+  window.gameUI={refresh,onRefresh(fn){refreshHooks.push(fn);},drawHUD,notifyMission,openPanel,addSection(key,section){section.classList.add('panel-section');section.hidden=true;sections[key]=section;$('panel-content').append(section);}};refresh();
 })();

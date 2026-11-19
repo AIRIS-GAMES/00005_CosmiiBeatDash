@@ -18,7 +18,7 @@
     entry=source==='onboarding'?'onboarding':'optional';window.beatPSF?.event('tutorial_start',entry);
     $('ui-panel').hidden=true;$('menu').style.display='none';$('stageSelect').style.display='none';$('loginov').style.display='none';
     const track=AUDIO_TRACKS[STAGES[0].file];setupRun(0,{duration:track.duration},[]);stopMusic();
-    practice=true;duration=1e6;level=[];beats=[];flipZones=[];coinDefs=[];coinsLive=[];orbDefs=[];ghost=null;
+    practice=true;duration=1e6;level=[];beats=[];flipZones=[];coinDefs=[];coinsLive=[];orbDefs=[];
     score=0;combo=0;maxCombo=0;coinRun=0;songPos=0;beatIdx=0;noteJudgeIdx=0;nearIdx=0;state='play';
     guide.hidden=false;q('tutorial-resume').hidden=true;$('backbtn').style.display='none';prepare();return promise;
   }

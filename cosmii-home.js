@@ -29,5 +29,5 @@
       tile.style.backgroundSize='cover';tile.style.backgroundPosition='center';
     });
   }
-  const refresh=gameUI.refresh;gameUI.refresh=()=>{refresh();decorate();};decorate();
+  gameUI.onRefresh(decorate);decorate();
 })();
