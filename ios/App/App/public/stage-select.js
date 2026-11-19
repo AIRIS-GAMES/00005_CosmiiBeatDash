@@ -35,7 +35,7 @@
         const sh = im.naturalHeight * 0.42, sw = sh * TW / TH, sy = im.naturalHeight * theme.floor - sh * 0.78, sx = (im.naturalWidth - sw) / 2;
         g.save(); g.filter = `hue-rotate(${theme.hue}deg)`; g.drawImage(im, sx, sy, sw, sh, 0, 0, TW, TH); g.restore();
       } else {
-        const t = window.worldSkins?.thumb(worldOf(i), TW, TH, STAGES[i].hue);
+        const t = window.worldSkins?.thumb(worldOf(i), TW, TH, STAGES[i].hue, i + 1);
         if (t) g.drawImage(t, 0, 0, TW, TH);
       }
       decorate();
@@ -52,6 +52,7 @@
       g.font = '28px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('🔒', TW / 2, TH / 2);
     }
     };
+    window.worldSkins?.onArtLoad(worldOf(i), paint);
     paint();
     return c;
   }

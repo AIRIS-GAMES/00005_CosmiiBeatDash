@@ -1,5 +1,17 @@
-const CACHE = 'rdash-v131-1.07b7';
+const CACHE = 'rdash-v131-1.07b11';
+const WORLD_ART = {
+  dash: ['jelly.png'],
+  rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
+  cannon: ['background.jpg', 'barrel.png', 'star.png', 'blue.png'],
+  roll: ['background.jpg', 'meteor.png', 'rock.png', 'red.png', 'blue.png', 'pink.png', 'green.png', 'purple.png'],
+  sudoku: ['background.jpg', 'green.png'],
+  catch: ['background.jpg', 'basket.png', 'leek.png'],
+  mogu: ['background.jpg', 'green.png'],
+  match: ['background.jpg', 'bomb.png', 'red.png', 'blue.png', 'pink.png', 'green.png', 'purple.png'],
+  arcade: ['background.jpg', 'green.png', 'purple.png'],
+};
 const ASSETS = [
+  ...Object.entries(WORLD_ART).flatMap(([world, files]) => files.map(file => `Asset/worlds/${world}/${file}`)),
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
   'Asset/promo/6811575619.jpg', 'Asset/promo/6809099787.jpg',
@@ -27,7 +39,7 @@ const ASSETS = [
   'Asset/audio/tracks.js',
   'Asset/audio/rhythm-beats.js',
   ...['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav'].map(file=>'Asset/audio/'+file),
-  ...['rescue','cannon','roll','sudoku','catch','mogu','match'].map(id=>'Asset/audio/world-'+id+'.mp3'),
+  ...['rescue','rescue-normal','cannon','roll','sudoku','catch','mogu','match'].map(id=>'Asset/audio/world-'+id+'.mp3'),
   'ui.css',
   'cosmii-world.js',
   'Asset/world/neon-speaker.png',
