@@ -40,6 +40,9 @@
     busy=false;pending=null;refreshMenu();refresh();toast(item.name+'を解放！ 全キャラで使えます');
     gaCoins('Sink',item.price,'Ride',id);window.beatPSF?.event('ride_unlock',id,names[skinIdx]);return true;
   }
+  // "Run" uses the first frame of the run sheet, so all three cards show the same side-view pose.
+  const runIcons=[];
+  names.forEach((name,i)=>{const im=new Image();im.onload=()=>{if(im.naturalWidth!==im.naturalHeight||im.naturalWidth%2)return;const size=im.naturalWidth/2,c=document.createElement('canvas');c.width=c.height=size;c.getContext('2d').drawImage(im,0,0,size,size,0,0,size,size);runIcons[i]=c.toDataURL();refresh();};im.src=`Asset/world/run/${name}.png`;});
   for(const type of ['skate','bike'])names.forEach((name,i)=>{
     const im=new Image();im.onload=()=>{
       if(im.naturalWidth!==im.naturalHeight||im.naturalWidth%2)return;
@@ -71,7 +74,7 @@
       const card=cards.get(item.id),owned=saved.owned.includes(item.id),active=saved.selected===item.id;
       card.setAttribute('aria-pressed',String(active));
       card.querySelector('.ride-status').textContent=active?'✓ 使用中':owned?'乗り換える':item.price+'コインで解放';
-      const image=card.querySelector('img');image.src=item.id==='run'?skinImageUrl(skinIdx):(icons[item.id][skinIdx]||skinImageUrl(skinIdx));
+      const image=card.querySelector('img');image.src=item.id==='run'?(runIcons[skinIdx]||skinImageUrl(skinIdx)):(icons[item.id][skinIdx]||skinImageUrl(skinIdx));
       image.alt=item.name;card.disabled=!storageOK&&!owned;
     }
     $('ride-confirm').hidden=!pending;

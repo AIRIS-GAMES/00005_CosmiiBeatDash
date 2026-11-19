@@ -197,7 +197,7 @@
 </div>
 
 <div id="stageSelect" class="overlay">
-  <button id="stageback" aria-label="Back">‹</button>
+  <button id="stageback" aria-label="もどる">‹ もどる</button>
   <h2>ステージ選択</h2>
   <div id="stageprogress"></div>
   <div id="grid"></div>
@@ -840,7 +840,7 @@ function openStageSelect() {
   $('stageSelect').style.display = 'flex';
   gaDesign('UI:StageSelect', 1);
 }
-function closeStageSelect() { $('stageSelect').style.display = 'none'; }
+function closeStageSelect() { $('stageSelect').style.display = 'none'; window.fromStageSelect = false; }
 $('stageSelectBtn').onclick = openStageSelect;
 $('stageback').onclick = closeStageSelect;
 
@@ -940,6 +940,8 @@ function backToMenu() {
   $('revivebtn').style.display = 'none';
   reviveOffered = false;
   refreshMenu();
+  // A stage started from the stage select returns there.
+  if (window.fromStageSelect && !dailyMode()) openStageSelect();
 }
 $('backbtn').onclick = backToMenu;
 $('tomenu').onclick = backToMenu;
@@ -1084,7 +1086,8 @@ function startAttempt(offset = 0) {
 }
 
 
-function die() {
+// opts.fall: the player fell out of the stage (a hole): no burst, no shake.
+function die(opts = {}) {
   const nowT = performance.now() / 1000;
   if (state === 'play' && feverProtected()) return;
   if (state === 'play' && nowT < invulnUntil) return;   // シールド後の無敵中
@@ -1123,14 +1126,14 @@ function die() {
     missionSave();
   }
   combo = 0; perfectRun = 0; fever = 0; feverOn = false;
-  shake = 10;
+  shake = opts.fall ? 0 : 10;
   state = 'dead'; deadAt = performance.now();
   deathPos = songPos;
   reviveOffered = !practice && revivesUsed === 0 && totalCoins() >= REVIVE_COST &&
     songPos > 3 && songPos < duration - 2;
   if (reviveOffered) $('revivebtn').style.display = 'block';
   const px = player.x + B/2, py = player.y + B/2;
-  for (let i = 0; i < 26; i++) {
+  if (!opts.fall) for (let i = 0; i < 26; i++) {
     const a = Math.random()*Math.PI*2, v = 90 + Math.random()*260;
     particles.push({ x: px, y: py, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 120,
       s: 4 + Math.random()*7, l: 1, hue: Math.random() < 0.5 ? 0 : 45 });
@@ -1306,12 +1309,20 @@ function judge() {
   }
 }
 // ============ Obstacle geometry ============
-function obstacleRects(ob) {
+function rawRects(ob) {
   const def = OBSTACLES[ob.type], d = ob.t - songPos;
   const cx = player.x + B/2 + (def?.offset ? def.offset(ob, d) : d * SPEED);
   const f = inFlipT(ob.t);              // 反転ゾーン内の障害物は天井側に付く
   const gy = f ? CEIL : GROUND - B;     // 障害物が占める1マス帯の上端
   return def ? def.parts(cx, gy, f, ob, d) : { spikes: [], blocks: [] };
+}
+// ob.mir: a stage gimmick inside a flip zone, built for the floor and mirrored
+// onto the ceiling (geometry here, drawing in the draw loop).
+const mirRect = r => ({ ...r, y: DH - r.y - r.h, f: true });
+function obstacleRects(ob) {
+  const p = rawRects(ob);
+  if (!ob.mir) return p;
+  return { ...p, spikes: p.spikes.map(mirRect), blocks: p.blocks.map(mirRect), hazards: p.hazards?.map(mirRect), pits: undefined };
 }
 
 // ============ 更新 ============
@@ -1469,6 +1480,7 @@ function update(dt, frameSongPos = null) {
         const gained = (c.risky ? 2 : 1) * (feverOn ? 2 : 1) * gimmickMult();
         c.got = true; coinRun += gained;
         window.cosmiiCharacterMotion?.emit('coin',ccx,c.y);
+        window.stageGimmicks?.onCoin?.();
         window.cosmiiPower?.collect(gained);
         mission('coins30', gained);
         if (c.risky) { score += (skinEffect('coin') ? 180 : 120) * (feverOn ? 2 : 1); mission('risky5', 1); }
@@ -1617,6 +1629,7 @@ function draw() {
       const def = OBSTACLES[ob.type], dt0 = ob.t - songPos, reach = obSpan(ob) * SPEED;
       const dx = def?.offset ? def.offset(ob, dt0) : dt0 * SPEED;
       if (dx - reach > W || dx + reach < -W*0.5) continue;
+      if (ob.mir && def?.draw) { ctx.save(); ctx.translate(0, DH); ctx.scale(1, -1); def.draw(ctx, ob, rawRects(ob), hue); ctx.restore(); continue; }
       const parts = obstacleRects(ob);
       if (def?.draw) { def.draw(ctx, ob, parts, hue); continue; }
       for (const s of parts.spikes) drawSpike(s, hue);
@@ -1683,24 +1696,7 @@ function draw() {
       ctx.beginPath(); ctx.arc(ox, oy, rr + 3 + Math.sin(nowS*8)*1.2, 0, 6.283); ctx.stroke();
       ctx.restore();
     }
-    // TAP! ガイド(ステージ1・未クリアのみ、最初の2つ)
-    if (showTapGuide && stageIdx === 0) {
-      const bounce = Math.abs(Math.sin(performance.now()/180)) * 8;
-      for (let i = 0; i < 2 && i < level.length; i++) {
-        const ob = level[i];
-        const cx = player.x + B/2 + (ob.t - TAP_OFFSET - songPos) * SPEED;
-        if (cx > -B && cx < W + B) {
-          ctx.textAlign = 'center';
-          ctx.font = 'italic 800 16px "Exo 2", "M PLUS 1p", sans-serif';
-          ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.fillStyle = '#ffd94a';
-          if(!window.cosmiiUIArt?.label(ctx,'TAP!',cx,GROUND-B-16-bounce,58,21)){
-          ctx.strokeText('TAP!', cx, GROUND - B - 16 - bounce);
-          ctx.fillText('TAP!', cx, GROUND - B - 16 - bounce);
-          }
-          ctx.textAlign = 'left';
-        }
-      }
-    }
+    // (The old TAP! words over the first notes are gone: the jump marks show where to tap.)
     // ビートリング(キャラ周囲・非発光)
     const pcx = player.x + B/2, pcy = player.y + B/2;
     for (const r of rings) {
@@ -1808,13 +1804,24 @@ function drawJumpMarks() {
     if (dx > W) break;
     if (dx < -B || isFreeNote(ob) || judgedNotes.has(k)) continue;
     const x = feet + dx, f = inFlipT(tap), near = Math.max(0, 1 - Math.abs(dx) / 60);
-    const y = f ? CEIL : GROUND, s = f ? -1 : 1;
+    const y = ob.markY ?? (f ? CEIL : GROUND), s = f ? -1 : 1;   // markY: a raised floor (cannon rail)
     ctx.save();
-    ctx.globalAlpha = 0.55 + 0.45 * near;
-    ctx.fillStyle = '#ffd94a';
-    ctx.beginPath(); ctx.moveTo(x, y + 2 * s); ctx.lineTo(x + 8, y + 11 * s); ctx.lineTo(x, y + 20 * s); ctx.lineTo(x - 8, y + 11 * s); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#4a2a3a'; ctx.lineWidth = 1.5; ctx.stroke();
-    if (near > 0) { ctx.globalAlpha = near * 0.8; ctx.strokeStyle = '#ffd94a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, y - 6 * s); ctx.lineTo(x, y + 1 * s); ctx.stroke(); }
+    // A soft light column rising from the mark.
+    const g0 = ctx.createLinearGradient(0, y, 0, y - 46 * s);
+    g0.addColorStop(0, `rgba(255,217,74,${0.35 + 0.35 * near})`); g0.addColorStop(1, 'rgba(255,217,74,0)');
+    ctx.fillStyle = g0; ctx.fillRect(x - 7, Math.min(y, y - 46 * s), 14, 46);
+    // The diamond, bigger and outlined in white.
+    ctx.globalAlpha = 0.75 + 0.25 * near;
+    ctx.fillStyle = '#ffd94a'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x, y + 1 * s); ctx.lineTo(x + 11, y + 13 * s); ctx.lineTo(x, y + 25 * s); ctx.lineTo(x - 11, y + 13 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // A ring closing in on the mark: when it lands on the diamond, tap.
+    const dt = dx / SPEED;
+    if (dt > -0.05 && dt < 0.6) {
+      const rr = 10 + Math.max(0, dt) * 55;
+      ctx.globalAlpha = Math.min(1, (0.6 - dt) / 0.25);
+      ctx.strokeStyle = dt < 0.06 ? '#ffffff' : '#ffd94a'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(x, y + 13 * s, rr, rr * 0.55, 0, 0, 6.283); ctx.stroke();
+    }
     ctx.restore();
   }
 }

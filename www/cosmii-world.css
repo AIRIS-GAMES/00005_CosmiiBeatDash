@@ -1,0 +1,59 @@
+#world-backdrop { position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:0; }
+#cv { z-index:1; }
+#menu,#stageSelect { background:linear-gradient(90deg,rgba(17,46,53,.06),rgba(17,46,53,.14)),url('Asset/world/arcade-night.png') center/cover; }
+#menu::before,#menu::after,#stageSelect::before,#stageSelect::after,#clearov::before { display:none; }
+#menu { gap:7%;padding:62px 6% 64px; }
+#menu #charcol { width:32%;align-self:flex-end;padding-bottom:8px; }
+#menu #charimg { width:130px;height:130px;filter:drop-shadow(0 6px 4px #572f4b50); }
+#menu #charname { color:#fff9ed;text-shadow:0 2px 3px #3b2929; }
+#menu #skineffect,#menu #cleared { color:#fff9ed;background:#453343d9;padding:4px 9px;border-radius:8px; }
+#menu #avatar-btn>span { color:#543848;background:#fff9e8;border-color:#765048; }
+#menu #stagecol { background:#fff7e8f5;border:3px solid #82505c;border-radius:24px;padding:18px 22px;max-width:465px;box-shadow:0 7px 0 #513e4759; }
+.world-plaque { color:#75555b;font-size:13px;letter-spacing:.08em; }
+#menu #continue-btn { background:#ffdc75;color:#553b44;border:2px solid #8b5b52;box-shadow:0 4px 0 #bb825e;min-height:75px; }
+#menu .home-nav button { background:#b9eada!important;color:#3e5654!important;border-color:#648e86!important;box-shadow:0 3px 0 #8cb7a9!important; }
+#menu .home-nav #dailybtn { background:#ffd1df!important;border-color:#a77787!important; }
+#menu #dailybtn small { color:#765560; }
+#home-header { left:5%;right:5%;top:14px;background:#284d59e8;border:2px solid #f5d59a;border-radius:16px;padding:9px 16px; }
+#menu .wordmark { font-size:19px;color:#fff6df;text-shadow:none; }
+#menu .wordmark span { color:#ffe2b1;letter-spacing:.12em;font-size:9px; }
+#home-footer { left:5%;right:5%;bottom:10px;gap:6px; }
+#menu #home-footer>span { color:#47383f;background:#fff7e8e8;padding:6px;border-radius:8px;font-size:10px; }
+#menu #home-footer button { background:#fff4df;color:#583f4a;border:2px solid #936577;min-height:40px;font-size:11px;padding:7px 10px; }
+#stageSelect h2,#stageprogress { color:#fff8e7;background:#284d59ed;border-radius:12px;padding:6px 18px;text-shadow:none; }
+#stageSelect .tile { border:2px solid #fff2d2; }
+#clearov { background:linear-gradient(#203e53da,#203e53ed),url('Asset/world/arcade-night.png') center/cover; }
+#clearov #world-result-album { background:#fff3da;color:#674452;min-height:40px;font-size:13px;padding:8px 16px;border:2px solid #dfadbc; }
+#world-dialog { z-index:55;background:#183f50cc;padding:18px; }
+#world-dialog[hidden] { display:none; }
+#world-dialog button,#world-dialog a { font:inherit;font-size:13px;cursor:pointer;min-height:44px;border:2px solid #916171;border-radius:12px;background:#ffdc81;color:#543c47;padding:9px 15px;font-weight:700;text-decoration:none; }
+#world-dialog .secondary { background:#fff8ea; }
+#world-dialog button:focus-visible,#world-dialog a:focus-visible { outline:3px solid #31b7b6;outline-offset:3px; }
+.world-paper { color:#573f4a;background:#fff8eb;border:3px solid #946474;border-radius:22px;padding:22px;box-shadow:0 7px 0 #352c3c40; }
+.world-paper small { color:#8b6367;font-size:11px; }
+.world-paper h2 { font-size:24px;margin:7px 0 12px; }
+.world-paper p { font-size:14px;line-height:1.8;margin:10px 0; }
+.world-paper header { display:flex;align-items:center;justify-content:space-between;gap:14px; }
+.world-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:15px; }
+.world-instruction { font-size:12px!important;color:#6e6468;background:#f1e8dc;border-radius:10px;padding:10px; }
+.world-story { display:grid;grid-template-columns:43% 57%;width:min(960px,100%);max-height:100%;overflow:auto;border-radius:24px;background:url('Asset/world/arcade-night.png') center/cover; }
+.world-story-art { position:relative;min-height:250px; }
+.world-story-art img { position:absolute;width:60%;max-height:180px;object-fit:contain;bottom:10%;filter:drop-shadow(0 7px 4px #47384744); }
+.story-red { left:0;transform:rotate(-9deg); }.story-green { right:0;bottom:3%!important;transform:rotate(6deg); }
+.world-story .world-paper { border-radius:0;box-shadow:none;border-width:0 0 0 3px; }
+.world-album,.world-profiles { width:min(920px,100%);max-height:100%;overflow:auto;touch-action:pan-y; }
+.world-album-body { display:grid;grid-template-columns:56% 44%;align-items:center;gap:0;margin-top:10px; }
+.world-album-body>img { width:100%;height:auto;aspect-ratio:1672/941;object-fit:cover;border:3px solid #e7bf9e;border-radius:14px; }
+.world-album-body>div { padding-left:20px; }
+.world-profile-tabs { display:flex;gap:8px;margin:9px 0; }
+#world-dialog .world-profile-tabs button { flex:1;padding:5px;background:#f5eadd; }
+#world-dialog .world-profile-tabs button[aria-pressed=true] { background:#ffe198;border-color:#785762; }
+.world-profile-tabs img { width:48px;height:48px;object-fit:contain;display:block;margin:auto; }
+.world-profile-body { display:grid;grid-template-columns:24% 76%;align-items:center; }
+.world-profile-body>img { width:90%;max-height:160px;object-fit:contain; }
+.world-profile-body nav { display:flex;flex-wrap:wrap;gap:6px; }
+#menu #charcol { z-index:1; }
+#home-header { z-index:2!important; }
+#world-dialog .world-profile-body nav a { font-size:11px;background:#dcf1e8;padding:9px; }
+@media(max-height:350px) { #menu #charcol #charimg {width:72px;height:72px;} #menu #charname {font-size:17px;} #menu #cleared {font-size:10px;} }
+@media(max-height:380px) { #menu {padding:64px 5% 56px;gap:7%;} #menu #stagecol {padding:10px 15px;} #menu #charimg {width:95px;height:95px;} #menu #charcol {gap:3px;padding-bottom:0;} #home-header {top:8px;padding:7px 12px;} #menu #continue-btn {min-height:65px;padding:9px 15px;} #menu #continue-btn b {font-size:24px;} #menu #home-footer>span {display:none;} #home-footer {justify-content:flex-end;} .world-paper {padding:14px;} .world-paper h2 {font-size:21px;margin:4px 0 8px;} .world-paper p {font-size:12px;line-height:1.6;margin:7px 0;} .world-actions {margin-top:9px;} #world-dialog {padding:10px;} .world-profile-tabs img {width:36px;height:36px;} .world-profile-body>img {max-height:95px;} .world-story-art {min-height:220px;} #clearov {gap:7px;} #clearov h2 {font-size:28px;} #clearov .result-rank {font-size:44px;} #clearov .result-heading strong {font-size:36px;} #clearov .result-coins {font-size:23px;} #clearov .result-summary {font-size:13px;} #clearov .result-best {font-size:16px;} }

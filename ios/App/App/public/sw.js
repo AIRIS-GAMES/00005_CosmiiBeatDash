@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v123-lighter';
+const CACHE = 'rdash-v131-1.07b7';
 const ASSETS = [
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
@@ -18,6 +18,7 @@ const ASSETS = [
   'cosmii-mobile-dialogs.css',
   ...['skate','bike'].flatMap(type=>['red','blue','pink','green','purple'].map(name=>'Asset/world/rides/'+type+'-'+name+'.png')),
   ...['red','blue','pink','green','purple'].map(name=>'Asset/world/run/'+name+'.png'),
+  ...['red','blue','pink','green','purple'].map(name=>'Asset/world/roll/'+name+'.png'),
   ...['red','blue','pink','green','purple'].map(name=>'Asset/world/cast-neon/'+name+'-hands.png'),
   'ui.js',
   'game-safety.js',

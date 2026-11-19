@@ -29,7 +29,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
    if(opts.wrong==='stairs'||opts.wrong==='lift'||opts.wrong==='match'){const st=level.find(o=>o.type==='step'&&o.k===2);if(st){const k=taps.indexOf(st.t-TAP_OFFSET);taps.splice(k,1);mistake=st.t;}}
    if(opts.wrong==='ring'){const r=level.find(o=>o.type==='ring');if(r){const k=taps.indexOf(r.t-TAP_OFFSET);taps[k]+=.17;mistake=r.t;}}
    if(opts.wrong==='ringEarly'){const r=level.find(o=>o.type==='ring');if(r){const k=taps.indexOf(r.t-TAP_OFFSET);taps[k]-=.19;mistake=r.t;}}
-   if(opts.wrong==='matchLate'){const st=level.find(o=>o.type==='step'&&o.k===1&&level.some(t=>t.type==='tile'&&Math.abs(t.t-o.t)<1));if(st){const k=taps.indexOf(st.t-TAP_OFFSET);taps[k]+=.17;mistake=st.t;}}
+   if(opts.wrong==='matchLate'){const st=level.find(o=>o.type==='step'&&o.k===1&&level.some(t=>t.type==='tile'&&Math.abs(t.t-o.t)<1));if(st){const k=taps.indexOf(st.t-TAP_OFFSET);taps.splice(k,1);mistake=st.t;}}
    if(opts.wrong==='pad'){const pd=level.find(o=>o.type==='pad');if(pd){taps.push(pd.t-0.08);mistake=pd.t;}}
    if(opts.wrong==='cake'){const c=level.find(o=>o.type==='cake'&&o.high);if(c){taps.push(c.t-TAP_OFFSET);mistake=c.t;}}
    taps.sort((a,b)=>a-b);
@@ -75,16 +75,16 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  // Wrong choices fail where they should.
  for(const [n,wrong] of [[4,'pad'],[5,'ring'],[6,'cake'],[3,'jelly'],[7,'cannon'],[8,'cannon'],[11,'stairs'],[14,'arm'],[17,'match'],[18,'lift']]){
   const r=await page.evaluate(([i,o])=>__play(i,o),[n-1,{wrong,gimmick:wrong==='lift'?{sabi:true,lift:2}:undefined}]);
-  assert.equal(r.state,'dead',`stage ${n}: the wrong ${wrong} choice must fail`);
+  assert.equal(r.state,'dead',`stage ${n}: the wrong ${wrong} choice must fail (${JSON.stringify(r)})`);
   assert(r.mistake!==null&&Math.abs(r.died.t-r.mistake)<2.5,`stage ${n}: failed for the ${wrong} mistake, not elsewhere (${JSON.stringify(r)})`);
  }
  const early=await page.evaluate(()=>__play(4,{wrong:'ringEarly',press:.05}));
  assert(early.state==='dead'&&Math.abs(early.died.t-early.mistake)<1,'stage 5: an early jump falls into the sky under the ring');
  // 3Match: on the beat, every group of three tiles makes a MATCH.
- for(const [n,rows] of [[17,2],[18,3]]){const r=await page.evaluate(i=>__play(i,{press:.08}),n-1);assert(r.state==='clear'&&r.groups===rows&&r.matches===r.groups,`stage ${n}: ${r.matches}/${r.groups} matches`);}
- // A jump 0.17s late passes under the block: the door stays shut and stops you there.
+ for(const [n,rows] of [[17,6],[18,8]]){const r=await page.evaluate(i=>__play(i,{press:.08}),n-1);assert(r.state==='clear'&&r.groups===rows&&r.matches===r.groups,`stage ${n}: ${r.matches}/${r.groups} matches`);}
+ // Skipping a hop leaves a block unswitched: the door stays shut and stops you there.
  const late=await page.evaluate(()=>__play(16,{wrong:'matchLate'}));
- assert(late.state==='dead'&&late.died&&late.died.near.includes('door'),`stage 17: a late jump must leave the door shut (${JSON.stringify(late)})`);
+ assert(late.state==='dead'&&late.died&&late.died.near.includes('door'),`stage 17: a skipped block must leave the door shut (${JSON.stringify(late)})`);
  // Rescue: every ring passed on the beat scores IN!.
  const rs=await page.evaluate(()=>__play(4,{press:.08}));
  assert(rs.rings>=3&&rs.ringsIn===rs.rings,`stage 5: all rings passed cleanly (${rs.ringsIn}/${rs.rings})`);
@@ -101,16 +101,17 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  const sabi=await page.evaluate(()=>{const out=[];for(let i=0;i<20;i++){setupRun(i,{duration:AUDIO_TRACKS[STAGES[i].file].duration},[]);practice=false;state='play';const z=stageGimmicks.inspect().sabi;if(!z){out.push(i+1);continue;}
   songPos=(z.start+z.end)/2;const a=stageGimmicks.mult();songPos=z.start-1;const b=stageGimmicks.mult();if(a!==2||b!==1)out.push(i+1);}return out;});
  assert.deepEqual(sabi,[],'every stage has a chorus highlight that doubles only inside it');
- // Mogu: three misses in a row are caught; a PERFECT pushes the mouth back.
- const mogu=await page.evaluate(()=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=true;startAttempt(0);state='play';
-  stageGimmicks.onJudge('miss');stageGimmicks.onJudge('miss');stageGimmicks.onJudge('perfect');const back=stageGimmicks.inspect().chase;
-  stageGimmicks.onJudge('miss');stageGimmicks.onJudge('miss');return {back,state};});
- assert.deepEqual(mogu,{back:1,state:'dead'});
+ // Mogu: it creeps closer over time and catches you; coins push it back.
+ const mogu=await page.evaluate(()=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=true;startAttempt(0);state='play';songPos=5;
+  for(let k=0;k<1200;k++)stageGimmicks.ownsPlayer(1/60,0);const near=stageGimmicks.inspect().chase;
+  for(let k=0;k<10;k++)stageGimmicks.onCoin();const back=stageGimmicks.inspect().chase;
+  for(let k=0;k<3600&&state==='play';k++)stageGimmicks.ownsPlayer(1/60,0);return {creeps:near>1,coinsHelp:back<near-0.5,state};});
+ assert.deepEqual(mogu,{creeps:true,coinsHelp:true,state:'dead'});
  // Retry resumes before a section, never inside it.
  const resume=await page.evaluate(()=>{setupRun(6,{duration:AUDIO_TRACKS[STAGES[6].file].duration},[]);const s=stageGimmicks.inspect().sections[0];return {s,off:stageGimmicks.safeOffset((s.from+s.to)/2)};});
  assert(resume.off<=resume.s.from,'revive offset moves before the cannon section');
  // Charts are deterministic, and stages without a gimmick are unchanged.
- const det=await page.evaluate(()=>{const f=i=>{const s=STAGES[i];return JSON.stringify(buildLevel(RHYTHM_BEATS[s.file].beats,AUDIO_TRACKS[s.file].duration,i+1,s.diff,s.gimmick||null));};return {same:f(7)===f(7),plain:JSON.stringify(STAGES[0].gimmick)==='{"sabi":true}'&&JSON.stringify(STAGES[1].gimmick)==='{"sabi":true}'&&STAGES[19].world==='Rhythm Dash'};});
+ const det=await page.evaluate(()=>{const f=i=>{const s=STAGES[i];return JSON.stringify(buildLevel(RHYTHM_BEATS[s.file].beats,AUDIO_TRACKS[s.file].duration,i+1,s.diff,s.gimmick||null));};return {same:f(7)===f(7),plain:JSON.stringify(STAGES[0].gimmick)==='{"sabi":true}'&&STAGES[19].world==='Rhythm Dash'};});
  assert.deepEqual(det,{same:true,plain:true});
  // Screens for review.
  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
@@ -146,5 +147,5 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
   await page.waitForTimeout(250);await page.screenshot({path:path.join(root,`test-results/gimmick-${name}.png`)});
  }
  assert.deepEqual(errors,[]);
- console.log('Stage gimmicks: all 20 stages clear on the beat (short and long presses), '+stages.length+' gimmick stages with 4 skin/press combinations; wrong pad/ring/cake/jelly/cannon/stairs/arm/match/lift choices fail; 3Match rows all MATCH and open their doors, a late jump keeps the door shut; rescue rings IN; flip zones kept; long press takes the upper road; chorus x2 on every stage; mogu catch, safe resume, deterministic charts PASS');
+ console.log('Stage gimmicks: all 20 stages clear on the beat (short and long presses), '+stages.length+' gimmick stages with 4 skin/press combinations; wrong pad/ring/cake/jelly/cannon/stairs/arm/match/lift choices fail; 3Match rows all MATCH and open their doors, a skipped block keeps the door shut; rescue rings IN; flip zones kept; long press takes the upper road; chorus x2 on every stage; mogu catch, safe resume, deterministic charts PASS');
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

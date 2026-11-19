@@ -123,7 +123,7 @@
     if(!Number.isInteger(last)||last<0||last>=NSTAGE||!unlocked(last))last=0;
     if(best(last)>=100&&last+1<NSTAGE&&unlocked(last+1))last++;
     continueButton.innerHTML='<small>CONTINUE · STAGE '+(last+1)+'</small><b>'+(best(last)||clearedCount()?'つづきから':'はじめる')+'</b><span>▶</span>';
-    continueButton.onclick=()=>selectStage(last);
+    continueButton.onclick=()=>{window.fromStageSelect=false;selectStage(last);};
     $('skineffect').textContent=effects[currentSkin().effect]||currentSkin().desc;
     $('cleared').textContent=clearedCount()+' / '+NSTAGE+' ステージクリア';
     $('dailybtn').innerHTML='デイリー <small>残り '+dailyTriesLeft()+' / 3</small>';
@@ -150,6 +150,8 @@
   addEventListener('resize',invalidateHud);addEventListener('orientationchange',()=>setTimeout(invalidateHud,150));
   document.fonts?.addEventListener?.('loadingdone',invalidateHud);
   function drawHUD(g){
+    // On the ceiling (flip zone) the mission note moves down, off the ceiling's obstacles.
+    const low=lastGdir===-1&&state==='play';if(missionPopup.classList.contains('low')!==low)missionPopup.classList.toggle('low',low);
     const now=performance.now()/1000;
     if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=now+0.8;}previousCombo=combo;
     const percent=Math.max(0,Math.min(100,songPos/duration*100)),width=Math.min(W*0.32,230);
@@ -176,7 +178,7 @@
     if(!window.cosmiiUIArt?.panel(g,scoreLeft,10,scoreRight-scoreLeft,41)){g.fillStyle='#101b32e8';roundRect(scoreLeft,10,scoreRight-scoreLeft,41,10);g.fill();}
     g.textAlign='right';g.fillStyle='#91a5c1';g.font='600 9px "Exo 2", "M PLUS 1p", sans-serif';g.fillText('SCORE',scoreRight-12,24);
     g.fillStyle='#fff';g.font='italic 800 18px "Exo 2", "M PLUS 1p", sans-serif';g.fillText(score.toLocaleString(),scoreRight-12,43,scoreRight-scoreLeft-24);
-    if(now<milestoneUntil&&state==='play'){g.textAlign='center';g.font='italic 800 19px "Exo 2", "M PLUS 1p", sans-serif';g.fillStyle='#ffe58a';g.fillText(milestone+' COMBO',W/2,76);}
+    if(now<milestoneUntil&&state==='play'){g.textAlign='center';g.font='italic 800 19px "Exo 2", "M PLUS 1p", sans-serif';const cy=lastGdir===-1?GROUND-40:76;/* on the ceiling: keep the ceiling clear */g.lineJoin='round';g.lineWidth=4;g.strokeStyle='#2a1650';g.strokeText(milestone+' COMBO',W/2,cy);g.fillStyle='#ffe58a';g.fillText(milestone+' COMBO',W/2,cy);}
     if(state==='ready'){
       if(!window.cosmiiUIArt?.panel(g,W/2-175,92,350,113)){g.fillStyle='#101b32ee';roundRect(W/2-175,92,350,113,16);g.fill();}
       g.textAlign='center';g.fillStyle='#94afca';g.font='600 12px "Exo 2", "M PLUS 1p", sans-serif';g.fillText(STAGES[stageIdx].name+(STAGES[stageIdx].title?'「'+STAGES[stageIdx].title+'」':'')+(STAGES[stageIdx].world?'  ·  '+STAGES[stageIdx].world:''),W/2,115);

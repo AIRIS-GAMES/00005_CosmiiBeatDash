@@ -80,7 +80,7 @@
         `<span class="wm-best">${open ? (done ? '★ ' : '') + (best(i) ? best(i) + '%' + (bestRank(i) ? ' ' + bestRank(i) : '') : 'NEW') : '未解放'}</span>`;
       b.append(info);
       if (i === next) { const tag = document.createElement('span'); tag.className = 'wm-next'; tag.textContent = 'NEXT'; b.append(tag); nextCard = b; }
-      b.onclick = open ? () => selectStage(i) : () => toast('前のステージを60%進めると解放');
+      b.onclick = open ? () => { window.fromStageSelect = true; selectStage(i); } : () => toast('前のステージを60%進めると解放');
       group.querySelector('.wm-cards').append(b);
     }
     // Bring the next stage into view when the screen opens.

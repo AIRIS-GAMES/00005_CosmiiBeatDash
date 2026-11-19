@@ -1,0 +1,28 @@
+/* Image borders are nine-sliced; existing padding and hit targets are retained. */
+.art-panel-ready #menu #stagecol,.art-panel-ready #menu #charcol,
+.art-panel-ready .panel-shell,.art-panel-ready .world-paper,
+.art-panel-ready #result-details .result-sheet {
+  border-image:url('Asset/world/ui-panel.png') 10% fill / 14px / 0 stretch!important;
+  background:#10132c!important;box-shadow:0 5px 18px #07081b80;border-radius:10px;
+}
+.art-panel-ready #menu #continue-btn,.art-panel-ready #menu .home-nav button,
+.art-panel-ready #menu #home-footer button,.art-panel-ready #coinsdisp,
+.art-panel-ready #avatar-btn>span,.art-panel-ready #pause-panel button,
+.art-panel-ready #clearov button,.art-panel-ready #panel-close,
+.art-panel-ready #effects-setting,.art-panel-ready #loginclaim,
+.art-panel-ready #world-dialog:not(.opening-mode) button,
+.art-panel-ready #world-dialog:not(.opening-mode) a,
+.art-panel-ready #result-details button,.art-panel-ready #backbtn,.art-panel-ready #stageback {
+  border-image:url('Asset/world/ui-panel.png') 10% fill / 8px / 0 stretch!important;
+  background-color:#10132c!important;color:#eaffff!important;box-shadow:none!important;border-radius:6px;
+}
+#menu .world-plaque,#menu #charname,#stageSelect h2,.panel-shell h2,.world-paper h2 {color:#effeff;text-shadow:0 2px 0 #211642,0 0 10px #4ed6ff40;letter-spacing:.05em;}
+.mission,.world-instruction,.help-text {color:#d4eaf6;}
+.art-panel-ready .mission {border:1px solid #4ecbdb50;background:#131831;border-radius:9px;}
+.art-japanese-ready #menu #continue-btn b[data-art-start] {color:transparent;text-shadow:none;height:35px;width:175px;max-width:72%;font-size:0;background-image:url('Asset/world/ui-japanese.png');background-repeat:no-repeat;}
+.art-japanese-ready #menu #continue-btn b[data-art-start=new] {background-size:154% 394%;background-position:48.5% 15.7%;}
+.art-japanese-ready #menu #continue-btn b[data-art-start=continue] {background-size:132.4% 394%;background-position:50.5% 57.6%;}
+.art-words-ready #cleartitle[data-art-clear=true] {display:block;height:48px;width:240px;flex-shrink:0;margin:0;font-size:0;color:transparent;background:url('Asset/world/ui-words.png') 100% 82.1% / 300% 588% no-repeat;}
+#menu #continue-btn small {color:#b5efff;font-weight:700;letter-spacing:.12em;}
+.result-rank {color:#e6ffff;text-shadow:3px 3px 0 #a32da3,0 0 12px #2cf1ff70;}
+@media(max-height:350px){.art-japanese-ready #menu #continue-btn b[data-art-start]{height:30px;width:150px;}.art-words-ready #cleartitle[data-art-clear=true]{height:38px;width:190px;}}

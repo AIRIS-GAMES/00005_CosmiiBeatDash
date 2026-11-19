@@ -21,3 +21,21 @@
  #mission-popup{left:auto;right:max(16px,calc(var(--dialog-safe-right) + 12px));max-width:calc(100% - max(64px,8cqw) - 30px);}
  #ui-panel[data-section=games] .game-bar{padding-block:5px;}
 }
+
+/* Clear screen: fit on a landscape phone (notch and home bar included); the
+   album button sits in the button row, the mission note moves to the corner. */
+#clearov{box-sizing:border-box;justify-content:safe center;overflow-y:auto;
+  padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));}
+#clearov .btnrow{flex-wrap:wrap;justify-content:center;}
+#clearov #world-result-album{min-height:0;}
+@media(max-height:440px){
+  #clearov{gap:6px;}
+  #clearov h2{margin:0;}
+  #clearov .result-rank{font-size:46px;}
+  #clearov .result-heading strong{font-size:38px;}
+  #clearov .result-summary,#clearov .result-best{margin:2px 0;}
+  #clearov .result-bottom{margin-top:2px;}
+  #clearov .btnrow button{padding:9px 18px;font-size:14px;}
+}
+#app:has(#clearov[style*="flex"]) #mission-popup{top:max(8px,env(safe-area-inset-top));width:min(220px,28%);}
+#mission-popup.low{top:auto;bottom:calc(84px + env(safe-area-inset-bottom));}

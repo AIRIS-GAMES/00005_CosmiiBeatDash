@@ -1,0 +1,32 @@
+/* Stage select map (stage-select.js). */
+#stageSelect { justify-content:center; gap:6px; }
+#stageSelect h2 { font-size:20px; padding:4px 16px; margin:0; }
+#stageprogress { margin-top:0; }
+#grid.world-map { display:flex; align-items:flex-end; gap:14px; width:100%; max-width:100vw; overflow-x:auto; overflow-y:hidden;
+  padding:6px max(20px,env(safe-area-inset-left)) 12px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+#grid.world-map::-webkit-scrollbar { display:none; }
+.wm-group { flex:none; display:flex; flex-direction:column; gap:6px; scroll-snap-align:start; }
+.wm-group h3 { align-self:flex-start; margin:0; padding:3px 12px 3px 10px; border-radius:999px; font-size:12px; font-weight:900; letter-spacing:.04em;
+  color:#1b1236; background:var(--wc); box-shadow:0 2px 0 #00000055; font-style:italic; }
+.wm-cards { display:flex; gap:10px; }
+.wm-card { position:relative; flex:none; width:min(44vh,172px); padding:4px; border:2.5px solid var(--wc); border-radius:16px; cursor:pointer;
+  background:#120d33f0; color:#fff; display:flex; flex-direction:column; gap:4px; text-align:left; box-shadow:0 4px 0 #00000066;
+  transition:transform .12s; font-family:inherit; }
+.wm-card:active { transform:translateY(2px); box-shadow:0 2px 0 #00000066; }
+.wm-thumb { width:100%; aspect-ratio:160/96; height:auto; border-radius:11px; display:block; }
+.wm-info { display:grid; grid-template-columns:auto 1fr; align-items:center; column-gap:6px; padding:0 4px 2px; }
+.wm-no { grid-row:span 2; font-size:min(8vh,30px); font-weight:900; font-style:italic; line-height:1; color:var(--wc); text-shadow:0 2px 0 #00000080; }
+.wm-g { font-size:12px; font-weight:800; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wm-best { grid-column:2; font-size:11px; font-weight:800; color:#cfd6ff; font-style:italic; }
+.wm-card.done .wm-best { color:#ffd94a; }
+.wm-card.lock { border-color:#4b4f6e; cursor:default; }
+.wm-card.lock .wm-no { color:#7c809e; }
+.wm-card.lock .wm-g { color:#9ba0bd; }
+.wm-card.next { box-shadow:0 0 0 3px #ffffffcc, 0 0 18px var(--wc), 0 4px 0 #00000066; animation:wm-pulse 1.6s ease-in-out infinite; }
+.wm-next { position:absolute; top:-9px; right:10px; padding:2px 9px; border-radius:999px; background:#ffd94a; color:#2a1400; font-size:10px; font-weight:900;
+  font-style:italic; box-shadow:0 2px 0 #00000066; }
+@keyframes wm-pulse { 50% { transform:translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .wm-card.next { animation:none; } }
+@media (max-height:340px) { .wm-card { width:min(44vh,132px); } .wm-g { font-size:10px; } #stageSelect h2 { font-size:17px; } }
+#stageback { width:auto !important; height:40px !important; padding:0 16px 0 12px; border-radius:999px !important; font-size:15px !important; font-weight:900;
+  background:#ffffffe6 !important; color:#1b1236 !important; border:2px solid #5fe8ff !important; box-shadow:0 3px 0 #00000066; z-index:5; }

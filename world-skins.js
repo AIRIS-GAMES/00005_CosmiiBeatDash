@@ -360,7 +360,10 @@
       const reps = Math.ceil(W / P) + 1, c = document.createElement('canvas');
       c.width = b.far.width * reps; c.height = b.far.height;
       const fg = c.getContext('2d'); for (let k = 0; k < reps; k++) fg.drawImage(b.far, k * b.far.width, 0);
-      c.toBlob(blob => { if (!blob || layerKey !== key) return; if (farUrl) URL.revokeObjectURL(farUrl); farUrl = URL.createObjectURL(blob); farEl.src = farUrl; }, 'image/png');
+      // Hide the old world's scenery until the new one has loaded.
+      farEl.style.visibility = 'hidden';
+      c.toBlob(blob => { if (!blob || layerKey !== key) return; if (farUrl) URL.revokeObjectURL(farUrl); farUrl = URL.createObjectURL(blob);
+        farEl.onload = () => { if (layerKey === key) farEl.style.visibility = 'visible'; }; farEl.src = farUrl; }, 'image/png');
       farEl.style.width = (P * reps / W * 100) + '%'; farEl.style.height = (GROUND / DH * 100) + '%';
       farEl.dataset.reps = reps;
     }
@@ -401,8 +404,9 @@
     g.save();
     if (shape.f) { g.translate(shape.x, shape.y + shape.h); g.scale(1, -1); } else g.translate(shape.x, shape.y);
     if (kind === 'block' && (shape.w > B * 1.1 || shape.h > B * 1.1)) {
-      g.beginPath(); g.rect(0, 0, shape.w, shape.h); g.clip();
-      for (let y = shape.h - B; y > -B; y -= B) for (let x = 0; x < shape.w; x += B) g.drawImage(img, x, y, B, B);
+      // Whole tiles only (a tall block of 1.65 is two tiles, each a bit taller), never a cut one.
+      const nx = Math.max(1, Math.round(shape.w / B)), ny = Math.max(1, Math.round(shape.h / B)), tw = shape.w / nx, th = shape.h / ny;
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) g.drawImage(img, i * tw, j * th, tw, th);
     } else g.drawImage(img, 0, 0, shape.w, shape.h);
     g.restore(); return true;
   }

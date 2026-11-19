@@ -1,0 +1,17 @@
+@font-face{font-family:'Exo 2';src:url('Asset/fonts/Exo2.woff2') format('woff2');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Exo 2';src:url('Asset/fonts/Exo2-Italic.woff2') format('woff2');font-weight:100 900;font-style:italic;font-display:swap;}
+@font-face{font-family:'M PLUS 1p';src:url('Asset/fonts/MPLUS1p-Medium.woff2') format('woff2');font-weight:400 600;font-style:normal;font-display:swap;}
+@font-face{font-family:'M PLUS 1p';src:url('Asset/fonts/MPLUS1p-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap;}
+@font-face{font-family:'M PLUS 1p';src:url('Asset/fonts/MPLUS1p-ExtraBold.woff2') format('woff2');font-weight:800 900;font-style:normal;font-display:swap;}
+:root{--pop-font:'Exo 2','M PLUS 1p',sans-serif;}
+html body,button,input,select,textarea{font-family:var(--pop-font);}
+body{font-weight:500;}
+button{font-weight:800;}
+#menu .home-nav button,#menu #home-footer button,#menu #avatar-btn>span,
+#stageSelect .tile,#clearov>button{font-style:italic;text-shadow:0 1px 2px #75e6ff45;letter-spacing:.025em;}
+#menu #charname,.world-paper h2,#ui-panel h2{font-style:normal;font-weight:800;letter-spacing:.03em;}
+#coinsdisp,#stageprogress,#cleared,.result-rank,.result-heading strong,.result-coins,.tile{font-variant-numeric:tabular-nums;}
+#coinsdisp,.result-rank,.result-heading strong,.result-coins{font-style:italic;font-weight:800;}
+#menu #continue-btn small{font-family:'Exo 2','M PLUS 1p',sans-serif;font-weight:800;letter-spacing:.1em;}
+.world-paper p,.world-instruction,#skineffect,.world-plaque,.result-summary,.result-best,
+label,input,select,textarea{font-style:normal;text-shadow:none;letter-spacing:normal;}

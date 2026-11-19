@@ -84,8 +84,9 @@
     if(shape.f){context.translate(shape.x,shape.y+shape.h);context.scale(1,-1);}else context.translate(shape.x,shape.y);
     // Tile the original image for tall/wide platforms instead of stretching its star.
     if(kind==='block'&&(shape.w>B*1.1||shape.h>B*1.1)){
-      context.beginPath();context.rect(0,0,shape.w,shape.h);context.clip();
-      for(let y=shape.h-B;y>-B;y-=B)for(let x=0;x<shape.w;x+=B)context.drawImage(art.image,...art.crop,x,y,B,B);
+      // Whole tiles only (never a cut one): a 1.65-high tower is two tiles, each a little taller.
+      const nx=Math.max(1,Math.round(shape.w/B)),ny=Math.max(1,Math.round(shape.h/B)),tw=shape.w/nx,th=shape.h/ny;
+      for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)context.drawImage(art.image,...art.crop,i*tw,j*th,tw,th);
     }else context.drawImage(art.image,...art.crop,0,0,shape.w,shape.h);
     context.restore();return true;
   }
@@ -172,7 +173,7 @@
     const stage=stageIdx+1,fresh=!progress.memories.includes(stage);
     if(fresh){progress.memories.push(stage);emit('album_unlock','stage_'+stage);window.beatPSF?.event('story_unlock','album','stage_'+stage);}
     if(stage===1)progress.album=true;save();
-    if(!resultBtn){resultBtn=document.createElement('button');resultBtn.id='world-result-album';$('clearov').append(resultBtn);}
+    if(!resultBtn){resultBtn=document.createElement('button');resultBtn.id='world-result-album';$('clearov').querySelector('.btnrow').append(resultBtn);}
     resultBtn.onclick=()=>album(index);resultBtn.textContent=fresh?'新しい思い出が増えました！':'思い出の写真を見る';resultBtn.hidden=false;
   }
   // A new opening is shown once even if the previous one-page introduction was read.
@@ -207,10 +208,12 @@
         if(showCeiling&&panel.ceilingX!==x){panel.ceilingX=x;panel.ceilingFrame.style.transform=`translateX(${x}%) scale(${flip},-1)`;}
       });
       const gatePositions=[-distance,Math.max(0,duration-songPos)*scenerySpeed()-W*.9+player.x];
+      // The start and goal gates belong to every stage, world skins included.
+      const gatesOn=['ready','play','dead','paused','clear'].includes(state)&&stageIdx<NSTAGE;
       gates.forEach((gate,i)=>{
         const x=gatePositions[i];
         const visible=i===0?x>-W*.1:x<W*.1&&x>-W;
-        const hidden=!active||!visible;
+        const hidden=!gatesOn||!visible;
         if(gate.hidden!==hidden)gate.hidden=hidden;
         if(hidden)return;
         const transform=`translateX(${(x/W*100).toFixed(3)}%)`;
