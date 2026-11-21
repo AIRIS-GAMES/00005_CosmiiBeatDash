@@ -67,9 +67,9 @@
 
 | ファイル | 用途 |
 | --- | --- |
-| `Asset/world/arcade-night.png` | ホーム・選曲・導入・結果背景 |
+| `Asset/world/arcade-night.jpg` | ホーム・選曲・導入・結果背景 |
 | `Asset/world/rhythm-cabinet.png` | ステージ1のプレイ背景 |
-| `Asset/world/first-night.png` | 第1夜の記念絵 |
+| `Asset/world/first-night.jpg` | 第1夜の記念絵 |
 | `Asset/world/cast/*.png` | Rescueから引き継いだ公式キャラ5体 |
 
 Rescueのパステル色の筐体、茶色い輪郭、星・雲のモチーフを参照。生成された背景のクレーン部分は、プレイ背景では追加編集で取り除いた。キャラ入りの記念絵は公式の赤・黄緑の画像を参照して生成した。新しい場面描写はこのゲーム用の創作であり、Wikiの元記述そのものではない。
@@ -92,7 +92,7 @@ Rescueのパステル色の筐体、茶色い輪郭、星・雲のモチーフ�
 
 ## 追加改修：ネオン背景・障害物
 
-- ホーム・選曲・結果・導入の背景は `arcade-neon.png`、全ステージのプレイ背景は `rhythm-neon.png`。シアン・ピンク・紫の夜のゲームセンターへ統一。
+- ホーム・選曲・結果・導入の背景は `arcade-neon.jpg`、全ステージのプレイ背景は `rhythm-neon.jpg`。シアン・ピンク・紫の夜のゲームセンターへ統一。
 - ホームの開始ボタン、メニュー、プレイ中のホームに戻るボタン、各ダイアログを `neon-theme.css` で配色。アルバムの記念絵は維持。
 - トゲは `neon-spike.png`、ブロックは `neon-block.png`。内蔵 imagegen で生成後、スプライト処理スクリプトでマゼンタ背景を透過。全プロンプトは `Asset/world/NEON-PROMPTS.md`、処理記録は `output/neon-sprites/`。
 - 透明余白を除いた範囲を既存障害物の座標・幅・高さへ描画。重力反転時は画像を上下反転。譜面・衝突・ジャンプ・得点のルールは変更しない。画像読み込み前は既存図形にフォールバック。

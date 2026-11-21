@@ -1,5 +1,23 @@
 import UIKit
 import Capacitor
+import WebKit
+
+/// The app's web view controller (set in Main.storyboard). On the iOS
+/// Simulator only, it tells the game it is a developer build, which opens every
+/// stage, character and ride. `targetEnvironment(simulator)` is decided at
+/// compile time, so device and TestFlight / App Store builds never contain it.
+class MainViewController: CAPBridgeViewController {
+    override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
+        let config = super.webViewConfiguration(for: instanceConfiguration)
+        #if targetEnvironment(simulator)
+        config.userContentController.addUserScript(WKUserScript(
+            source: "window.COSMII_DEV_UNLOCK = true;",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true))
+        #endif
+        return config
+    }
+}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {

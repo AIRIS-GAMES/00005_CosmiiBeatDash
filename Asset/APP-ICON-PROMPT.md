@@ -8,7 +8,7 @@ Edit the app icon in reference image 2: replace the red character with the PURPL
 
 ## Previous red version
 
-Generated with the built-in image_gen tool. References: world/cast-neon/red.png (character identity), world/rhythm-neon.png (palette).
+Generated with the built-in image_gen tool. References: world/cast-neon/red.png (character identity), world/rhythm-neon.jpg (palette).
 
 ## Prompt
 

@@ -7,7 +7,7 @@
   const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(progress));}catch{}};
   // Existing clears open the album silently; migration is not a new achievement.
   if(best(0)>=100&&!progress.album){progress.album=true;save();}
-  const layer=document.createElement('img');layer.id='world-backdrop';layer.src=ASSET+'rhythm-neon.png';layer.alt='';layer.hidden=true;app.prepend(layer);
+  const layer=document.createElement('img');layer.id='world-backdrop';layer.src=ASSET+'rhythm-neon.jpg';layer.alt='';layer.hidden=true;app.prepend(layer);
   const ceiling=layer.cloneNode();ceiling.id='world-ceiling';layer.after(ceiling);
   const scenery=[{floor:layer,ceiling}];
   for(let i=1;i<3;i++){
@@ -33,11 +33,11 @@
   });
   let tempoBeats=null,tempoScale=1;
   const themes=[
-    {file:'rhythm-neon.png',name:'スターアーケード',floor:5/6},
-    {file:'theme-sea.png',name:'ネオンアクアリウム',floor:791/941},
-    {file:'theme-garden.png',name:'ミッドナイトガーデン',floor:767/941},
-    {file:'theme-sunset.png',name:'サンセットドリーム',floor:789/941},
-    {file:'theme-aurora.png',name:'オーロラステージ',floor:798/941}
+    {file:'rhythm-neon.jpg',name:'スターアーケード',floor:5/6},
+    {file:'theme-sea.jpg',name:'ネオンアクアリウム',floor:791/941},
+    {file:'theme-garden.jpg',name:'ミッドナイトガーデン',floor:767/941},
+    {file:'theme-sunset.jpg',name:'サンセットドリーム',floor:789/941},
+    {file:'theme-aurora.jpg',name:'オーロラステージ',floor:798/941}
   ];
   const themeFor=i=>({...themes[((i%5)+5)%5],hue:[0,18,-18,35][Math.floor(Math.max(0,i)/5)%4]});
   let paintedStage=-1;
@@ -50,8 +50,8 @@
       image.style.height=`${scale*100}%`;image.style.top=`${(5/6-scale*floor)*100}%`;
       image.style.filter=filter;image.style.transform='none';
       image.style.clipPath=isCeiling?`inset(${floor*100}% 0 0)`:'none';
-      image.onerror=()=>{image.onerror=null;setImage(image,isCeiling,'rhythm-neon.png',5/6);};
-      if(file==='rhythm-neon.png')image.onerror=null;
+      image.onerror=()=>{image.onerror=null;setImage(image,isCeiling,'rhythm-neon.jpg',5/6);};
+      if(file==='rhythm-neon.jpg')image.onerror=null;
       image.src=ASSET+file;
     };
     scenery.forEach(panel=>{setImage(panel.floor,false,theme.file,theme.floor);setImage(panel.ceiling,true,theme.file,theme.floor);});
@@ -138,7 +138,7 @@
   function album(index=0){
     if(!Number.isInteger(index))index=0;
     const m=memories[index]||memories[0],unlocked=memoryUnlocked(m);
-    const art=!unlocked?`<img src="${ASSET}arcade-night.png" alt="未解放の思い出">`:index===0?`<img src="${ASSET}first-night.png" alt="赤と黄緑の最初の思い出">`:`<div class="memory-photo" role="img" aria-label="${m.title}" style="background-position:${(index-1)%2*100}% ${Math.floor((index-1)/2)*100}%"></div>`;
+    const art=!unlocked?`<img src="${ASSET}arcade-night.jpg" alt="未解放の思い出">`:index===0?`<img src="${ASSET}first-night.jpg" alt="赤と黄緑の最初の思い出">`:`<div class="memory-photo" role="img" aria-label="${m.title}" style="background-position:${(index-1)%2*100}% ${Math.floor((index-1)/2)*100}%"></div>`;
     open(`<div class="world-album world-paper"><header><div><small>閉店後のアルバム · ${memories.filter(memoryUnlocked).length} / 5</small><h2 id="world-title">${unlocked?m.title:'まだ見ぬ思い出'}</h2></div><button id="world-close" class="secondary">閉じる</button></header><nav class="memory-tabs" aria-label="思い出を選ぶ">${memories.map((entry,i)=>`<button data-memory="${i}" aria-pressed="${i===index}">${memoryUnlocked(entry)?'★':'🔒'} STAGE ${entry.stage}</button>`).join('')}</nav><div class="world-album-body">${art}<div><p style="white-space:pre-line">${unlocked?m.text:`ステージ${m.stage}をクリアすると、\n新しい写真と会話が開きます。`}</p><div class="world-actions">${unlocked?'<button id="world-profile">この子たちを知る</button>':''}<button id="world-replay" class="secondary">はじまりを見る</button></div></div></div></div>`);
     modal.querySelector('#world-close').onclick=close;modal.querySelector('#world-replay').onclick=()=>intro(false);modal.querySelector('#world-profile')?.addEventListener('click',()=>profiles(0,'album'));
     modal.querySelectorAll('[data-memory]').forEach(b=>b.onclick=()=>album(Number(b.dataset.memory)));emit('album_open',unlocked?'unlocked':'locked');window.beatPSF?.event('album_open',unlocked?'unlocked':'locked','stage_'+m.stage);

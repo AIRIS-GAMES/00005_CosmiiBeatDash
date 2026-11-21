@@ -3,7 +3,7 @@
    Runs the real update() with a scripted player (no audio). */
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright'),root=path.resolve(__dirname,'..');
-const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.mp3':'audio/mpeg','.wav':'audio/wav','.woff2':'font/woff2'};
+const types={'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.mp3':'audio/mpeg','.wav':'audio/wav','.woff2':'font/woff2'};
 const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',types[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{
  const page=await browser.newPage({viewport:{width:844,height:390},serviceWorkers:'block'});
@@ -23,13 +23,18 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
    state='play';const press=opts.press??0.08,step=1/240;let died=null,mistake=null;
    const realDie=window.die;window.die=function(){const before=state;realDie();if(before==='play'&&state==='dead'&&!died)died={t:songPos,near:level.filter(o=>Math.abs(o.t-songPos)<.6).map(o=>o.type+(o.low===false?'(high)':''))};};
    const taps=[];for(const ob of level){if(ob.type==='arm'&&opts.wrong!=='arm')taps.push(ob.t);if(isFreeNote(ob))continue;taps.push(ob.t-TAP_OFFSET);}
-   if(opts.wrong==='arm'){const a=level.find(o=>o.type==='arm');if(a)mistake=a.t;}
+   // MOGU bites: jump on every bite beat (a jump on a beat it skips is harmless).
+   for(const b of stageGimmicks.inspect().biteTimes)taps.push(b);
+   // No jump at the arm: it passes overhead, and the spike bed under it ends the run.
+   if(opts.wrong==='arm'){const a=level.find(o=>o.type==='arm');const st=a&&level.find(o=>o.type==='step'&&Math.abs(o.t-TAP_OFFSET-(a.t-JUMP_T/2))<0.02);if(st){taps.splice(taps.indexOf(st.t-TAP_OFFSET),1);mistake=a.t;}}
    // Wrong-choice probes
    if(opts.wrong==='jelly'){const hi=level.find(o=>o.type==='jelly'&&!o.low);if(hi){taps.push(hi.t-TAP_OFFSET);mistake=hi.t;}}
    if(opts.wrong==='stairs'||opts.wrong==='lift'||opts.wrong==='match'){const st=level.find(o=>o.type==='step'&&o.k===2);if(st){const k=taps.indexOf(st.t-TAP_OFFSET);taps.splice(k,1);mistake=st.t;}}
    if(opts.wrong==='ring'){const r=level.find(o=>o.type==='ring');if(r){const k=taps.indexOf(r.t-TAP_OFFSET);taps[k]+=.17;mistake=r.t;}}
    if(opts.wrong==='ringEarly'){const r=level.find(o=>o.type==='ring');if(r){const k=taps.indexOf(r.t-TAP_OFFSET);taps[k]-=.19;mistake=r.t;}}
    if(opts.wrong==='matchLate'){const st=level.find(o=>o.type==='step'&&o.k===1&&level.some(t=>t.type==='tile'&&Math.abs(t.t-o.t)<1));if(st){const k=taps.indexOf(st.t-TAP_OFFSET);taps.splice(k,1);mistake=st.t;}}
+   // Cannon relay: no tap on the first shot -> the cannon tips you out.
+   if(opts.wrong==='cannon'){const sh=level.find(o=>o.type==='shot');if(sh){const k=taps.indexOf(sh.t-TAP_OFFSET);taps.splice(k,1);mistake=sh.t;}}
    if(opts.wrong==='pad'){const pd=level.find(o=>o.type==='pad');if(pd){taps.push(pd.t-0.08);mistake=pd.t;}}
    if(opts.wrong==='cake'){const c=level.find(o=>o.type==='cake'&&o.high);if(c){taps.push(c.t-TAP_OFFSET);mistake=c.t;}}
    taps.sort((a,b)=>a-b);
@@ -42,12 +47,6 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
     songPos+=step;
     while(next<taps.length&&taps[next]<=songPos){tapAt=songPos+1000;next++;}
     isDown=taps.some(t=>songPos>=t&&songPos<t+press);
-    const ride=stageGimmicks.inspect();
-    if(ride.riding==='ride'){
-     const ob=level.find(o=>o.type==='cannon'&&songPos>=o.t-.01&&songPos<o.t+4);
-     const want=opts.wrong==='cannon'?(ob&&{blue:2,red:1,gold:1}[ob.color]):(ob&&{blue:1,red:0,gold:2}[ob.color]);
-     if(ob&&!fired.has(ob.sec)){const k=ob.aims.findIndex((a,j)=>[2,1,0][j%3]===want);if(k>=0&&songPos>=ob.aims[k]-.01){tapAt=performance.now()/1000;fired.add(ob.sec);if(opts.wrong==='cannon')mistake=songPos;}}
-    }
     update(step,songPos);
     if(player.grounded&&player.y+B<=GROUND-B*2.4+1&&level.some(o=>o.type==='ledge'&&songPos>o.from&&songPos<o.to))upper=true;
    }
@@ -122,7 +121,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
    if(name==='ring')t=level.find(o=>o.type==='ring').t-0.04;
    if(name==='cake')t=level.find(o=>o.type==='cake'&&o.high).t-0.35;
    if(name==='ball')t=level.find(o=>o.type==='ball').t-0.55;
-   if(name==='cannon'){const c=level.find(o=>o.type==='cannon');t=c.aims[1];}
+   if(name==='cannon'){const c=level.find(o=>o.type==='cannon'&&o.idx===1);t=c.fire-0.15;}
    if(name==='stairs')t=level.find(o=>o.type==='step'&&o.k===3).t-TAP_OFFSET-0.05;
    if(name==='prize'){const pz=level.find(o=>o.type==='prize');t=pz.t-TAP_OFFSET-pz.p*1.1;}
    if(name==='arm')t=level.find(o=>o.type==='arm').release-0.35;

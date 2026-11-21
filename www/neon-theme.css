@@ -3,7 +3,7 @@
 .world-scroll-ceiling {clip-path:inset(83.333333% 0 0);}
 #world-backdrop,#world-ceiling,.world-scroll-floor,.world-scroll-ceiling {will-change:transform;}
 #world-ceiling {position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;z-index:0;clip-path:inset(83.333333% 0 0);transform:scaleY(-1);}
-#menu,#stageSelect {background:linear-gradient(90deg,#090a2110,#090a2130),url('Asset/world/arcade-neon.png') center/cover;}
+#menu,#stageSelect {background:linear-gradient(90deg,#090a2110,#090a2130),url('Asset/world/arcade-neon.jpg') center/cover;}
 #home-header {background:#100f32e8;border-color:#68f1ff;box-shadow:0 0 15px #29dfff40,inset 0 0 12px #34d7ff15;}
 #menu .wordmark {color:#fff;text-shadow:0 0 12px #51d8ff80;}
 #menu .wordmark span {color:#99efff;}
@@ -23,13 +23,13 @@
 #coinsdisp {background:#2c1746;color:#ffe591;border:1px solid #e6b15e;}
 #stageSelect h2,#stageprogress {background:#100d34eb;color:#eef2ff;border:1px solid #8377c7;}
 #stageSelect .tile {border-color:#9bdcff;box-shadow:0 0 10px #44d7ff35;}
-#clearov {background:linear-gradient(#0d0c32d9,#150c35e8),url('Asset/world/arcade-neon.png') center/cover;}
+#clearov {background:linear-gradient(#0d0c32d9,#150c35e8),url('Asset/world/arcade-neon.jpg') center/cover;}
 #clearov #tomenu,#clearov #world-result-album {background:#261444;color:#f7dfff;border:2px solid #ec8ce7;box-shadow:0 0 12px #dc56e52e;}
 #clearov #nextbtn,#revivebtn {background:#173d66;color:#dfffff;border:2px solid #73f2ff;box-shadow:0 0 15px #36d9fa35;}
 #backbtn,#stageback {background:#141436;color:#e2fcff;border:2px solid #7be6fb;box-shadow:0 0 12px #56e9ff35;}
 #cosmii-power {background:#17113de8;color:#fff2b4;border-color:#e8bc68;box-shadow:0 0 12px #f3ac3c35;}
 #world-dialog {background:#080723d9;}
-.world-story {background-image:url('Asset/world/arcade-neon.png');}
+.world-story {background-image:url('Asset/world/arcade-neon.jpg');}
 .world-paper {color:#e6e9ff;background:#15122f;border-color:#ae77db;box-shadow:0 0 24px #b846ee25;}
 .world-paper small {color:#c2a6eb;}
 .world-instruction {color:#bdd4e7;background:#202340;}

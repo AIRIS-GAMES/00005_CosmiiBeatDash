@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const lan = process.argv.includes('--lan');
 const root = path.resolve(__dirname, '..', lan ? 'www' : '.');
-const types = { '.html':'text/html; charset=utf-8', '.js':'application/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png', '.mp3':'audio/mpeg', '.wav':'audio/wav', '.ttf':'font/ttf', '.json':'application/json' };
+const types = { '.html':'text/html; charset=utf-8', '.js':'application/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.png':'image/png','.jpg':'image/jpeg', '.mp3':'audio/mpeg', '.wav':'audio/wav', '.ttf':'font/ttf', '.json':'application/json' };
 const server = http.createServer((req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);

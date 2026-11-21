@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright'),root=path.resolve(__dirname,'..');
-const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);});
+const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{
  const context=await browser.newContext({viewport:{width:960,height:480},serviceWorkers:'block'});await context.route('https://**',r=>r.abort());await context.addInitScript(()=>localStorage.setItem('cosmii_dash_story_v1',JSON.stringify({intro:true,opening:true})));
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:'+server.address().port;
@@ -31,7 +31,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
  assert.equal(skins,await page.evaluate(()=>new Set(Object.values(stageGimmicks.PLAN).map(p=>p.world).filter(w=>w!=='dash')).size),'Each other world has its own skin');
  await page.waitForFunction(()=>{stageIdx=0;flipZones=[{start:0,end:20}];draw();return !document.querySelector('#world-ceiling').hidden;});assert(await page.locator('#world-ceiling').isVisible());
  // Failed theme requests use the original generated background.
- await context.route('**/theme-sea.png',r=>r.abort());await page.evaluate(()=>{stageIdx=1;draw();});await page.waitForFunction(()=>document.querySelector('#world-backdrop').src.endsWith('/rhythm-neon.png'));await context.unroute('**/theme-sea.png');
+ await context.route('**/theme-sea.jpg',r=>r.abort());await page.evaluate(()=>{stageIdx=1;draw();});await page.waitForFunction(()=>document.querySelector('#world-backdrop').src.endsWith('/rhythm-neon.jpg'));await context.unroute('**/theme-sea.jpg');
  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base+'/www/');await page.waitForFunction(()=>bootDone&&document.querySelector('.home-title-art')?.naturalWidth>0);
  assert.deepEqual(errors,[]);console.log('Home/themes: title, icon actions, character selector, no duplicate icons, distinct Rhythm Dash palettes, a skin per world, floor alignment and fallback PASS');
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

@@ -16,7 +16,7 @@
     dash: ['jelly.png'],
     rescue: ['pop-background.jpg', 'sunset-background.jpg', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'star.png'],
     cannon: ['background.jpg', 'barrel.png', 'star.png', 'blue.png'],
-    roll: ['background.jpg', 'meteor.png', 'rock.png', 'red.png', 'blue.png', 'pink.png', 'green.png', 'purple.png'],
+    roll: ['background.jpg', 'meteor.png', 'rock.png'],
     sudoku: ['background.jpg', 'green.png'],
     catch: ['background.jpg', 'basket.png', 'leek.png'],
     mogu: ['background.jpg', 'green.png'],
@@ -538,5 +538,12 @@
     const im = art('rescue', 'star.png');
     if (im) g.drawImage(im, x - r, y - r, 2 * r, 2 * r);
   }
-  window.worldSkins = { current, drawBackground, hideLayer, drawObstacle, drawRescueOrb, art, drawArt, onArtLoad, face, head, thumb, SKINS, reset: () => { ceilA = 0; } };
+  // Decode this stage's art before the run (a first draw decodes the image:
+  // tens of ms on a phone, which would land in the middle of play).
+  const warmCanvas = document.createElement('canvas'); warmCanvas.width = warmCanvas.height = 2;
+  function prewarm() {
+    const g = warmCanvas.getContext('2d'), w = current(true) || 'dash';
+    for (const id of new Set([w, 'dash'])) for (const im of Object.values(images[id] || {})) if (im.naturalWidth) { try { g.drawImage(im, 0, 0, 2, 2); } catch {} }
+  }
+  window.worldSkins = { current, prewarm, drawBackground, hideLayer, drawObstacle, drawRescueOrb, art, drawArt, onArtLoad, face, head, thumb, SKINS, reset: () => { ceilA = 0; } };
 })();

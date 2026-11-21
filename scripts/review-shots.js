@@ -4,7 +4,7 @@
    Output: test-results/review/. Usage: node scripts/review-shots.js [stage...] */
 const fs=require('fs'),path=require('path'),http=require('http');const {chromium}=require('playwright');const root=path.resolve(__dirname,'..');
 const out=path.join(root,'test-results','review');fs.mkdirSync(out,{recursive:true});
-const types={'.js':'application/javascript','.css':'text/css','.png':'image/png','.html':'text/html','.woff2':'font/woff2','.ttf':'font/ttf'};
+const types={'.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.html':'text/html','.woff2':'font/woff2','.ttf':'font/ttf'};
 const server=http.createServer((q,r)=>{let p=decodeURIComponent(q.url.split('?')[0]);if(p==='/')p='/index.html';fs.readFile(path.join(root,p),(e,d)=>{if(e){r.writeHead(404);r.end();return;}const ty=types[path.extname(p)];if(ty)r.setHeader('Content-Type',ty);r.end(d);});});
 const only=process.argv.slice(2).map(Number).filter(Boolean);
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{

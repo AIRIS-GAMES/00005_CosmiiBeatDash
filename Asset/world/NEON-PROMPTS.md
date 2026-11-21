@@ -1,6 +1,6 @@
 # Neon assets — built-in image_gen
 
-Runtime: arcade-neon.png, rhythm-neon.png, neon-spike.png, neon-block.png.
+Runtime: arcade-neon.jpg, rhythm-neon.jpg, neon-spike.png, neon-block.png.
 Existing scenes were used as edit references. Sprites were generated separately on magenta, cleaned with generate2dsprite, and inspected. Raw outputs and processing metadata: output/neon-sprites/. Runtime uses alpha content source rectangles so transparent padding never changes obstacle size. Physics and collisions are not edited.
 
 ## neonHomePrompt

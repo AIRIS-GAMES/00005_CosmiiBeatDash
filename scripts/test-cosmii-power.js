@@ -13,7 +13,7 @@ const server = http.createServer((req, res) => {
     res.end();
     return;
   }
-  const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.mp3': 'audio/mpeg' };
+  const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.mp3': 'audio/mpeg' };
   res.setHeader('Content-Type', types[path.extname(file).toLowerCase()] || 'application/octet-stream');
   require('./serve-file')(req, res, file);
 });

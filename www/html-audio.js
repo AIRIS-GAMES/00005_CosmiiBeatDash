@@ -141,6 +141,8 @@ function musicPosition(){
  if(out<clockOut)out=clockOut;
  clockOut=out;return out;
 }
+// True once the BGM has played out (index.html then finishes the stage on the frame clock).
+window.musicEnded=()=>!!musicEl&&(musicEl.ended||(musicEl.duration>0&&musicEl.currentTime>=musicEl.duration-0.02));
 function playTrack(offset,lead=0,newAttempt=false){
  const generation=++playbackGeneration,el=ensureMusicElement();
  el.pause();

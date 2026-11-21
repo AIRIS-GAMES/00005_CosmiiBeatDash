@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http');
 const {chromium}=require('playwright'),root=path.resolve(__dirname,'..');
-const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);});
+const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{
  const context=await browser.newContext({viewport:{width:960,height:480},serviceWorkers:'block'});await context.route('https://**',r=>r.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:'+server.address().port;
@@ -25,8 +25,8 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(root,'test-results/opening-portrait.png')});
  await page.keyboard.press('Escape');assert(await page.locator('#world-dialog').isHidden());
  // A missing illustration must not trap the user or start an automatic timer.
- await context.route('**/opening/*.png',r=>r.abort());await page.evaluate(()=>cosmiiWorld.replayOpening());await page.waitForFunction(()=>document.querySelector('#opening-status').textContent.includes('読み込めません'));
- await page.click('#world-skip');await context.unroute('**/opening/*.png');
+ await context.route('**/opening/*.jpg',r=>r.abort());await page.evaluate(()=>cosmiiWorld.replayOpening());await page.waitForFunction(()=>document.querySelector('#opening-status').textContent.includes('読み込めません'));
+ await page.click('#world-skip');await context.unroute('**/opening/*.jpg');
  await page.setViewportSize({width:960,height:480});await page.evaluate(()=>cosmiiWorld.replayOpening());while(await page.locator('#opening-count').innerText()!=='8 / 8')await page.click('#opening-next');await page.click('#world-start');await page.waitForFunction(()=>state==='ready');assert(await page.locator('#world-dialog').isHidden());
  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base+'/www/');await page.waitForFunction(()=>bootDone&&window.cosmiiWorld);await page.evaluate(()=>cosmiiWorld.replayOpening());await page.waitForFunction(()=>document.querySelector('.opening-image').naturalWidth>0);
  assert.deepEqual(errors,[]);console.log('Opening: first launch, 8 images/cuts, skip/save/replay, auto, reduced motion, small screens, missing image and gameplay/bundle PASS');

@@ -67,37 +67,37 @@
   // title: the stage's name, one word.
   const PLAN = {
     1:  { world: 'dash',   title: 'スタートダッシュ' },
-    2:  { world: 'dash',   title: 'ホップステップ',   g: { route: 2 }, hint: '長押しジャンプで上の道へ' },
+    2:  { world: 'dash',   title: 'ホップステップ',   g: { route: 1, mid: 1, midAt: [0.62] }, hint: '長押しで上の道・跳んで中段の道へ' },
     3:  { world: 'dash',   title: 'クラゲの夜',       g: { jelly: 0.8 } },
     4:  { world: 'dash',   title: 'ハイジャンプ',     g: { pad: 2, flip: 1 }, hint: 'ジャンプ台は跳ばずに乗ろう' },
-    5:  { world: 'rescue', title: 'そらのレスキュー', bgm: 'Asset/world-bgm/rescue-normal.mp3', length: 24, g: { ring: 0.9 } },
+    5:  { world: 'rescue', title: 'そらのレスキュー', bgm: 'Asset/world-bgm/rescue-normal.mp3', length: 24, g: { ring: 0.9, mid: 1 } },
     6:  { world: 'rescue', title: 'さかさまのそら',   g: { ring: 0.3, cake: 0.95, cakeHigh: true }, hint: '頭の高さのケーキはくぐろう' },
-    7:  { world: 'cannon', title: 'ドッカン大砲',     g: { cannon: ['blue', 'gold'] } },
-    8:  { world: 'cannon', title: '大砲リレー',       g: { cannon: [['blue', 'gold']] }, hint: '大砲から大砲へ！ 色の段で撃とう' },
-    9:  { world: 'roll',   title: 'ころころコスミー', g: { ball: 0.9 } },
+    7:  { world: 'cannon', title: 'ドッカン大砲',     g: { cannon: [['blue', 'blue', 'gold'], ['blue', 'blue', 'gold']] } },
+    8:  { world: 'cannon', title: '大砲リレー',       g: { cannon: [['blue', 'blue', 'blue', 'blue', 'gold']] }, hint: '輪が重なったらタップ！ 大砲から大砲へ' },
+    9:  { world: 'roll',   title: 'ころころコスミー', g: { ball: 0.9, mid: 1 }, hint: 'コスミーごとに転がり方がちがう！' },
     10: { world: 'roll',   title: 'おおだまバウンド', g: { ball: 0.4, bigBall: 1 }, hint: '大きいコスミーはしっかり跳ぼう' },
-    11: { world: 'sudoku', title: 'ドットの階段',     g: { stairs: 3 } },
+    11: { world: 'sudoku', title: 'ドットの階段',     g: { stairs: 3, mid: 1, midAt: [0.06] } },
     12: { world: 'sudoku', title: 'てっぺんへ',       g: { stairs: 3, stairsAt: [0.3, 0.55, 0.8], lift: 1, liftAt: [0.1] }, hint: '階段と上下する足場をリズムで' },
-    13: { world: 'catch',  title: '月夜のキャッチ',   g: { prize: 0.9 } },
+    13: { world: 'catch',  title: '月夜のキャッチ',   g: { prize: 0.9, mid: 2 } },
     14: { world: 'catch',  title: 'アームにつかまれ', g: { arm: 4, prize: 0.4 }, hint: 'アームをつかんでトゲを越えよう' },
-    15: { world: 'mogu',   title: 'パクパク',         g: { mogu: true, route: 5 }, hint: 'コインで逃げろ・長押しで屋根の道へ' },
-    16: { world: 'mogu',   title: 'もぐもぐパニック', g: { mogu: true, moguStart: 1, moguCreep: 0.14, cake: 0.7 }, hint: 'ケーキを跳び越え、コインで逃げ切れ' },
+    15: { world: 'mogu',   title: 'パクパク',         g: { mogu: true, route: 4, mid: 2 }, hint: '「ガブッ」の拍で跳べ！ コインで離れる' },
+    16: { world: 'mogu',   title: 'もぐもぐパニック', g: { mogu: true, moguStart: 1, moguCreep: 0.14, cake: 0.7 }, hint: 'ガブッの拍で跳べ・コインで逃げ切れ' },
     17: { world: 'match',  title: 'ブロックマッチ',   g: { match: 6 } },
     18: { world: 'match',  title: 'トリプルマッチ',   g: { match: 8 } },
-    19: { world: 'arcade', title: 'ブラックアウト',   g: { dark: 0.6, darkN: 5 } },
-    20: { world: 'dash',   title: 'オーラス',         g: { cannon: ['gold'], cannonAt: [0.47], pad: 2, padAt: [0.07, 0.88], stairs: 2, stairsAt: [0.15, 0.6], match: 2, matchAt: [0.25, 0.7], arm: 2, armAt: [0.34, 0.78], ring: 0.35, ball: 0.35, jelly: 0.35, prize: 0.35, dark: 0.25, darkN: 3 }, hint: 'オーラス！ 全部のせ' },
+    19: { world: 'arcade', title: 'ブラックアウト',   g: { dark: 0.6, darkN: 5, mid: 3 } },
+    20: { world: 'dash',   title: 'オーラス',         g: { cannon: [['blue', 'blue', 'gold']], cannonAt: [0.47], pad: 2, padAt: [0.07, 0.88], stairs: 2, stairsAt: [0.15, 0.6], match: 2, matchAt: [0.25, 0.7], arm: 2, armAt: [0.34, 0.78], mid: 2, midAt: [0.41, 0.53], ring: 0.35, ball: 0.35, jelly: 0.35, prize: 0.35, dark: 0.25, darkN: 3 }, hint: 'オーラス！ 全部のせ' },
   };
 
   const HINTS = {
     pad: 'ジャンプ台は跳ばずに乗ろう',
     jelly: '沈んだクラゲは跳ぶ・浮いたらくぐる',
     ring: '浮き輪の真ん中をくぐろう',
-    cannon: '大砲と同じ色の段で撃とう',
+    cannon: '輪が重なったらタップして次の大砲へ',
     ball: 'コスミーが転がってきたら跳ぼう',
     stairs: '階段をリズムで登ろう',
     prize: '影の場所に景品が落ちる',
     arm: 'ジャンプの頂点でアームをつかもう',
-    mogu: 'コインを取ってMOGUから逃げよう',
+    mogu: '「ガブッ」の拍で跳んでかわそう',
     match: '?ブロック3つで扉が開く',
     dark: '光った瞬間をよく見よう',
     route: '長押しジャンプで上の道へ',
@@ -119,10 +119,10 @@
   }
 
   // ---------- Shared helpers ----------
-  const CANNON_COLORS = { blue: { c: '#3a8bff', safe: 1, name: '青' }, red: { c: '#ff4f6a', safe: 0, name: '赤' }, gold: { c: '#ffc23a', safe: 2, name: '金' } };
+  const CANNON_COLORS = { blue: { c: '#3a8bff', safe: 1, name: '青' }, red: { c: '#ff4f6a', safe: 0, name: '赤' }, gold: { c: '#ffc23a', safe: 2, name: '金' }, mint: { c: '#3fd6c0', safe: 1, name: 'ミント' } };
   const TIER_TOP = [GROUND, GROUND - B * 2.2, GROUND - B * 4.3];   // ground, mid, high
-  const AIM_ORDER = [2, 1, 0];                                      // barrel: high, mid, low
-  const AIM_NAME = { 2: '上', 1: '中', 0: '下' };
+  const MID_TOP = GROUND - B * 1.7;                                // the middle road: one jump up from the floor
+  const topOf = ob => ob.top ?? TIER_TOP[ob.lvl];
   const ease = f => f <= 0 ? 0 : f >= 1 ? 1 : f * f * (3 - 2 * f);
   const xAt = time => player.x + B / 2 + (time - songPos) * SPEED;
   function periodOf(bts) {
@@ -223,81 +223,130 @@
   // The heads drawn for ころがれ！Cosmii (Asset/world/roll/<colour>.png).
   const ROLL_ART = {};
   for (const c of BALL_COLORS) { const im = new Image(); im.src = `Asset/world/roll/${c}.png`; ROLL_ART[c] = im; }
-  function drawRollCosmii(g, ob, cx, d, lift) {
-    const cy = GROUND - d / 2 - lift, ang = -(cx / (d / 2)) % 6.283;
+  // Five rollers, five ways of coming at you. Every one reaches you exactly on
+  // its beat, rolling on the ground (the last stretch is never in the air).
+  //   red    コロ    rolls one step per beat
+  //   pink   ピョン  hops forward on every beat
+  //   blue   ビュン  smooth and fast
+  //   green  ねぼすけ sleeps further back, wakes up and dashes in
+  //   purple バウン  big bouncing arcs, then a roll
+  const ROLLERS = {
+    red:    { icon: '→', col: '#ff5a6e' },
+    pink:   { icon: '♪', col: '#ff7fc6' },
+    blue:   { icon: '≫', col: '#4aa8ff' },
+    green:  { icon: 'z', col: '#7fcc4a' },
+    purple: { icon: '↯', col: '#b07cff' },
+  };
+  const WAKE = 0.75, SLEEP_BACK = 0.55;
+  function rollMotion(ob, d) {
+    const dd = Math.max(0, d);
+    switch (ob.c) {
+      case 'pink':   return { x: ballExtra(ob, d), lift: ballLift(ob, d) * B * 0.9 };
+      case 'blue':   return { x: dd * SPEED * 0.7, lift: 0 };
+      case 'green':  return { x: SLEEP_BACK * SPEED * ease(Math.min(1, dd / WAKE)), lift: 0, asleep: d > WAKE };
+      case 'purple': return { x: dd * SPEED * 0.3, lift: dd >= ob.p ? Math.abs(Math.sin(Math.PI * dd / ob.p)) * B * 1.4 : 0 };
+      default:       return { x: ballExtra(ob, d), lift: 0 };
+    }
+  }
+  function drawRollCosmii(g, ob, cx, d, lift, spin, extra) {
+    const cy = GROUND - d / 2 - lift, R = ROLLERS[ob.c] || ROLLERS.red, ahead = ob.t - songPos;
     g.save();
-    g.fillStyle = 'rgba(40,20,60,.22)'; g.beginPath(); g.ellipse(cx, GROUND - 2, d * 0.42 * (1 - lift / (B * 4)), d * 0.1, 0, 0, 6.283); g.fill();
-    // "Don't touch": a red glow and a ring of red spikes that turns with it.
+    g.fillStyle = 'rgba(40,20,60,.22)'; g.beginPath(); g.ellipse(cx, GROUND - 2, d * 0.42 * Math.max(0.4, 1 - lift / (B * 3)), d * 0.1, 0, 0, 6.283); g.fill();
+    // Its way of moving, drawn behind it.
+    if (ob.c === 'blue' && ahead > 0.05) {
+      g.strokeStyle = R.col + 'aa'; g.lineWidth = 3; g.lineCap = 'round';
+      for (const [dy, len] of [[-0.25, 0.9], [0, 1.3], [0.25, 0.9]]) { g.beginPath(); g.moveTo(cx + d * 0.6, cy + dy * d); g.lineTo(cx + d * (0.6 + len), cy + dy * d); g.stroke(); }
+    }
+    if ((ob.c === 'pink' || ob.c === 'purple') && lift < 2 && ahead > 0.1) {
+      g.fillStyle = '#ffffffaa'; for (const k of [-1, 1]) { g.beginPath(); g.arc(cx + k * d * 0.45, GROUND - 4, 4, 0, 6.283); g.fill(); }
+    }
     g.translate(cx, cy);
-    g.fillStyle = 'rgba(255,60,90,.22)'; g.beginPath(); g.arc(0, 0, d * 0.62, 0, 6.283); g.fill();
-    g.save(); g.rotate(ang);
-    g.fillStyle = '#ff4d6d'; g.strokeStyle = '#3a1838'; g.lineWidth = 2; g.lineJoin = 'round';
-    const n = 10, r0 = d * 0.42, r1 = d * 0.6;
+    // "Don't touch": a thin red glow and a ring of small red spikes, turning with it.
+    g.fillStyle = 'rgba(255,60,90,.16)'; g.beginPath(); g.arc(0, 0, d * 0.6, 0, 6.283); g.fill();
+    g.save(); g.rotate(spin);
+    g.fillStyle = '#ff4d6d'; g.strokeStyle = '#3a1838'; g.lineWidth = 1.8; g.lineJoin = 'round';
+    const n = 12, r0 = d * 0.45, r1 = d * 0.58;
     g.beginPath();
     for (let k = 0; k < n; k++) {
-      const a = k * 6.283 / n, h = 6.283 / n * 0.32;
+      const a = k * 6.283 / n, h = 6.283 / n * 0.3;
       g.moveTo(Math.cos(a - h) * r0, Math.sin(a - h) * r0); g.lineTo(Math.cos(a) * r1, Math.sin(a) * r1); g.lineTo(Math.cos(a + h) * r0, Math.sin(a + h) * r0);
     }
     g.fill(); g.stroke();
-    // The head, rolling (never in the player's own colour: the player is a Cosmii too).
-    let c = ob.c || 'blue'; const own = BALL_COLORS[typeof skinIdx === 'number' ? skinIdx : 0];
-    if (c === own) c = BALL_COLORS[(BALL_COLORS.indexOf(c) + 2) % BALL_COLORS.length];
-    const im = window.worldSkins?.art('roll', c + '.png') || ROLL_ART[c];
+    // The face stays (almost) upright: only the spike ring turns; the head just rocks a little.
+    g.rotate(-spin + Math.sin(spin) * 0.22);
+    // Squash on landing for the hoppers.
+    if ((ob.c === 'pink' || ob.c === 'purple') && lift < 3) g.scale(1.08, 0.92);
+    const im = ROLL_ART[ob.c];   // the supplied heads (transparent, Asset/world/roll)
     if (im?.naturalWidth) g.drawImage(im, -d * 0.55, -d * 0.55, d * 1.1, d * 1.1);
-    else if (window.worldSkins?.head) window.worldSkins.head(g, c, 0, 0, d);
+    else if (window.worldSkins?.head) window.worldSkins.head(g, ob.c, 0, 0, d);
     g.restore();
-    // A red "!" while it is on its way.
-    const ahead = ob.t - songPos;
-    if (ahead > 0.15 && ahead < 1.8) {
-      const sy = -d * 0.62 - 20 - Math.abs(Math.sin(((songPos % run.p) / run.p) * Math.PI)) * 4;
-      g.translate(0, sy); if (ob.mir) g.scale(1, -1);   // keep the sign upright on the ceiling
-      g.fillStyle = '#ff3355'; g.strokeStyle = '#fff'; g.lineWidth = 2.5;
-      g.beginPath(); g.arc(0, 0, 11, 0, 6.283); g.fill(); g.stroke();
-      g.fillStyle = '#fff'; g.font = '900 15px "Exo 2", sans-serif'; g.textAlign = 'center'; g.fillText('!', 0, 5.5);
+    // Its badge above it (who it is / how it moves), red-rimmed: it hurts.
+    if (ahead > 0.15 && ahead < 2.2) {
+      const bob = Math.abs(Math.sin(((songPos % run.p) / run.p) * Math.PI)) * 4;
+      g.translate(0, -d * 0.6 - 18 - bob); if (ob.mir) g.scale(1, -1);   // upright on the ceiling too
+      if (extra?.asleep) {
+        g.fillStyle = '#ffffff'; g.strokeStyle = '#3a1838'; g.lineWidth = 3; g.font = '900 13px "Exo 2", sans-serif'; g.textAlign = 'center';
+        const zz = 'Zz' + ((Math.floor(songPos * 3) % 2) ? 'z' : ''); g.strokeText(zz, 6, 0); g.fillText(zz, 6, 0);
+      } else {
+        g.fillStyle = '#ffffff'; g.strokeStyle = '#ff3355'; g.lineWidth = 2.5;
+        g.beginPath(); g.arc(0, 0, 11, 0, 6.283); g.fill(); g.stroke();
+        g.fillStyle = ob.c === 'green' ? '#ff3355' : R.col; g.font = '900 14px "Exo 2", "M PLUS 1p", sans-serif'; g.textAlign = 'center';
+        g.fillText(ob.c === 'green' ? '!' : R.icon, 0, 5);
+      }
     }
     g.restore();
   }
   OBSTACLES.ball = {
-    offset: (ob, d) => d * SPEED + ballExtra(ob, d),
+    offset: (ob, d) => d * SPEED + rollMotion(ob, d).x,
     parts(cx, gy, f, ob, d) {
-      return { spikes: [], blocks: [], hazards: [{ x: cx - B * 0.3, y: GROUND - B * 0.85, w: B * 0.6, h: B * 0.85 }], cx };
+      const m = rollMotion(ob, d ?? 0);
+      return { spikes: [], blocks: [], hazards: [{ x: cx - B * 0.3, y: GROUND - B * 0.85 - m.lift, w: B * 0.6, h: B * 0.85 }], cx, m };
     },
-    draw(g, ob, parts) { drawRollCosmii(g, ob, parts.cx, B * 1.2, 0); },
+    // Spin from the distance rolled over the ground (none while asleep).
+    draw(g, ob, parts) { drawRollCosmii(g, ob, parts.cx, B * 1.35, parts.m.lift, parts.m.x / (B * 0.6) + ob.t * 3, parts.m); },
   };
   OBSTACLES.bigball = {
     offset: (ob, d) => d * SPEED + ballExtra(ob, d),
     parts(cx, gy, f, ob, d) {
       return { spikes: [], blocks: [], hazards: [{ x: cx - B * 0.45, y: GROUND - B * 1.3, w: B * 0.9, h: B * 1.3 }], cx, d };
     },
-    draw(g, ob, parts) { drawRollCosmii(g, ob, parts.cx, B * 1.6, ballLift(ob, parts.d ?? 0) * B * 1.6); },
+    draw(g, ob, parts) { const e = ballExtra(ob, parts.d ?? 0); drawRollCosmii(g, ob, parts.cx, B * 1.6, ballLift(ob, parts.d ?? 0) * B * 1.6, e / (B * 0.8), null); },
   };
 
-  // Cannon: the cannon itself (until it is boarded) and the three tiers.
+  // Cannon relay: the cannons waiting ahead, barrels aimed at the next one.
+  const cannonAngle = (ob, x, y) => Math.atan2(ob.next.y - y, Math.max(B, xAt(ob.next.t) - x));
   OBSTACLES.cannon = {
     free: true,
     parts: () => ({ spikes: [], blocks: [] }),
     draw(g, ob) {
-      if (rideState && rideState.sec === ob.sec) return;
-      const x = xAt(ob.t), gy = ob.y || GROUND, col = CANNON_COLORS[ob.color].c;
-      if (!usedCannons.has(ob.sec)) {
+      if (usedCannons.has(ob.sec)) return;   // boarded: it travels with the player (drawn in the overlay)
+      const x = xAt(ob.t), gy = ob.y, col = CANNON_COLORS[ob.color].c;
+      g.save();
+      if (ob.idx === 0) {
         // "Get in here": a glow on the floor and an IN tag bouncing on the beat.
         const ph = (songPos % run.p) / run.p, bob = Math.abs(Math.sin(ph * Math.PI)) * 6;
-        g.save();
         g.fillStyle = col + '44'; g.beginPath(); g.ellipse(x, gy - 2, B * 0.95, B * 0.28, 0, 0, 6.283); g.fill();
         const ty = gy - B * 2.15 - bob;
         g.fillStyle = '#ffffff'; g.strokeStyle = col; g.lineWidth = 3;
         g.beginPath(); g.roundRect(x - 24, ty - 15, 48, 24, 12); g.fill(); g.stroke();
         g.fillStyle = col; g.font = '900 15px "Exo 2", "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.fillText('IN', x, ty + 3);
         g.beginPath(); g.moveTo(x - 8, ty + 13); g.lineTo(x + 8, ty + 13); g.lineTo(x, ty + 22); g.closePath(); g.fill();
-        g.textAlign = 'left'; g.restore();
+        g.textAlign = 'left';
+      } else {
+        // A floating cannon: a glowing ring behind it.
+        g.strokeStyle = col + 'aa'; g.lineWidth = 4; g.beginPath(); g.arc(x, gy - B * 0.45, B * 0.95, 0, 6.283); g.stroke();
+        g.fillStyle = col + '22'; g.fill();
       }
-      drawCannon(g, x, gy, col, -0.65);
+      g.restore();
+      drawCannon(g, x, gy, col, cannonAngle(ob, x, gy - B * 0.45));
     },
   };
+  // The fire tap while in a cannon: a judged note with no shape of its own.
+  OBSTACLES.shot = { free: false, parts: () => ({ spikes: [], blocks: [] }), draw() {} };
   // A spike on a cannon rail (jumped on the beat like any spike).
   OBSTACLES.railspike = {
     nearMiss: true,
-    parts: (cx, gy, f, ob) => ({ spikes: [{ x: cx - B / 2, y: TIER_TOP[ob.lvl] - B, w: B, h: B, f: false }], blocks: [] }),
+    parts: (cx, gy, f, ob) => ({ spikes: [{ x: cx - B / 2, y: topOf(ob) - B, w: B, h: B, f: false }], blocks: [] }),
   };
   OBSTACLES.tier = {
     free: true,
@@ -306,7 +355,7 @@
       if (ob.lvl === 0) return ob.safe ? { spikes: [], blocks: [] } : { spikes: [], blocks: [], pits: [{ x: x0, w: xAt(ob.t + ob.span - 0.3) - x0 }] };
       // Only the safe tier is there; a shot to another height falls into the hole below.
       if (!ob.safe) return { spikes: [], blocks: [] };
-      return { spikes: [], blocks: [{ x: x0, y: TIER_TOP[ob.lvl], w: x1 - x0, h: 12, f: false }] };
+      return { spikes: [], blocks: [{ x: x0, y: topOf(ob), w: x1 - x0, h: 12, f: false, oneWay: ob.top !== undefined }] };   // the middle road: jump up through it
     },
     draw(g, ob, parts, hue) {
       const x0 = xAt(ob.t - ob.span), x1 = xAt(ob.t + ob.span);
@@ -321,7 +370,17 @@
         return;
       }
       if (!ob.safe) return;
-      const top = TIER_TOP[ob.lvl];
+      const top = topOf(ob);
+      if (ob.top !== undefined) {
+        // The middle road: a thick glowing beam with light falling under it.
+        const gr = g.createLinearGradient(0, top + 16, 0, top + 70);
+        gr.addColorStop(0, col + '55'); gr.addColorStop(1, col + '00');
+        g.fillStyle = gr; g.fillRect(x0 + 6, top + 16, x1 - x0 - 12, 54);
+        g.fillStyle = col; g.beginPath(); g.roundRect(x0, top, x1 - x0, 16, 8); g.fill();
+        g.fillStyle = '#ffffffaa'; g.fillRect(x0 + 8, top + 3, x1 - x0 - 16, 4);
+        g.strokeStyle = '#1f4a52'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(x0, top, x1 - x0, 16, 8); g.stroke();
+        return;
+      }
       g.fillStyle = ob.safe ? col : '#b9add8'; g.beginPath(); g.roundRect(x0, top, x1 - x0, 12, 6); g.fill();
       g.fillStyle = '#ffffff66'; g.fillRect(x0 + 6, top + 2, x1 - x0 - 12, 3);
       g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.beginPath(); g.roundRect(x0, top, x1 - x0, 12, 6); g.stroke();
@@ -621,105 +680,78 @@
   // the feet, the reaching arm and the mouth move every frame.
   const MG = { out: '#370730', rimB: '#02e8ff', rimF: '#f72fcd', hi: '#c6fb3c', mid: '#98e814', lo: '#56aa02',
     face: '#fce9d4', faceLine: '#5c1f00', eye: '#471601', blush: '#fcb1c4', star: '#fdd602', starDeep: '#fdc204', starLine: '#5b2d11' };
-  let moguBake = null;
+  // MOGU: the green Cosmii seen from the side (face at the front, the usual
+  // sleepy eyes). Its mouth opens inside the face ("あーん"); it never sticks out.
+  const moguBakes = new Map();   // one bake per size: the chaser and the small one in the gauge
   function bakeMoguBody(R) {
-    const sc = typeof SC === 'number' && SC > 0 ? SC : 1;
-    if (moguBake && moguBake.R === R && moguBake.sc === sc) return moguBake;
+    const sc = typeof SC === 'number' && SC > 0 ? SC : 1, key = R + '|' + sc;
+    const hit = moguBakes.get(key); if (hit) return hit;
     const S = R * 3.4, c = document.createElement('canvas');
     c.width = Math.ceil(S * sc); c.height = Math.ceil(S * sc);
     const g = c.getContext('2d'); g.scale(sc, sc); g.translate(S / 2, S / 2 + R * 0.25);
     const lw = R * 0.075;
-    const glossy = (fill) => { const gr = g.createRadialGradient(-R * 0.35, -R * 0.45, R * 0.1, 0, 0, R * 1.1); gr.addColorStop(0, MG.hi); gr.addColorStop(0.55, MG.mid); gr.addColorStop(1, MG.lo); return gr; };
-    // Sprout: stem with an outline, two glossy leaves.
+    // Sprout.
     g.lineCap = 'round';
-    g.strokeStyle = MG.out; g.lineWidth = R * 0.16; g.beginPath(); g.moveTo(-R * 0.05, -R * 0.85); g.quadraticCurveTo(-R * 0.1, -R * 1.15, -R * 0.18, -R * 1.3); g.stroke();
-    g.strokeStyle = MG.mid; g.lineWidth = R * 0.08; g.stroke();
-    for (const [lx, ly, rot] of [[-R * 0.45, -R * 1.42, -0.45], [R * 0.05, -R * 1.47, 0.4]]) {
+    g.strokeStyle = MG.out; g.lineWidth = R * 0.15; g.beginPath(); g.moveTo(-R * 0.1, -R * 0.9); g.quadraticCurveTo(-R * 0.2, -R * 1.15, -R * 0.3, -R * 1.28); g.stroke();
+    g.strokeStyle = MG.mid; g.lineWidth = R * 0.07; g.stroke();
+    for (const [lx, ly, rot] of [[-R * 0.55, -R * 1.38, -0.5], [-R * 0.12, -R * 1.45, 0.35]]) {
       g.save(); g.translate(lx, ly); g.rotate(rot);
-      const lg = g.createLinearGradient(0, -R * 0.16, 0, R * 0.16); lg.addColorStop(0, MG.hi); lg.addColorStop(1, MG.mid);
-      g.fillStyle = lg; g.beginPath(); g.ellipse(0, 0, R * 0.3, R * 0.17, 0, 0, 6.283); g.fill();
-      g.strokeStyle = MG.out; g.lineWidth = lw * 0.8; g.stroke();
-      g.fillStyle = '#ffffff'; g.beginPath(); g.ellipse(-R * 0.06, -R * 0.06, R * 0.13, R * 0.045, -0.15, 0, 6.283); g.fill();
-      g.restore();
+      const lg = g.createLinearGradient(0, -R * 0.15, 0, R * 0.15); lg.addColorStop(0, MG.hi); lg.addColorStop(1, MG.mid);
+      g.fillStyle = lg; g.beginPath(); g.ellipse(0, 0, R * 0.28, R * 0.15, 0, 0, 6.283); g.fill();
+      g.strokeStyle = MG.out; g.lineWidth = R * 0.06; g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.ellipse(-R * 0.06, -R * 0.05, R * 0.11, R * 0.04, -0.15, 0, 6.283); g.fill(); g.restore();
     }
     g.lineCap = 'butt';
-    // Body with rim lights inside the outline.
-    g.fillStyle = glossy(); g.beginPath(); g.ellipse(0, 0, R * 1.05, R, 0, 0, 6.283); g.fill();
-    g.lineWidth = R * 0.08;
-    g.strokeStyle = MG.rimB; g.beginPath(); g.ellipse(0, 0, R * 1.0, R * 0.95, 0, Math.PI * 0.55, Math.PI * 1.35); g.stroke();
-    g.strokeStyle = MG.rimF; g.beginPath(); g.ellipse(0, 0, R * 1.0, R * 0.95, 0, -Math.PI * 0.05, Math.PI * 0.5); g.stroke();
-    g.strokeStyle = MG.out; g.lineWidth = lw; g.beginPath(); g.ellipse(0, 0, R * 1.05, R, 0, 0, 6.283); g.stroke();
-    // Gloss.
-    g.fillStyle = '#ffffff';
-    g.save(); g.translate(-R * 0.42, -R * 0.6); g.rotate(-0.55); g.beginPath(); g.ellipse(0, 0, R * 0.3, R * 0.12, 0, 0, 6.283); g.fill(); g.restore();
-    g.beginPath(); g.arc(-R * 0.12, -R * 0.78, R * 0.06, 0, 6.283); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(-R * 0.82, R * 0.05, R * 0.06, R * 0.22, 0.2, 0, 6.283); g.fill();
+    // Hood.
+    const gr = g.createRadialGradient(-R * 0.35, -R * 0.45, R * 0.1, 0, 0, R * 1.1); gr.addColorStop(0, MG.hi); gr.addColorStop(0.55, MG.mid); gr.addColorStop(1, MG.lo);
+    g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, R * 1.05, R, 0, 0, 6.283); g.fill();
+    g.strokeStyle = MG.out; g.lineWidth = lw; g.stroke();
+    g.fillStyle = '#fff'; g.save(); g.translate(-R * 0.4, -R * 0.62); g.rotate(-0.55); g.beginPath(); g.ellipse(0, 0, R * 0.28, R * 0.1, 0, 0, 6.283); g.fill(); g.restore();
     // Star on the side of the hood.
-    const sx = -R * 0.6, sy = -R * 0.32, sr = R * 0.26;
-    const sp = () => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? sr * 0.48 : sr; g.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r); } g.closePath(); };
-    const sg = g.createLinearGradient(0, sy - sr, 0, sy + sr); sg.addColorStop(0, '#fff27a'); sg.addColorStop(0.5, MG.star); sg.addColorStop(1, MG.starDeep);
-    sp(); g.fillStyle = sg; g.fill(); g.strokeStyle = MG.starLine; g.lineWidth = R * 0.045; g.lineJoin = 'round'; g.stroke();
-    g.fillStyle = '#ffffffcc'; g.beginPath(); g.ellipse(sx - sr * 0.15, sy - sr * 0.3, sr * 0.18, sr * 0.1, -0.5, 0, 6.283); g.fill();
-    // Face turned to the front, with a soft pink shade at the bottom.
-    const fx = R * 0.4, fy = R * 0.12, frx = R * 0.58, fry = R * 0.56;
-    const fg = g.createLinearGradient(0, fy - fry, 0, fy + fry); fg.addColorStop(0, MG.face); fg.addColorStop(0.8, MG.face); fg.addColorStop(1, '#fad6c8');
-    g.fillStyle = fg; g.beginPath(); g.ellipse(fx, fy, frx, fry, 0, 0, 6.283); g.fill();
-    g.strokeStyle = MG.faceLine; g.lineWidth = R * 0.055; g.stroke();
-    g.strokeStyle = MG.eye; g.lineWidth = R * 0.06; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(fx - frx * 0.44, fy - fry * 0.18); g.lineTo(fx - frx * 0.1, fy - fry * 0.18);
-    g.moveTo(fx + frx * 0.3, fy - fry * 0.18); g.lineTo(fx + frx * 0.6, fy - fry * 0.2); g.stroke(); g.lineCap = 'butt';
-    for (const [bx, bw] of [[fx - frx * 0.34, 0.2], [fx + frx * 0.56, 0.15]]) {
-      const bg = g.createRadialGradient(bx, fy + fry * 0.2, 0, bx, fy + fry * 0.2, frx * bw);
-      bg.addColorStop(0, MG.blush); bg.addColorStop(0.7, MG.blush + 'cc'); bg.addColorStop(1, MG.blush + '00');
-      g.fillStyle = bg; g.beginPath(); g.ellipse(bx, fy + fry * 0.2, frx * bw, fry * 0.13, 0, 0, 6.283); g.fill();
-    }
-    // Foot and arm, baked too (they only move).
-    const part = (w, h, draw) => { const pc = document.createElement('canvas'); pc.width = Math.ceil(w * sc); pc.height = Math.ceil(h * sc); const pg = pc.getContext('2d'); pg.scale(sc, sc); pg.translate(w / 2, h / 2); draw(pg); return pc; };
-    const fw = R * 0.66, fh = R * 0.5, aw = R * 0.62, ah = R * 0.5;
-    const foot = part(fw, fh, pg => {
-      const fg = pg.createLinearGradient(0, -R * 0.16, 0, R * 0.16); fg.addColorStop(0, MG.mid); fg.addColorStop(1, MG.lo);
-      pg.fillStyle = fg; pg.beginPath(); pg.ellipse(0, 0, R * 0.25, R * 0.17, 0, 0, 6.283); pg.fill();
-      pg.strokeStyle = MG.out; pg.lineWidth = R * 0.07; pg.stroke();
-      pg.fillStyle = '#ffffffaa'; pg.beginPath(); pg.ellipse(-R * 0.06, -R * 0.07, R * 0.08, R * 0.03, 0, 0, 6.283); pg.fill();
-    });
-    const arm = part(aw, ah, pg => {
-      const ag = pg.createLinearGradient(0, -R * 0.15, 0, R * 0.15); ag.addColorStop(0, MG.hi); ag.addColorStop(1, MG.mid);
-      pg.fillStyle = ag; pg.beginPath(); pg.ellipse(0, 0, R * 0.22, R * 0.15, -0.5, 0, 6.283); pg.fill();
-      pg.strokeStyle = MG.out; pg.lineWidth = R * 0.07; pg.stroke();
-      pg.fillStyle = '#ffffffb0'; pg.beginPath(); pg.ellipse(-R * 0.04, -R * 0.07, R * 0.07, R * 0.03, -0.5, 0, 6.283); pg.fill();
-    });
-    moguBake = { R, sc, c, S, oy: S / 2 + R * 0.25, fx, fy, frx, fry, foot, fw, fh, arm, aw, ah };
-    return moguBake;
+    const sx = -R * 0.62, sy = -R * 0.25, sr = R * 0.24;
+    g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? sr * 0.48 : sr; g.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r); } g.closePath();
+    g.fillStyle = MG.star; g.fill(); g.strokeStyle = MG.starLine; g.lineWidth = R * 0.045; g.lineJoin = 'round'; g.stroke();
+    // Face at the front (only its side shows), sleepy line eye and a blush.
+    const fx = R * 0.72, fy = R * 0.08, frx = R * 0.5, fry = R * 0.6;
+    g.save(); g.beginPath(); g.ellipse(0, 0, R * 1.05, R, 0, 0, 6.283); g.clip();
+    g.fillStyle = MG.face; g.beginPath(); g.ellipse(fx, fy, frx, fry, 0, 0, 6.283); g.fill();
+    g.strokeStyle = MG.faceLine; g.lineWidth = R * 0.06; g.stroke(); g.restore();
+    g.fillStyle = MG.blush; g.globalAlpha = 0.8; g.beginPath(); g.ellipse(R * 0.62, R * 0.32, R * 0.13, R * 0.08, 0, 0, 6.283); g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = MG.eye; g.lineWidth = R * 0.07; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(R * 0.56, -R * 0.12); g.lineTo(R * 0.82, -R * 0.12); g.stroke(); g.lineCap = 'butt';
+    const bake = { R, sc, c, S, oy: S / 2 + R * 0.25, fx, fy, frx, fry };
+    if (moguBakes.size > 8) moguBakes.clear();
+    moguBakes.set(key, bake); return bake;
   }
-  function drawMoguSide(g, cx, cy, R, lunge, o, t) {
-    const im = window.worldSkins?.art('mogu', 'green.png');
-    if (im) {
-      const w = R * (2.12 + lunge * 0.16), h = R * (2.22 + o * 0.14);
-      g.drawImage(im, cx - w / 2, cy + R - h, w, h);
-      return;
-    }
+  // o: mouth 0 (shut) .. 1 (wide "あーん"); reach: 0..1 leaning in with both arms out.
+  function drawMoguSide(g, cx, cy, R, lunge, o, t, reach = 0) {
     const b = bakeMoguBody(R);
-    g.save(); g.translate(cx, cy);   // no tilt: a rotated big image costs a resample every frame
-    // Feet running on the road (behind the body).
-    const step = Math.sin(t * 18) * R * 0.12;
-    for (const [fx, ph] of [[-0.35, 1], [0.25, -1]]) g.drawImage(b.foot, R * fx + step * ph - b.fw / 2, R * 0.92 - b.fh / 2, b.fw, b.fh);
+    g.save(); g.translate(cx + reach * R * 0.12, cy);
+    // Feet running on the road.
+    const step = Math.sin(t * 18) * R * 0.14;
+    g.fillStyle = MG.lo; g.strokeStyle = MG.out; g.lineWidth = R * 0.06;
+    for (const [fx, ph] of [[-0.35, 1], [0.2, -1]]) { g.beginPath(); g.ellipse(R * fx + step * ph, R * 0.95, R * 0.24, R * 0.13, 0, 0, 6.283); g.fill(); g.stroke(); }
     g.drawImage(b.c, -b.S / 2, -b.oy, b.S, b.S);
-    // Mouth at the front: the nose dot when shut, wide open on the beat.
-    const { fx, fy, frx, fry } = b, mx = fx + frx * 0.28, my = fy + fry * 0.32;
-    if (o < 0.15) { g.fillStyle = '#642100'; g.beginPath(); g.ellipse(mx - frx * 0.08, my - fry * 0.12, R * 0.05, R * 0.04, 0, 0, 6.283); g.fill(); }
-    else {
-      const w = frx * (0.3 + 0.25 * o), h = fry * (0.12 + 0.5 * o);
-      const mouth = () => { g.beginPath(); g.moveTo(mx - w, my - h * 0.25); g.quadraticCurveTo(mx, my - h * 0.45, mx + w, my - h * 0.3);
-        g.quadraticCurveTo(mx + w * 0.9, my + h, mx, my + h); g.quadraticCurveTo(mx - w * 0.9, my + h, mx - w, my - h * 0.25); g.closePath(); };
-      mouth(); g.fillStyle = '#7a1424'; g.fill();
-      g.save(); g.clip(); g.fillStyle = '#ff8fa3'; g.beginPath(); g.ellipse(mx, my + h * 0.95, w * 0.6, h * 0.45, 0, 0, 6.283); g.fill();
-      g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(mx + w * 0.2, my - h * 0.35); g.lineTo(mx + w * 0.42, my - h * 0.35); g.lineTo(mx + w * 0.31, my - h * 0.02); g.fill(); g.restore();
-      mouth(); g.strokeStyle = MG.faceLine; g.lineWidth = R * 0.055; g.lineJoin = 'round'; g.stroke();
+    // Mouth, inside the face.
+    const mx = R * 0.84, my = R * 0.34;
+    if (o < 0.1) {
+      g.strokeStyle = MG.faceLine; g.lineWidth = R * 0.05; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(mx - R * 0.14, my); g.quadraticCurveTo(mx - R * 0.05, my + R * 0.06, mx + R * 0.06, my - R * 0.01); g.stroke(); g.lineCap = 'butt';
+    } else {
+      const w = R * (0.1 + 0.18 * o), h = R * (0.06 + 0.22 * o);
+      g.fillStyle = '#7a1424'; g.beginPath(); g.ellipse(mx - R * 0.02, my, w, h, 0, 0, 6.283); g.fill();
+      g.save(); g.clip(); g.fillStyle = '#ff8fa3'; g.beginPath(); g.ellipse(mx - R * 0.02, my + h * 0.6, w * 0.75, h * 0.45, 0, 0, 6.283); g.fill();
+      g.fillStyle = '#ffffff'; g.fillRect(mx - w * 0.55, my - h * 1.0, w * 0.5, h * 0.32); g.restore();
+      g.strokeStyle = MG.faceLine; g.lineWidth = R * 0.05; g.beginPath(); g.ellipse(mx - R * 0.02, my, w, h, 0, 0, 6.283); g.stroke();
     }
-    // A little arm reaching forward.
-    g.drawImage(b.arm, R * 0.88 + lunge * R * 0.12 - b.aw / 2, R * 0.5 - b.ah / 2, b.aw, b.ah);
+    // Arms: at the sides while running, both reaching forward for a bite.
+    g.fillStyle = MG.mid; g.strokeStyle = MG.out; g.lineWidth = R * 0.06;
+    const arms = reach > 0 ? [[R * (0.95 + 0.2 * reach), R * (0.55 - 0.1 * reach), -0.6 * reach - 0.1], [R * (0.75 + 0.15 * reach), R * 0.72, 0.3]]
+      : [[R * 0.88 + lunge * R * 0.1, R * 0.55, -0.2], [R * 0.68, R * 0.72, 0.3]];
+    for (const [ax, ay, rot] of arms) { g.save(); g.translate(ax, ay); g.rotate(rot); g.beginPath(); g.ellipse(0, 0, R * 0.24, R * 0.13, 0, 0, 6.283); g.fill(); g.stroke(); g.restore(); }
     g.restore();
   }
+
 
   // 3Match: "?" blocks floating over the road (one-way: you pass through them
   // from below and the sides, and land on them from above). Landing switches a
@@ -864,46 +896,40 @@
     built.sections = [];
     // Sections first (they clear their stretch), then conversions, then darkness.
     if (gm.cannon) {
-      // Each entry is a chain of cannons (a relay): the first sits on the road,
-      // each next one sits on the rail the previous one fires you to. On the
-      // last rail you run on and jump its spikes on the beat, then drop back to
-      // a stretch of plain road (never straight onto spikes).
+      // Cannon relay (大砲バトン): get into the cannon on the road; on the next
+      // beat tap to fire into the next cannon floating ahead, and so on; the
+      // last (gold) one fires to the top rail, where spikes come on the beat.
+      // A missed shot drops you out of the cannon into the hole below.
       const chains = gm.cannon.map(c => Array.isArray(c) ? c : [c]), n = chains.length;
-      const FL = 2 * p;
+      const m = p >= 0.45 ? 1 : 2, P = m * p;                 // one hop = board on a beat, fire on the next
+      const FLOAT = [GROUND - B * 2.1, GROUND - B * 3.2];      // floating cannons alternate between two heights
+      const RAIL = TIER_TOP[2];
       chains.forEach((chain, k) => {
-        let e = beatAfter(ctx.duration * (gm.cannonAt ? gm.cannonAt[k] : n === 1 ? 0.3 : 0.2 + k * 0.42));
-        if (e === undefined) return;
-        const links = []; let ok = true, y = GROUND;
-        for (let j = 0; j < chain.length; j++) {
-          const i0 = taps.indexOf(e), aims = taps.slice(i0 + 1, i0 + 7);
-          if (aims.length < 6) { ok = false; break; }
-          const safe = CANNON_COLORS[chain[j]].safe, late = aims[5] + FL;   // latest landing (auto fire)
-          let ze, next;
-          if (j < chain.length - 1) { next = beatAfter(late + p * 0.9); if (next === undefined) { ok = false; break; } ze = next + 0.35; }
-          else ze = late + 5 * p;
-          links.push({ color: chain[j], e, y, aims, safe, zs: e + FL - 0.15, ze, late });
-          y = TIER_TOP[safe]; e = next;
-        }
-        if (!ok || !links.length) return;
-        const from = links[0].e - 0.9, to = links[links.length - 1].ze + 1.8;
+        const e0 = beatAfter(ctx.duration * (gm.cannonAt ? gm.cannonAt[k] : n === 1 ? 0.3 : 0.2 + k * 0.45));
+        if (e0 === undefined) return;
+        const i0 = taps.indexOf(e0), N = chain.length, bt = j => taps[i0 + j * m];
+        if (bt(2 * N + 6) === undefined) return;
+        const land = bt(2 * N), ze = bt(2 * N + 5) + 0.35;
+        const from = e0 - 0.9, to = ze + 1.8;
         if (to > ctx.duration - 1.5 || reserved.some(([a, b]) => from < b && to > a)) return;
         clear(from, to);
-        links.forEach((L, j) => {
-          const sec = 'c' + k + '_' + j, last = j === links.length - 1;
-          built.obs.push({ t: L.e, type: 'cannon', color: L.color, sec, aims: L.aims, fl: FL, y: L.y, relay: j > 0, free: true });
-          for (let lvl = 0; lvl < 3; lvl++) built.obs.push({ t: (L.zs + L.ze) / 2, span: (L.ze - L.zs) / 2, type: 'tier', lvl, safe: lvl === L.safe, color: L.color, sec, free: true });
-          // Spikes on the last rail, on the beat, after every possible landing.
-          const spikes = [];
-          if (last && L.safe > 0) {
-            const beats = taps.filter(t => t > L.late + p * 0.8 && t < L.ze - 0.45);
-            beats.forEach((t, i) => { if (i % 2 === 0) { spikes.push(t); built.obs.push({ t: t + TAP_OFFSET, type: 'railspike', lvl: L.safe, markY: TIER_TOP[L.safe] }); } });
-          }
-          for (let t = L.zs + 0.3; t < L.ze - 0.3; t += p) {
-            const near = spikes.some(s => Math.abs(s + TAP_OFFSET - t) < 0.25);
-            built.coins.push({ t, y: TIER_TOP[L.safe] - (near ? B * 1.9 : B / 2) });
-          }
+        const ys = chain.map((_, c) => c === 0 ? GROUND : FLOAT[(c - 1) % 2]);
+        chain.forEach((color, c) => {
+          const next = c < N - 1 ? { t: bt(2 * c + 2), y: ys[c + 1] } : { t: land, y: RAIL };
+          built.obs.push({ t: bt(2 * c), type: 'cannon', color, sec: `c${k}_${c}`, chain: k, idx: c, y: ys[c], fire: bt(2 * c + 1), next, last: c === N - 1, free: true });
+          built.obs.push({ t: bt(2 * c + 1) + TAP_OFFSET, type: 'shot', noMark: true });
+          built.coins.push({ t: (bt(2 * c + 1) + next.t) / 2, y: Math.min(ys[c], next.y) - B * 1.6 });
         });
-        built.sections.push({ kind: 'cannon', sec: 'c' + k, from, to, color: chains[k][0] });
+        const ps = e0 + TAP_OFFSET + 0.25;
+        built.obs.push({ t: (ps + ze) / 2, span: (ze - ps) / 2, type: 'tier', lvl: 0, safe: false, color: 'gold', sec: 'c' + k, free: true });
+        built.obs.push({ t: (land - 0.15 + ze) / 2, span: (ze - land + 0.15) / 2, type: 'tier', lvl: 2, safe: true, color: 'gold', sec: 'c' + k, free: true });
+        const spikes = [bt(2 * N + 2), bt(2 * N + 4)];
+        for (const t of spikes) built.obs.push({ t: t + TAP_OFFSET, type: 'railspike', lvl: 2, markY: RAIL });
+        for (let t = land + 0.3; t < ze - 0.3; t += p) {
+          const near = spikes.some(x => Math.abs(x + TAP_OFFSET - t) < 0.25);
+          built.coins.push({ t, y: RAIL - (near ? B * 1.9 : B / 2) });
+        }
+        built.sections.push({ kind: 'cannon', sec: 'c' + k, from, to, color: chain[0] });
       });
     }
     // Airtime of a plain tap landing dh px higher (negative: lower).
@@ -957,6 +983,33 @@
         }
         built.sections.push({ kind: 'route', from, to });
       }
+    }
+    if (gm.mid) {
+      // The middle road (like a cannon rail, reached with one jump): jump up on
+      // the beat, run along it jumping its spikes on the beat over a hole, then
+      // drop back down to a stretch of plain road.
+      const n = 8;
+      gm.midAt = gm.midAt || spots(gm.mid, [0.35, 0.7]);
+      gm.midAt.forEach((frac, k) => {
+        // Every beat (not every other one on fast songs): spikes come every two beats anyway.
+        const b0 = beatAfter(ctx.duration * frac); if (b0 === undefined) return;
+        const b = taps.slice(taps.indexOf(b0), taps.indexOf(b0) + n + 1); if (b.length < n + 1) return;
+        const up = b[0], zs = up + 0.12, ze = b[n] + 0.35;   // starts just after the take-off: an early jump still lands on it
+        const from = up - 0.9, to = ze + 1.8;
+        if (to > ctx.duration - 1.5 || !free(from, to)) return;
+        clear(from, to);
+        built.obs.push({ t: up + TAP_OFFSET, type: 'step', k: 0 });
+        const ps = up + TAP_OFFSET + 0.25;
+        built.obs.push({ t: (ps + ze) / 2, span: (ze - ps) / 2, type: 'tier', lvl: 0, safe: false, color: 'mint', sec: 'm' + k, free: true });
+        built.obs.push({ t: (zs + ze) / 2, span: (ze - zs) / 2, type: 'tier', lvl: 1, top: MID_TOP, safe: true, color: 'mint', sec: 'm' + k, free: true });
+        const spikes = [];
+        for (let j = 2; j < n - 1; j += 2) { spikes.push(b[j]); built.obs.push({ t: b[j] + TAP_OFFSET, type: 'railspike', lvl: 1, top: MID_TOP, markY: MID_TOP }); }
+        for (let t = zs + 0.3; t < ze - 0.3; t += p) {
+          const near = spikes.some(x => Math.abs(x + TAP_OFFSET - t) < 0.25);
+          built.coins.push({ t, y: MID_TOP - (near ? B * 1.9 : B / 2) });
+        }
+        built.sections.push({ kind: 'mid', from, to });
+      });
     }
     if (gm.lift) {
       const n = 5;
@@ -1091,6 +1144,10 @@
       return 0;
     };
     const mirY = (o, y) => o.mir ? DH - y : y;
+    // A rolling Cosmii's colour (= how it moves): never the player's own colour.
+    const ROLL_POOL = BALL_COLORS.filter(c => c !== BALL_COLORS[typeof skinIdx === 'number' ? skinIdx : 0]);
+    let rollTurn = 0;
+    const pickRoller = () => ROLL_POOL[(rollTurn++ + Math.floor(rng() * 2)) % ROLL_POOL.length];
     // One-jump obstacles a world gimmick can stand in for.
     const SMALL = new Set(['spike', 'block', 'spike2', 'block2', 'hold']);
     const neighbourGap = (i) => {
@@ -1149,7 +1206,7 @@
         if (!(gm.bigBall ? o.type === 'spike' || o.type === 'block' || o.type === 'spike2' : SMALL.has(o.type)) || zoneState(o.t) < 0 || isReserved(o.t)) continue;
         const gap = neighbourGap(i);
         if (gap.before < 0.6 || gap.after < 0.6 || rng() >= gm.ball) continue;
-        o.type = 'ball'; o.p = p; o.mir = zoneState(o.t) === 1; o.c = BALL_COLORS[Math.floor(rng() * BALL_COLORS.length)];
+        o.type = 'ball'; o.p = p; o.mir = zoneState(o.t) === 1; o.c = pickRoller();
       }
     }
     if (gm.bigBall) {
@@ -1160,7 +1217,7 @@
         if (!BIG.has(o.type) || zoneState(o.t) < 0 || isReserved(o.t)) continue;
         const gap = neighbourGap(i);
         if (gap.before < 0.6 || gap.after < 0.5 || rng() >= gm.bigBall) continue;
-        o.type = 'bigball'; o.p = p; o.mir = zoneState(o.t) === 1; o.c = BALL_COLORS[Math.floor(rng() * BALL_COLORS.length)];
+        o.type = 'bigball'; o.p = p; o.mir = zoneState(o.t) === 1; o.c = pickRoller();
       }
     }
     if (gm.prize) {
@@ -1185,6 +1242,55 @@
         if (b > a + 2 && !built.dark.some(d => a < d.end && b > d.start)) built.dark.push({ start: a, end: b });
       }
     }
+    // A few easy jellies on every stage (not the jelly stage itself): spread
+    // over the song, each on an empty beat with room on both sides, low and
+    // high in turn. Never in the dark, in a section or next to a flip portal.
+    if (gm.jellySprinkle !== false && !gm.jelly && p >= 0.3) {
+      const n = Math.max(2, Math.round(ctx.duration / 15)), jp = p < 0.38 ? 2 * p : p;
+      const times = built.obs.map(o => o.t).sort((a, c) => a - c);
+      const roomAt = t => !times.some(x => Math.abs(x - t) < 1.0);
+      let low = true;
+      for (let k = 0; k < n; k++) {
+        const target = ctx.duration * (0.12 + 0.76 * (k + 0.5) / n);
+        const b = taps.find(x => { const t = x + TAP_OFFSET; return x >= target && x < target + 5 && t < ctx.duration - 2 && roomAt(t) && zoneState(t) >= 0 && (zoneState(t) === 0) && !isReserved(t) && !built.dark.some(d => t > d.start - 1 && t < d.end + 1); });
+        let o;
+        if (b !== undefined) { o = { t: b + TAP_OFFSET, type: 'jelly' }; built.obs.push(o); times.push(o.t); }
+        else {
+          // No empty beat: turn a one-jump obstacle with room around it into the jelly.
+          // (the closest one to the spot, anywhere, but not right next to another jelly)
+          let i = -1, bestD = 1e9;
+          built.obs.forEach((x, j) => {
+            const dd = Math.abs(x.t - target);
+            if (dd >= bestD || x.t < 2.5 || !SMALL.has(x.type) || zoneState(x.t) !== 0 || isReserved(x.t)) return;
+            if (built.dark.some(d => x.t > d.start - 1 && x.t < d.end + 1) || built.obs.some(y => y.type === 'jelly' && Math.abs(y.t - x.t) < 3)) return;
+            const gp = neighbourGap(j); if (gp.before < 0.7 || gp.after < 0.55) return;
+            i = j; bestD = dd;
+          });
+          if (i < 0) continue;
+          o = built.obs[i]; o.type = 'jelly';
+        }
+        const t = o.t; Object.assign(o, { low, p: jp, free: !low, easy: true });
+        built.coins = built.coins.filter(c => Math.abs(c.t - t) > 0.22);
+        if (!low) built.coins.push({ t, y: GROUND - B / 2 });
+        low = !low;
+      }
+      built.obs.sort((a, c) => a.t - c.t);
+    }
+    // MOGU bites: empty beats (no note close by), at least four beats apart,
+    // where it may lunge at you from behind. Which of them it really uses is
+    // decided in play by how close it is.
+    built.bites = [];
+    if (gm.mogu) {
+      // (nothing at all close by: also no jelly to run under, no ledge, no lift)
+      const notes = built.obs.flatMap(o => o.span ? [o.t - o.span - TAP_OFFSET, o.t + o.span - TAP_OFFSET] : [o.t - TAP_OFFSET]);
+      let last = -9;
+      for (const b of taps) {
+        if (b < 5 || b > ctx.duration - 3 || b - last < 3 * p * 0.98 || isReserved(b + TAP_OFFSET) || zoneState(b) !== 0) continue;
+        // room for the jump: nothing from 0.35s before the beat to 0.6s after it
+        if (notes.some(x => x > b - 0.35 && x < b + 0.6) || built.obs.some(o => o.span && b + TAP_OFFSET > o.t - o.span - 0.3 && b + TAP_OFFSET < o.t + o.span + 0.7)) continue;
+        built.bites.push(b); last = b;
+      }
+    }
     // Chorus highlight: the stretch of beats with the strongest average onset.
     built.sabi = null;
     if (gm.sabi) {
@@ -1206,7 +1312,7 @@
   let carry = null, bounce = null, matches = 0;
   let rideState = null, chase = 0, chaseShow = 0, usedCannons = new Set();
   function setup(built, cfg) {
-    run = { p: built.p || 0.5, dark: built.dark || [], sabi: built.sabi || null, sections: built.sections || [], g: cfg.gimmick || {} };
+    run = { p: built.p || 0.5, dark: built.dark || [], sabi: built.sabi || null, sections: built.sections || [], g: cfg.gimmick || {}, bites: (built.bites || []).map(t => ({ t })) };
     reset(0);
   }
   function reset(offset) {
@@ -1218,6 +1324,8 @@
       if (o.type === 'door' && o.t > offset - 0.5) delete o.openAt;
       if (o.type === 'pad' && o.t > offset - 0.5) delete o.usedAt;
     }
+    for (const b of run.bites || []) if (b.t > offset - 0.5) { delete b.on; delete b.done; }
+    biteCount = 0; biteFx = null;
     if (!offset) usedCannons = new Set();
   }
   function safeOffset(offset) {
@@ -1226,19 +1334,38 @@
   }
   const active = () => STAGES[stageIdx]?.gimmick && stageIdx < NSTAGE;
 
-  function grant(d, auto) {
-    if (auto) { floats.push({ text: 'AUTO', x: player.x + B / 2, y: player.y - 20, l: 0.9, c: '#91a5c1' }); return; }
-    const k = d <= 0.07 ? 'PERFECT!' : d <= 0.13 ? 'GREAT' : d <= 0.21 ? 'GOOD' : 'OK';
-    combo++; maxCombo = Math.max(maxCombo, combo);
-    score += d <= 0.07 ? 300 : d <= 0.13 ? 200 : 100;
-    floats.push({ text: k === 'OK' ? 'FIRE!' : k, x: player.x + B / 2, y: player.y - 20, l: 1, c: '#ffd94a' });
-  }
 
   // MOGU: creeps closer all the time (chase 0..3, 3 = eaten); each coin you
   // pick up pushes it back a little. Timing grades play no part.
   const MOGU_CREEP = 0.08, MOGU_COIN = 0.08;
+  // Bites: two beats ahead MOGU decides (the closer, the more often) and opens
+  // wide; on the beat it snaps forward: be in the air (jump on that beat) or be eaten.
+  const biteEvery = () => chase >= 1 ? 1 : 2;   // close: every chance; far: every other one
+  let biteCount = 0, biteFx = null;
+  function biteStep() {
+    for (const b of run.bites) {
+      if (b.done) continue;
+      if (b.on === undefined && songPos >= b.t - 2 * run.p) b.on = (biteCount++ % biteEvery()) === 0;
+      if (b.on === undefined || songPos < b.t + 0.08) break;
+      b.done = true;
+      if (!b.on) continue;
+      biteFx = { at: songPos };
+      const onFloor = player.grounded && lastGdir === 1 && Math.abs(player.y + B - GROUND) < 3;
+      if (onFloor && !feverProtected() && performance.now() / 1000 >= invulnUntil) {
+        floats.push({ text: 'ガブッ！', x: player.x + B / 2, y: player.y - 30, l: 1.2, c: '#ff5a6e' });
+        die();
+        if (state === 'play') chase = Math.max(0, chase - 1);   // a shield saved the run
+      } else {
+        floats.push({ text: 'セーフ！', x: player.x + B / 2, y: player.y - 26, l: 0.7, c: '#9fe870' });
+        score += 100;
+      }
+    }
+  }
+  const nextBite = () => run.bites.find(b => !b.done && b.on);
   function moguStep(dt) {
     if (state !== 'play' || songPos < 2) return;
+    biteStep();
+    if (state !== 'play') return;
     chase += (run.g.moguCreep || MOGU_CREEP) * dt;
     if (chase >= 3) {
       floats.push({ text: 'パクッ！', x: player.x + B / 2, y: player.y - 30, l: 1.2, c: '#ff8f8f' });
@@ -1259,51 +1386,48 @@
     if (run.g.pad && padStep()) return true;
     if (run.g.arm && carryStep(now)) return true;
     if (!run.g.cannon) return false;
-    if (!rideState) {
-      if (lastGdir !== 1) return false;
-      const ob = level.find(o => o.type === 'cannon' && !usedCannons.has(o.sec) && songPos >= o.t && songPos < o.t + 0.3);
-      if (!ob) return false;
+    const board = (ob) => {
       usedCannons.add(ob.sec);
       rideState = { sec: ob.sec, ob, phase: 'ride', since: now };
-      player.y = (ob.y || GROUND) - B; player.vy = 0; player.grounded = true; tapAt = -9;
-      if (ob.relay) floats.push({ text: 'バトン！', x: player.x + B / 2, y: player.y - 24, l: 0.9, c: CANNON_COLORS[ob.color].c });
+      player.y = ob.y - B; player.vy = 0; player.grounded = true; tapAt = -9;
+      if (ob.idx > 0) floats.push({ text: 'バトン！', x: player.x + B / 2, y: player.y - 24, l: 0.8, c: CANNON_COLORS[ob.color].c });
+    };
+    if (!rideState) {
+      if (lastGdir !== 1) return false;
+      const ob = level.find(o => o.type === 'cannon' && o.idx === 0 && !usedCannons.has(o.sec) && songPos >= o.t && songPos < o.t + 0.3);
+      if (!ob) return false;
+      board(ob);
     }
     const r = rideState, ob = r.ob;
     if (r.phase === 'ride') {
-      player.y = (ob.y || GROUND) - B; player.vy = 0; player.grounded = true;
-      let k = 0, best = 9;
-      ob.aims.forEach((a, i) => { const dd = Math.abs(songPos - a); if (dd < best) { best = dd; k = i; } });
-      r.aim = AIM_ORDER[k % 3];
-      const tapped = now - tapAt < 0.1 && tapAt > r.since;
-      const auto = songPos > ob.aims[5] + 0.25;
-      if (tapped || auto) {
-        let lvl = r.aim, d = best;
-        if (auto) { lvl = CANNON_COLORS[ob.color].safe; d = 0; }
+      player.y = ob.y - B; player.vy = 0; player.grounded = true;
+      const w = songPos - ob.fire, tapped = now - tapAt < 0.12 && tapAt > r.since;
+      if (tapped && w < -0.24) tapAt = -9;   // far too early: ignored, tap again on the beat
+      else if (tapped || (w > 0.24 && (feverProtected() || performance.now() / 1000 < invulnUntil))) {
         tapAt = -9;
-        r.phase = 'fly'; r.from = songPos; r.lvl = lvl;
-        r.y0 = (ob.y || GROUND) - B; r.y1 = TIER_TOP[lvl] - B; r.h = B * 1.4 + Math.max(0, r.y0 - r.y1) * 0.35 + (lvl === 2 ? B * 0.6 : 0);
-        grant(d, auto);
+        if (tapped) judge();   // the shot is a note: PERFECT / GREAT / GOOD like a jump
+        r.phase = 'fly'; r.from = songPos; r.to = Math.max(songPos + 0.2, ob.next.t);
+        r.y0 = ob.y - B; r.y1 = ob.next.y - B; r.h = B * 1.1 + Math.max(0, r.y0 - r.y1) * 0.3;
         rings.push({ r: B, a: 0.7 }); shake = 4;
+      } else if (w > 0.24) {
+        // Missed the beat: the cannon tips you out.
+        r.phase = 'miss'; player.vy = -120; player.grounded = false;
+        floats.push({ text: 'あっ…', x: player.x + B / 2, y: player.y - 16, l: 0.9, c: '#9a8fb8' });
       }
       return true;
     }
     if (r.phase === 'miss') {
-      // Shot to the wrong height: no platform there; fall into the hole below.
       player.vy += GRAV * dt; player.y += player.vy * dt; player.grounded = false;
       if (player.y > DH + B) { rideState = null; die({ fall: true }); if (state === 'play') { player.y = GROUND - B; player.vy = 0; player.grounded = true; } }
       return true;
     }
     if (r.phase === 'fly') {
-      const s = (songPos - r.from) / ob.fl;
-      if (s >= 1 && r.lvl !== CANNON_COLORS[ob.color].safe && !feverProtected() && performance.now() / 1000 >= invulnUntil) {
-        r.phase = 'miss'; player.vy = 0;
-        floats.push({ text: 'あっ…', x: player.x + B / 2, y: player.y - 16, l: 0.9, c: '#9a8fb8' });
-        return true;
-      }
+      const s = Math.min(1, (songPos - r.from) / (r.to - r.from));
       if (s >= 1) {
-        player.y = r.y1; player.vy = 0; player.grounded = true; landAt = now;
-        rideState = null;
-        return false;   // normal collision now decides: safe tier, spikes or the pit
+        if (ob.last) { player.y = r.y1; player.vy = 0; player.grounded = true; landAt = now; rideState = null; return false; }
+        const nx = level.find(o => o.type === 'cannon' && o.chain === ob.chain && o.idx === ob.idx + 1);
+        if (nx) { board(nx); return true; }
+        rideState = null; return false;
       }
       player.grounded = false;
       player.y = r.y0 + (r.y1 - r.y0) * s - 4 * r.h * s * (1 - s);
@@ -1430,9 +1554,11 @@
   // under it until the release beat, then fall past the spikes.
   function carryStep(now) {
     if (!carry) {
-      if (player.grounded || lastGdir !== 1 || !(isDown || now - tapAt < 0.12)) return false;
-      const pcx = player.x + B / 2, pcy = player.y + B / 2;
-      const ob = level.find(o => o.type === 'arm' && !o.used && Math.abs(xAt(o.t) - pcx) <= 34 && Math.abs(pcy - o.y) <= 46);
+      // The jump itself is the catch: jumping on the beat carries you up to the
+      // arm, which grabs you as you pass (no second tap or hold needed).
+      if (player.grounded || lastGdir !== 1) return false;
+      const pcx = player.x + B / 2, pcy = player.y + B / 2, reach = Math.max(40, 0.14 * SPEED);
+      const ob = level.find(o => o.type === 'arm' && !o.used && Math.abs(xAt(o.t) - pcx) <= reach && Math.abs(pcy - o.y) <= B * 1.6);
       if (!ob) return false;
       ob.used = true; tapAt = -9; carry = { ob };
       combo++; maxCombo = Math.max(maxCombo, combo); score += 200;
@@ -1571,19 +1697,23 @@
       g.strokeStyle = '#c7d2e8'; g.lineWidth = 2; g.beginPath(); g.moveTo(pcx, 18); g.lineTo(pcx, carry.ob.y - B * 0.7); g.stroke();
       drawArm(g, pcx, carry.ob.y, true);
     }
-    // Cannon ride: cannon under the player, barrel and the landing guide.
+    // Cannon ride: the cannon with the player, aimed at the next one; the arc
+    // to it; and a ring closing in on the cannon: tap when it lands.
     if (rideState && rideState.phase === 'ride') {
-      const ob = rideState.ob, col = CANNON_COLORS[ob.color].c, lvl = rideState.aim;
-      const ang = { 2: -1.05, 1: -0.6, 0: -0.25 }[lvl];
-      const lx = pcx + ob.fl * SPEED, ly = TIER_TOP[lvl] - B / 2;
-      g.save(); g.strokeStyle = lvl === CANNON_COLORS[ob.color].safe ? '#ffd94a' : '#ffffff88'; g.lineWidth = 2; g.setLineDash([5, 6]);
-      const by = ob.y || GROUND;
-      g.beginPath(); g.moveTo(pcx, by - B * 0.6);
-      g.quadraticCurveTo((pcx + lx) / 2, Math.min(by - B * 0.6, ly) - B * 2.2, lx, ly); g.stroke(); g.restore();
-      drawCannon(g, pcx, by, col, ang);
-      g.fillStyle = '#ffffff'; g.font = '800 13px "M PLUS 1p", sans-serif'; g.textAlign = 'center';
-      g.lineWidth = 3; g.strokeStyle = '#2a1650'; const lbl = `${CANNON_COLORS[ob.color].name}の大砲 ・ 砲身：${AIM_NAME[lvl]}`;
-      g.strokeText(lbl, pcx, by - B * 2.4); g.fillText(lbl, pcx, by - B * 2.4); g.textAlign = 'left';
+      const ob = rideState.ob, col = CANNON_COLORS[ob.color].c, by = ob.y, cy = by - B * 0.45;
+      const tx = xAt(ob.next.t), ty = ob.next.y - B * 0.45;
+      g.save(); g.strokeStyle = '#ffd94a'; g.lineWidth = 2.5; g.setLineDash([5, 6]);
+      g.beginPath(); g.moveTo(pcx, cy); g.quadraticCurveTo((pcx + tx) / 2, Math.min(cy, ty) - B * 2, tx, ty); g.stroke(); g.restore();
+      drawCannon(g, pcx, by, col, Math.atan2(ty - cy, Math.max(B, tx - pcx)));
+      const left = ob.fire - songPos;
+      if (left > -0.1 && left < run.p * 1.2) {
+        const rr = B * 0.75 + Math.max(0, left) * 90;
+        g.save(); g.globalAlpha = Math.min(1, (run.p * 1.2 - left) / 0.25);
+        g.strokeStyle = Math.abs(left) < 0.06 ? '#ffffff' : '#ffd94a'; g.lineWidth = 4;
+        g.beginPath(); g.arc(pcx, cy, rr, 0, 6.283); g.stroke();
+        g.lineWidth = 2; g.strokeStyle = '#ffd94a88'; g.beginPath(); g.arc(pcx, cy, B * 0.75, 0, 6.283); g.stroke();
+        g.restore();
+      }
     }
     // Mogu Mogu: the mouth behind the player.
     if (run.g.mogu) {
@@ -1593,16 +1723,37 @@
       g.save();
       if (lastGdir === -1) { g.translate(0, DH); g.scale(1, -1); }   // on the ceiling with the player in a flip zone
       // Each MISS brings the green Cosmii closer, and it lunges forward on the beat.
-      const R = B * 1.5, lunge = Math.abs(Math.sin(beatPh * Math.PI));
+      const R = B * 1.5, nb = nextBite(), warn = nb ? Math.max(0, 1 - (nb.t - songPos) / (2 * run.p)) : 0;
+      const snap = biteFx ? Math.max(0, 1 - (songPos - biteFx.at) / 0.35) : 0;
+      let lunge = Math.abs(Math.sin(beatPh * Math.PI)) * (1 - warn * 0.8);
       const near = Math.min(1, chaseShow / 2.2), x0 = -R * 0.3, x1 = player.x - B * 0.5 - R * 1.15;
-      const cx = x0 + (x1 - x0) * near + lunge * B * 0.55, cy = GROUND - R - lunge * B * 0.2;
+      // Winding up for a bite: it pulls back a little; the bite throws it forward to the player.
+      const cx = x0 + (x1 - x0) * near + lunge * B * 0.55 - warn * B * 0.4 + snap * Math.max(B, player.x - (x0 + (x1 - x0) * near) - R * 0.6), cy = GROUND - R - lunge * B * 0.2;
       if (!window.reducedEffects) {   // speed lines behind it
         g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 3; g.lineCap = 'round';
         for (let k = 0; k < 3; k++) { const y = cy - R * 0.4 + k * R * 0.4, l = B * (0.5 + 0.5 * lunge); g.beginPath(); g.moveTo(cx - R * 1.1 - l, y); g.lineTo(cx - R * 1.1, y); g.stroke(); }
         g.lineCap = 'butt';
       }
-      drawMoguSide(g, cx, cy, R, lunge, (open - 0.35) / 0.35, songPos);
+      // Running: munching on the beat (もぐもぐ). Warning: "あーん", leaning in with arms out. Bite: mouth shut.
+      drawMoguSide(g, cx, cy, R, lunge, warn > 0 ? Math.min(1, 0.5 + warn) : snap > 0 ? 0 : 0.15 + 0.35 * Math.abs(Math.sin(beatPh * Math.PI)), songPos, warn > 0 ? Math.min(1, warn * 1.5) : snap);
+      if (warn > 0.15 && state === 'play') {
+        g.fillStyle = '#ff3355'; g.font = '900 15px "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.lineWidth = 3; g.strokeStyle = '#ffffff';
+        const ty = cy - R * 1.75; g.strokeText('あーん', Math.max(34, cx + R * 0.4), ty); g.fillText('あーん', Math.max(34, cx + R * 0.4), ty); g.textAlign = 'left';
+      }
+      // The bite's cue at the player's feet: a red ring closing in, landing on the beat.
+      if (nb && warn > 0 && state === 'play') {
+        const fx = player.x + B / 2, left = nb.t - songPos, rr = 10 + Math.max(0, left) * 70;
+        g.strokeStyle = left < 0.06 ? '#ffffff' : '#ff3355'; g.lineWidth = 3.5;
+        g.beginPath(); g.ellipse(fx, GROUND + 6, rr, rr * 0.4, 0, 0, 6.283); g.stroke();
+        g.fillStyle = '#ff3355'; g.font = '900 15px "M PLUS 1p", sans-serif'; g.textAlign = 'center';
+        g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.strokeText('ガブッ！', fx, GROUND + 34); g.fillText('ガブッ！', fx, GROUND + 34); g.textAlign = 'left';
+      }
       g.restore();
+      // Close behind you: the screen's edges pulse red with the beat.
+      if (chaseShow > 1.6 && state === 'play') {
+        const a2 = Math.min(1, (chaseShow - 1.6) / 1.2) * (0.35 + 0.35 * Math.abs(Math.sin(beatPh * Math.PI)));
+        g.save(); g.globalAlpha = a2; g.drawImage(dangerEdge(), 0, 0, W, DH); g.restore();
+      }
       // The rule, always on screen: a gauge of how close it is (3 = eaten).
       if (state === 'play' || state === 'ready' || state === 'paused') {
         const x0 = W / 2 - 92, y = lastGdir === -1 ? GROUND - 100 : 104, danger = chase >= 2.2;   // ceiling run: gauge on the free floor side
@@ -1617,7 +1768,7 @@
         g.fillStyle = '#e0445a'; g.font = '900 12px sans-serif'; g.textAlign = 'center'; g.fillText('×', bx + bw + 14, y + 4);
         g.restore();
         g.textAlign = 'center'; g.font = '800 13px "M PLUS 1p", sans-serif'; g.lineWidth = 3; g.strokeStyle = '#2a1650';
-        const msg = chase >= 2.2 ? 'コインを取って逃げて！' : songPos < 7 ? 'コインを取ると逃げられる' : '';
+        const msg = chase >= 2.2 ? 'コインを取って逃げて！' : songPos < 7 ? '「ガブッ」の拍で跳ぶ・コインで離れる' : '';
         if (msg) { const my = y + 34; g.fillStyle = chase >= 2 ? '#ff8f8f' : '#ffffff'; g.strokeText(msg, W / 2, my); g.fillText(msg, W / 2, my); }
         g.textAlign = 'left';
       }
@@ -1663,7 +1814,9 @@
       else if (key === 'cake') { g.fillStyle = '#f7d9a8'; g.fillRect(-B * 0.4, -B * 0.05, B * 0.8, B * 0.35); g.fillStyle = '#fff'; g.fillRect(-B * 0.4, -B * 0.2, B * 0.8, B * 0.16); g.strokeStyle = OUTL; g.lineWidth = 2; g.strokeRect(-B * 0.4, -B * 0.2, B * 0.8, B * 0.5); g.fillStyle = '#e8364a'; g.beginPath(); g.arc(0, -B * 0.28, B * 0.1, 0, 7); g.fill(); }
       g.restore();
     },
-    inspect: () => ({ sabi: run.sabi, inSabi: inSabi(), chase, carrying: !!carry, riding: rideState?.phase || null, bouncing: !!bounce, matches, aim: rideState?.aim ?? null, dark: inDark(), p: run.p, sections: run.sections.slice() }),
+    // Bake what a run may need later (3Match: every block colour, lit or not).
+    prewarm() { if (run.g?.match) for (const k of ['plain', ...TILE_FACES]) tileBlock(k); if (run.dark?.length) darkLight(); if (run.g?.mogu) dangerEdge(); },
+    inspect: () => ({ sabi: run.sabi, inSabi: inSabi(), chase, carrying: !!carry, riding: rideState?.phase || null, bouncing: !!bounce, matches, aim: rideState?.aim ?? null, dark: inDark(), p: run.p, sections: run.sections.slice(), biteTimes: (run.bites || []).map(b => b.t), bitesOn: (run.bites || []).filter(b => b.on).length }),
     WORLDS, PLAN,
   };
 })();

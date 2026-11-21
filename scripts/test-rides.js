@@ -4,7 +4,7 @@ const server=http.createServer((req,res)=>{
   let file=path.resolve(root,'.'+new URL(req.url,'http://localhost').pathname);
   if(req.url.split('?')[0].endsWith('/'))file=path.join(file,'index.html');
   if(!file.startsWith(root+path.sep)||!fs.existsSync(file)){res.writeHead(404);res.end();return;}
-  res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);
+  res.setHeader('Content-Type',({'.html':'text/html','.js':'application/javascript','.css':'text/css','.png':'image/png','.jpg':'image/jpeg','.mp3':'audio/mpeg'})[path.extname(file)]||'application/octet-stream');require('./serve-file')(req,res,file);
 });
 (async()=>{
   await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();

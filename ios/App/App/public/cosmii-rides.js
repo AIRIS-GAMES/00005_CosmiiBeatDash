@@ -11,7 +11,7 @@
   // An interrupted purchase is rolled back before it can be retried.
   try{const raw=localStorage.getItem(JOURNAL);if(raw){const j=JSON.parse(raw);restore(COINS,j.coins);restore(KEY,j.rides);localStorage.removeItem(JOURNAL);}}catch{storageOK=false;}
   function read(){
-    try{const s=JSON.parse(localStorage.getItem(KEY)||'{}'),owned=['run',...['skate','bike'].filter(id=>Array.isArray(s.owned)&&s.owned.includes(id))];return {owned,selected:owned.includes(s.selected)?s.selected:'run'};}
+    try{const s=JSON.parse(localStorage.getItem(KEY)||'{}'),owned=['run',...['skate','bike'].filter(id=>(typeof devUnlock!=='undefined'&&devUnlock)||Array.isArray(s.owned)&&s.owned.includes(id))];return {owned,selected:owned.includes(s.selected)?s.selected:'run'};}
     catch{return {owned:['run'],selected:'run'};}
   }
   let saved=read();

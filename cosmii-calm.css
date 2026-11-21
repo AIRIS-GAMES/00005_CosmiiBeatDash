@@ -1,5 +1,5 @@
 /* Quiet night palette: keep readable foregrounds separate from scenery. */
-#menu,#stageSelect{background-image:linear-gradient(#10162b88,#10162b99),url('Asset/world/arcade-neon.png');background-blend-mode:normal;}
+#menu,#stageSelect{background-image:linear-gradient(#10162b88,#10162b99),url('Asset/world/arcade-neon.jpg');background-blend-mode:normal;}
 .world-scenery-frame{filter:saturate(.64) brightness(.66);}
 .world-boundary img{filter:saturate(.65) brightness(.72);}
 .opening-image{filter:saturate(.72) brightness(.8);}

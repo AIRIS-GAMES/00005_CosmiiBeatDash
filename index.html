@@ -268,7 +268,11 @@ const STAGES = Array.from({ length: NSTAGE }, (_, i) => ({
 }));
 // Where a stage ends: the strongest beat within 3s of its target length, so the
 // cut lands on a downbeat. Charts, progress % and the finish gate all use this.
+// The goal always sits 0.6s before the audio's own end: a media element can
+// stop a few frames short of its reported length, and the goal must still be reached.
+const END_MARGIN = 0.6;
 function stageEnd(cfg, bts, full) {
+  full = Math.max(1, full - END_MARGIN);
   if (!cfg || !cfg.length || cfg.length >= full - 1) return full;
   let best = null;
   for (const b of bts) {
@@ -363,7 +367,11 @@ const setHiScore = (i, s) => { if (i < NSTAGE && s > hiScore(i,runRecordMode)) {
 const clearedCount = () => { let c = 0; for (let i = 0; i < NSTAGE; i++) if (best(i) >= 100) c++; return c; };
 const localStageTesting = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
   && !window.Capacitor?.isNativePlatform?.();
-const unlocked = i => localStageTesting || i === 0 || best(i - 1) >= 60;
+// Developer builds: the iOS Simulator (flag injected by MainViewController,
+// compiled in for the simulator only) and local web testing open everything.
+// (?dev=1 does the same in a browser.) Local web testing opens the stages only.
+const devUnlock = window.COSMII_DEV_UNLOCK === true || /[?&]dev=1\b/.test(location.search);
+const unlocked = i => devUnlock || localStageTesting || i === 0 || best(i - 1) >= 60;
 let skinIdx = Math.max(0, Math.min(SKINS.length - 1, +(localStorage.getItem('rdash_skin') || 0)));
 const totalCoins = () => +(localStorage.getItem('rdash_coins') || 0);
 const addCoins = n => localStorage.setItem('rdash_coins', totalCoins() + n);
@@ -371,7 +379,7 @@ const spendCoins = n => { const t = totalCoins(); if (t < n) return false;
   localStorage.setItem('rdash_coins', t - n); return true; };
 const skinBought = j => localStorage.getItem('rdash_skinbuy_' + j) === '1';
 const skinPrice = j => SKINS[j].need * 100;
-const skinUnlocked = j => clearedCount() >= SKINS[j].need || skinBought(j);
+const skinUnlocked = j => devUnlock || clearedCount() >= SKINS[j].need || skinBought(j);
 const currentSkin = () => SKINS[Math.max(0, Math.min(SKINS.length - 1, skinIdx))] || SKINS[0];
 const skinEffect = name => currentSkin().effect === name;
 let bootDone = false;
@@ -915,6 +923,30 @@ function setupRun(i, buf, bts) {
   showTapGuide = i === 0 && best(0) < 100;   // read storage once per run, not every frame
   state = 'ready'; songPos = -LEAD; attemptOffset = 0;
   player.y = GROUND - B; player.rot = 0;
+  prewarmStage();
+}
+// Draw each kind of obstacle of this stage once before the run starts. A first
+// draw decodes images and bakes caches (up to ~50ms on a phone): done here, on
+// the ready screen, instead of as a hitch in the middle of play.
+function prewarmStage() {
+  const saved = { level, songPos, state, flipZones };
+  try {
+    window.worldSkins?.prewarm?.();
+    window.stageGimmicks?.prewarm?.();
+    const seen = new Set(), sample = [];
+    for (const o of level) if (!seen.has(o.type + (o.low === false ? 'h' : '') + (o.c || ''))) { seen.add(o.type + (o.low === false ? 'h' : '') + (o.c || '')); sample.push(o); }
+    songPos = 0; state = 'play'; flipZones = [];
+    level = sample.map((o, k) => {
+      const dt = 0.25 + k * 0.04 - o.t, c = { ...o, t: o.t + dt };
+      for (const key of ['from', 'to', 'release', 'fire', 'anchor']) if (typeof c[key] === 'number') c[key] += dt;
+      if (c.next) c.next = { ...c.next, t: c.next.t + dt };
+      return c;
+    });
+    draw();
+    // ...and upside down, if this stage flips gravity.
+    if (saved.flipZones.length) { flipZones = [{ start: -5, end: 5 }]; lastGdir = -1; draw(); lastGdir = 1; }
+  } catch (e) { /* warming is best effort */ }
+  finally { level = saved.level; songPos = saved.songPos; state = saved.state; flipZones = saved.flipZones; }
 }
 
 function backToMenu() {
@@ -1329,11 +1361,19 @@ function obstacleRects(ob) {
 
 // ============ 更新 ============
 let prevT = performance.now();
+let lastMediaPos = -99, mediaStall = 0;
 function update(dt, frameSongPos = null) {
   if (state !== 'play' && state !== 'dead') return;
 
   if (state === 'play') {
-    songPos = frameSongPos === null ? musicPosition() : frameSongPos;
+    let pos = frameSongPos === null ? musicPosition() : frameSongPos;
+    // Never stop short of the goal: if the music ends or stalls in the last
+    // seconds, keep the run going on the frame clock until the goal.
+    if (frameSongPos === null) {
+      if (pos > lastMediaPos + 1e-4 || pos < lastMediaPos - 1) { lastMediaPos = pos; mediaStall = 0; } else mediaStall += dt;
+      if (songPos > duration - 4 && (mediaStall > 0.2 || window.musicEnded?.())) pos = Math.max(pos, songPos + dt);
+    }
+    songPos = pos;
     while (beatIdx < beats.length && beats[beatIdx].t <= songPos) {
       pulse = 1; beatIdx++;
       // Beat timing remains active; no continuous visual pulse around the player.
@@ -1805,7 +1845,7 @@ function drawJumpMarks() {
   for (let k = Math.max(0, noteJudgeIdx - 1); k < level.length; k++) {
     const ob = level[k], tap = ob.t - TAP_OFFSET, dx = (tap - songPos) * SPEED;
     if (dx > W) break;
-    if (dx < -B || isFreeNote(ob) || judgedNotes.has(k)) continue;
+    if (dx < -B || isFreeNote(ob) || judgedNotes.has(k) || ob.noMark) continue;   // noMark: the gimmick shows its own cue
     const x = feet + dx, f = inFlipT(tap), near = Math.max(0, 1 - Math.abs(dx) / 60);
     const y = ob.markY ?? (f ? CEIL : GROUND), s = f ? -1 : 1;   // markY: a raised floor (cannon rail)
     ctx.save();
