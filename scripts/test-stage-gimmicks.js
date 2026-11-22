@@ -43,11 +43,13 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
    // buffered for 0.1s exactly as a real pointerdown is.
    const realNow=performance.now;performance.now=()=>(songPos+1000)*1000;
    try{
+   let frames=0;
    for(songPos=-LEAD;songPos<duration+.2&&state==='play';){
     songPos+=step;
     while(next<taps.length&&taps[next]<=songPos){tapAt=songPos+1000;next++;}
     isDown=taps.some(t=>songPos>=t&&songPos<t+press);
     update(step,songPos);
+    if(++frames%12===0)draw();   // drawing runs too: a throw in any gimmick's art fails the test
     if(player.grounded&&player.y+B<=GROUND-B*2.4+1&&level.some(o=>o.type==='ledge'&&songPos>o.from&&songPos<o.to))upper=true;
    }
    }finally{performance.now=realNow;}
@@ -100,15 +102,25 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  const sabi=await page.evaluate(()=>{const out=[];for(let i=0;i<20;i++){setupRun(i,{duration:AUDIO_TRACKS[STAGES[i].file].duration},[]);practice=false;state='play';const z=stageGimmicks.inspect().sabi;if(!z){out.push(i+1);continue;}
   songPos=(z.start+z.end)/2;const a=stageGimmicks.mult();songPos=z.start-1;const b=stageGimmicks.mult();if(a!==2||b!==1)out.push(i+1);}return out;});
  assert.deepEqual(sabi,[],'every stage has a chorus highlight that doubles only inside it');
- // Mogu: it creeps closer over time and catches you; coins push it back.
- const mogu=await page.evaluate(()=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=true;startAttempt(0);state='play';songPos=5;
-  for(let k=0;k<1200;k++)stageGimmicks.ownsPlayer(1/60,0);const near=stageGimmicks.inspect().chase;
-  for(let k=0;k<10;k++)stageGimmicks.onCoin();const back=stageGimmicks.inspect().chase;
-  for(let k=0;k<3600&&state==='play';k++)stageGimmicks.ownsPlayer(1/60,0);return {creeps:near>1,coinsHelp:back<near-0.5,state};});
- assert.deepEqual(mogu,{creeps:true,coinsHelp:true,state:'dead'});
+ // Mogu: on a bite beat you must be in the air; standing on the road there gets you eaten.
+ const bite=async jump=>page.evaluate(jump=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=false;startAttempt(0);state='play';
+  const b=stageGimmicks.inspect().biteTimes[0];const taps=level.filter(o=>!isFreeNote(o)&&o.t-TAP_OFFSET<b+1.2).map(o=>o.t-TAP_OFFSET);if(jump)taps.push(b);taps.sort((x,y)=>x-y);
+  // force this bite to be a real one
+  songPos=-LEAD;performance.now=()=>(songPos+1000)*1000;const step=1/240;
+  while(state==='play'&&songPos<b+0.6){songPos+=step;while(taps.length&&taps[0]<=songPos){tapAt=songPos+1000;taps.shift();}isDown=false;update(step,songPos);draw();}
+  for(let i=0;i<40;i++){songPos+=step;update(step,songPos);draw();}   // the eaten burst draws too
+  return {state,bitesOn:stageGimmicks.inspect().bitesOn};},jump);
+ const eaten=await bite(false),safe=await bite(true);
+ assert.equal(eaten.bitesOn>=1,true,'the first bite chance is used');
+ assert.equal(eaten.state,'dead','standing on the road on a bite beat: eaten');
+ assert.equal(safe.state,'play','jumping on the bite beat: safe');
  // Retry resumes before a section, never inside it.
  const resume=await page.evaluate(()=>{setupRun(6,{duration:AUDIO_TRACKS[STAGES[6].file].duration},[]);const s=stageGimmicks.inspect().sections[0];return {s,off:stageGimmicks.safeOffset((s.from+s.to)/2)};});
  assert(resume.off<=resume.s.from,'revive offset moves before the cannon section');
+ // Every pair of tap marks leaves real time on the ground between them (no mark one
+ // airtime after the last: that cannot be jumped by a person).
+ const tight=await page.evaluate(()=>{const o=[];for(let i=0;i<20;i++){setupRun(i,{duration:AUDIO_TRACKS[STAGES[i].file].duration},[]);const m=level.filter(x=>!isFreeNote(x)&&!x.noMark).map(x=>x.t);for(let k=1;k<m.length;k++)if(m[k]-m[k-1]<JUMP_T+0.1-1e-6)o.push(`stage ${i+1} @${m[k-1].toFixed(2)} gap ${(m[k]-m[k-1]).toFixed(2)}`);}return o;});
+ assert.deepEqual(tight,[],'tap marks too close together');
  // Charts are deterministic, and stages without a gimmick are unchanged.
  const det=await page.evaluate(()=>{const f=i=>{const s=STAGES[i];return JSON.stringify(buildLevel(RHYTHM_BEATS[s.file].beats,AUDIO_TRACKS[s.file].duration,i+1,s.diff,s.gimmick||null));};return {same:f(7)===f(7),plain:JSON.stringify(STAGES[0].gimmick)==='{"sabi":true}'&&STAGES[19].world==='Rhythm Dash'};});
  assert.deepEqual(det,{same:true,plain:true});

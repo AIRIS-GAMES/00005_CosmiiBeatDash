@@ -21,7 +21,7 @@
     for(let n=3;n>0;n--){if(request!==token||state!=='paused')return;$('pause-title').textContent=String(n);await new Promise(r=>setTimeout(r,700));}
     if(request!==token||state!=='paused'||document.hidden)return;
     const now=performance.now()/1000;invulnUntil=now+remainingShield;feverGraceUntil=now+remainingGrace;
-    isDown=false;tapAt=-9;prevT=performance.now();state='play';playTrack(Math.max(0,songPos));panel.hidden=true;
+    isDown=false;tapAt=-9;prevT=performance.now();state='play';if(!window.resumeCountdown?.())playTrack(Math.max(0,songPos));panel.hidden=true;
   }
   $('resume-game').onclick=resume;
   $('leave-game').onclick=()=>{token++;panel.hidden=true;backToMenu();};

@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v138-1.07b18';
+const CACHE = 'rdash-v141-1.07b21';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
@@ -38,7 +38,7 @@ const ASSETS = [
   'perf-hud.js',
   'Asset/audio/tracks.js',
   'Asset/audio/rhythm-beats.js',
-  ...['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav'].map(file=>'Asset/audio/'+file),
+  ...['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav','perfect.wav','great.wav','good.wav','miss.wav'].map(file=>'Asset/audio/'+file),
   ...['rescue','rescue-normal','cannon','roll','sudoku','catch','mogu','match'].map(id=>'Asset/audio/world-'+id+'.mp3'),
   'ui.css',
   'cosmii-world.js',
@@ -54,6 +54,8 @@ const ASSETS = [
   'cosmii-calm.css',
   'cosmii-tutorial.js',
   'cosmii-tutorial.css',
+  'cosmii-fx.js',
+  'cosmii-fx.css',
   'Asset/world/memory-photos.jpg',
   ...['Exo2','Exo2-Italic','MPLUS1p-Medium','MPLUS1p-Bold','MPLUS1p-ExtraBold'].map(name=>'Asset/fonts/'+name+'.woff2'),
   ...['ui-panel.png','ui-progress.png','ui-words.png','ui-japanese.png'].map(file=>'Asset/world/'+file),

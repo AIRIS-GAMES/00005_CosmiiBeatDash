@@ -7,14 +7,15 @@
    balance, and Asset/audio/tracks.js carries a per-track BGM gain that puts
    every stage at the same effective peak. Keep these in step with
    scripts/audio-levels.js - test-audio-levels.js fails if they drift. */
-const SFX_GAIN={death:.45,clear:.5,coin:.4,orb:.45,fever:.5};
+const SFX_GAIN={death:.45,clear:.5,coin:.4,orb:.45,fever:.5,perfect:.27,great:.26,good:.25,miss:.25};
 /* Pool depth per effect. Restarting a media element is expensive on iOS, so the
    task that starts a sound does nothing but play(); rewinding happens on
    'ended'. One voice per effect; only one effect may sound at any time. */
-const SFX_POOL_SIZE={death:1,clear:1,coin:0,orb:1,fever:1};
+const SFX_POOL_SIZE={death:1,clear:1,coin:0,orb:1,fever:1,perfect:1,great:1,good:1,miss:1};
 /* Only the high-frequency effects hold a warm media pipeline. */
-const SFX_EAGER_PRELOAD=['orb'];
+const SFX_EAGER_PRELOAD=['orb','perfect','great','good','miss'];
 const MAX_CONCURRENT_SFX=1;
+const SFX_PRIORITY=['death','clear','fever'],SFX_TICKS=['perfect','great','good','miss'];
 const SFX_RETRIGGER_MS=100;
 // Used only if a track carries no measured gain; see setMusicTrack.
 const FALLBACK_MUSIC_GAIN=0.3;
@@ -27,7 +28,7 @@ const effects=Object.fromEntries(Object.entries(SFX_GAIN).map(([name,gain])=>{
   const audio=new Audio('Asset/audio/'+name+'.wav');
   audio.preload=SFX_EAGER_PRELOAD.includes(name)?'auto':'none';
   audio.volume=gain*audioPrefs.soundVolume;audio.setAttribute('playsinline','');
-  const voice={audio,busy:false,startedAt:0,token:0};
+  const voice={name,audio,busy:false,startedAt:0,token:0};
   // Rewinding here keeps the start task down to a single play() call.
   audio.addEventListener('ended',()=>{voice.busy=false;try{audio.currentTime=0;}catch{}});
   return voice;
@@ -49,6 +50,7 @@ function ensureMusicElement(){
 // rather than to 1.0, which would play roughly four times too hot and could
 // clip against the effects. test-audio-levels.js fails if a gain is missing.
 function setMusicTrack(track){
+ if(previewing){const p=previewing;previewing=null;playbackGeneration++;p.onEnd?.();}
  currentMusicUrl=assetUrl(track.playback);
  currentMusicGain=typeof track.gain==='number'?track.gain:FALLBACK_MUSIC_GAIN;
  const el=ensureMusicElement();el.pause();resetMusicClock();el.volume=currentMusicGain*audioPrefs.musicVolume;
@@ -73,9 +75,11 @@ function playSfx(name){
  if(!audioPrefs.sound||audioPrefs.soundVolume===0||document.hidden||!audioUnlocked)return;
  const entry=effects[name],now=performance.now();
  if(now-entry.lastStart<SFX_RETRIGGER_MS)return;
- const active=activeVoices();
+ let active=activeVoices();
  // Keep the voices already sounding. Stealing adds pause + seek + play work
- // exactly when effects are busiest; excess requests are dropped instead.
+ // exactly when effects are busiest; excess requests are dropped instead -
+ // except that death / clear / fever cut a judgement tick short (they matter more).
+ if(active.length>=MAX_CONCURRENT_SFX&&SFX_PRIORITY.includes(name)){for(const v of active)if(SFX_TICKS.includes(v.name))releaseVoice(v);active=activeVoices();}
  if(active.length>=MAX_CONCURRENT_SFX)return;
  // A free voice is already rewound, so the common path costs one play() call.
  const voice=entry.voices.find(v=>!v.busy);
@@ -94,7 +98,42 @@ function playSfx(name){
 function stopEffects(){
  for(const entry of Object.values(effects)){entry.lastStart=-Infinity;for(const voice of entry.voices)releaseVoice(voice);}
 }
-function stopMusic(){playbackGeneration++;if(musicEl)musicEl.pause();resetMusicClock();stopEffects();}
+// Fade the BGM out over `seconds`, then stop it (the goal's afterglow). Any
+// later stop or play (a new generation) cancels the fade.
+function fadeOutMusic(seconds){
+ if(!musicEl||musicEl.paused){stopMusic();return;}
+ const generation=++playbackGeneration,el=musicEl,v0=el.volume,t0=performance.now();
+ // iOS ignores element volume: there the song simply plays on under the
+ // result card until it ends or the player leaves (any stop cancels it).
+ try{el.volume=v0*0.5;}catch{}
+ const canFade=Math.abs(el.volume-v0*0.5)<0.01;el.volume=v0;
+ if(!canFade)return;
+ const step=()=>{
+  if(generation!==playbackGeneration)return;
+  const k=Math.min(1,(performance.now()-t0)/(seconds*1000));
+  el.volume=v0*(1-k)*(1-k);
+  if(k<1&&!el.paused&&!el.ended)setTimeout(step,50);
+  else{el.pause();el.volume=v0;resetMusicClock();}
+ };
+ setTimeout(step,50);
+}
+// Stage-select listening (♪ on a cleared stage's card): the same single music
+// element, from `start` seconds, looping. Any game start or stop replaces it.
+let previewing=null;
+function previewTrack(track,start,onEnd){
+ const generation=++playbackGeneration,el=ensureMusicElement();
+ currentMusicUrl=assetUrl(track.playback);
+ currentMusicGain=typeof track.gain==='number'?track.gain:FALLBACK_MUSIC_GAIN;
+ el.pause();if(el.src!==currentMusicUrl){el.src=currentMusicUrl;el.load();}
+ el.volume=currentMusicGain*audioPrefs.musicVolume;el.muted=!audioPrefs.music||audioPrefs.musicVolume===0;
+ previewing={generation,start,onEnd};
+ const go=()=>{if(generation!==playbackGeneration)return;try{el.currentTime=start;}catch{}Promise.resolve(el.play()).catch(()=>{if(generation===playbackGeneration){previewing=null;onEnd?.();}});};
+ if(el.readyState>=1)go();else el.addEventListener('loadedmetadata',go,{once:true});
+ el.onended=()=>{if(previewing&&previewing.generation===playbackGeneration)go();};
+ return generation;
+}
+function stopPreview(){if(!previewing)return;const p=previewing;previewing=null;if(p.generation===playbackGeneration)stopMusic();p.onEnd?.();}
+function stopMusic(){if(previewing){const p=previewing;previewing=null;p.onEnd?.();}playbackGeneration++;if(musicEl)musicEl.pause();resetMusicClock();stopEffects();}
 /* HTMLMediaElement.currentTime is updated on media buffer boundaries, not once
    per animation frame. Measured on desktop Chromium during play: 20.6% of
    frames saw no change at all, so the drawn position stair-stepped roughly one
@@ -162,6 +201,8 @@ function sfxClear(){playSfx('clear');}
 // Coin pickups and paid continues are silent; no coin media element is created.
 function sfxCoin(){}
 function sfxOrb(){playSfx('orb');}
+// Judgement ticks (PERFECT / GREAT / GOOD / MISS).
+function sfxJudge(kind){if(SFX_TICKS.includes(kind))playSfx(kind);}
 function sfxFever(){playSfx('fever');}
 window.gameAudio={
  settings:()=>({...audioPrefs}),

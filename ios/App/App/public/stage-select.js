@@ -81,11 +81,42 @@
         `<span class="wm-best">${open ? (done ? '★ ' : '') + (best(i) ? best(i) + '%' + (bestRank(i) ? ' ' + bestRank(i) : '') : 'NEW') : '未解放'}</span>`;
       b.append(info);
       if (i === next) { const tag = document.createElement('span'); tag.className = 'wm-next'; tag.textContent = 'NEXT'; b.append(tag); nextCard = b; }
-      b.onclick = open ? () => { window.fromStageSelect = true; selectStage(i); } : () => toast('前のステージを60%進めると解放');
+      if (done) {   // cleared: its song can be heard here
+        const ear = document.createElement('span');
+        ear.className = 'wm-listen'; ear.setAttribute('role', 'button'); ear.tabIndex = 0;
+        ear.setAttribute('aria-label', `ステージ${i + 1}の曲を聴く`); ear.textContent = '♪';
+        const toggle = e => { e.stopPropagation(); e.preventDefault(); listen(i, ear); };
+        ear.addEventListener('click', toggle);
+        ear.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') toggle(e); });
+        b.append(ear);
+      }
+      b.onclick = open ? () => { stopListening(); window.fromStageSelect = true; selectStage(i); } : () => toast('前のステージを60%進めると解放');
       group.querySelector('.wm-cards').append(b);
     }
     // Bring the next stage into view when the screen opens.
     if (nextCard) requestAnimationFrame(() => { const r = nextCard.offsetLeft - grid.clientWidth / 2 + nextCard.clientWidth / 2; grid.scrollLeft = Math.max(0, r); });
   }
-  window.stageSelectView = { render };
+  // ---------- Listening (♪) ----------
+  let playing = null;   // { i, el }
+  function stopListening() {
+    if (!playing) return;
+    const p = playing; playing = null;
+    p.el.classList.remove('on'); p.el.textContent = '♪';
+    if (typeof stopPreview === 'function') stopPreview();
+  }
+  async function listen(i, el) {
+    const same = playing && playing.i === i;
+    stopListening();
+    if (same) return;
+    const cfg = STAGES[i], track = AUDIO_TRACKS[cfg.file];
+    if (!track || typeof previewTrack !== 'function') return;
+    if (typeof ensureAudio === 'function' && !(await ensureAudio())) return;
+    // From about a third in (a lively part), after the 0.9 s lead-in.
+    const start = 0.9 + Math.max(0, Math.round(track.duration * 0.3));
+    playing = { i, el };
+    el.classList.add('on'); el.textContent = '❚❚';
+    previewTrack(track, start, () => { if (playing && playing.el === el) { playing = null; el.classList.remove('on'); el.textContent = '♪'; } });
+    toast(`♪ ${cfg.title || 'ステージ' + (i + 1)}`);
+  }
+  window.stageSelectView = { render, stopListening };
 })();

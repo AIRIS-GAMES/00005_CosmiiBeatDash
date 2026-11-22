@@ -17,7 +17,8 @@ const BGM_PEAK_MAX = fromDb(-14);
 // gain only, so the mix can be rebalanced without regenerating any file.
 const SFX_FILE_PEAK = 0.51;
 const SFX_FILE_PEAK_TOLERANCE = 0.01;
-const SFX_GAIN = { coin: 0.40, orb: 0.45, death: 0.45, clear: 0.50, fever: 0.50 };
+// The judgement ticks sit at the quiet end: they must never cover the music.
+const SFX_GAIN = { coin: 0.40, orb: 0.45, death: 0.45, clear: 0.50, fever: 0.50, perfect: 0.27, great: 0.26, good: 0.25, miss: 0.25 };
 
 // Loudest effective SFX must land in -12..-9 dBFS; quietest no lower than -18.
 const SFX_PEAK_MAX = fromDb(-9);
@@ -30,8 +31,8 @@ const MIX_CEILING = 0.9;
 
 // Per-sound retrigger guard and pool depth (see html-audio.js).
 const RETRIGGER_MS = 100;
-const POOL_SIZE = { coin: 0, orb: 1, death: 1, clear: 1, fever: 1 };
-const EAGER_PRELOAD = ['orb'];
+const POOL_SIZE = { coin: 0, orb: 1, death: 1, clear: 1, fever: 1, perfect: 1, great: 1, good: 1, miss: 1 };
+const EAGER_PRELOAD = ['orb', 'perfect', 'great', 'good', 'miss'];
 
 const effectivePeak = name => SFX_FILE_PEAK * SFX_GAIN[name];
 

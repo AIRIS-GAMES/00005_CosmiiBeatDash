@@ -72,16 +72,19 @@ function wav(name,seconds,sample){
  const values=new Float64Array(Math.ceil(sr*seconds));
  for(let i=0;i<values.length;i++)values[i]=sample(i/sr,i);
  // Remove DC first; the noise-based death effect otherwise carries a small offset.
- let mean=0;for(let i=0;i<values.length;i++)mean+=values[i];mean/=values.length||1;
+ // The mean is weighted by the edge ramp below so the finished file sums to zero
+ // even for very short effects, where the ramps cover a large share of samples.
+ const ramp=i=>Math.min(1,i/80,(values.length-1-i)/160);
+ let mean=0,wsum=0;for(let i=0;i<values.length;i++){const w=ramp(i);mean+=w*values[i];wsum+=w;}mean/=wsum||1;
  // Short edge ramps keep the first and last sample at zero. They are applied
  // before the peak search so every effect normalises to exactly the same peak.
  let peak=0;
  for(let i=0;i<values.length;i++){
-  values[i]=(values[i]-mean)*Math.min(1,i/80,(values.length-1-i)/160);
+  values[i]=(values[i]-mean)*ramp(i);
   peak=Math.max(peak,Math.abs(values[i]));
  }
  const bytes=Buffer.alloc(44+values.length*2);bytes.write('RIFF');bytes.writeUInt32LE(bytes.length-8,4);bytes.write('WAVEfmt ',8);bytes.writeUInt32LE(16,16);bytes.writeUInt16LE(1,20);bytes.writeUInt16LE(1,22);bytes.writeUInt32LE(sr,24);bytes.writeUInt32LE(sr*2,28);bytes.writeUInt16LE(2,32);bytes.writeUInt16LE(16,34);bytes.write('data',36);bytes.writeUInt32LE(values.length*2,40);
- // All five effects share one file peak; relative balance is playback gain in
+ // All effects share one file peak; relative balance is playback gain in
  // html-audio.js, so rebalancing the mix needs no regeneration.
  const scale=LEVELS.SFX_FILE_PEAK/(peak||1);
  for(let i=0;i<values.length;i++)bytes.writeInt16LE(Math.round(values[i]*scale*32767),44+i*2);
@@ -94,6 +97,15 @@ wav('orb',.18,t=>Math.sin(2*Math.PI*1046*(Math.exp(Math.log(1568/1046)*Math.min(
 function chord(t,notes,step,length,shape){return notes.reduce((sum,f,i)=>{const u=t-i*step;return sum+(u>=0&&u<length?shape(2*Math.PI*f*u)*Math.min(1,u/.02)*Math.exp(-8*u):0);},0);}
 wav('clear',.95,t=>chord(t,[523,659,784,1047],.13,.55,tri));
 wav('fever',.52,t=>chord(t,[659,784,988,1319],.07,.3,square));
+// Judgement ticks: very short and soft, above the music's range (PERFECT/GREAT
+// a high glassy "tink", GOOD a wood "tok") or a muffled low "puff" (MISS), so
+// they sit on top of any song without fighting its melody.
+const ping=(t,f,k)=>Math.sin(2*Math.PI*f*t)*Math.exp(-k*t);
+wav('perfect',.09,t=>ping(t,2637,38)+0.35*ping(t,3951,55)+0.15*ping(t,5274,80));
+wav('great',.08,t=>ping(t,2093,45)+0.25*ping(t,3136,70));
+wav('good',.06,t=>Math.sin(2*Math.PI*(1150*t-2600*t*t))*Math.exp(-70*t)*Math.min(1,t*600));
+let mseed=7,mlp=0;
+wav('miss',.12,t=>{mseed=(1664525*mseed+1013904223)>>>0;mlp+=.05*((mseed/2147483648-1)-mlp);return (6*mlp+0.5*Math.sin(2*Math.PI*170*t))*Math.exp(-28*t);});
 let seed=42,lp=0;
 wav('death',.35,t=>{seed=(1664525*seed+1013904223)>>>0;lp+=.12*((seed/2147483648-1)-lp);return lp*Math.pow(1-t/.35,2.2);});
-console.log('Wrote five WAV effects at file peak '+LEVELS.SFX_FILE_PEAK+' ('+LEVELS.dbfs(LEVELS.SFX_FILE_PEAK).toFixed(2)+' dBFS).'+(sfxOnly?' BGM and beat maps left untouched (--sfx-only).':' Prepared seven BGM files and fixed beat maps.'));
+console.log('Wrote nine WAV effects at file peak '+LEVELS.SFX_FILE_PEAK+' ('+LEVELS.dbfs(LEVELS.SFX_FILE_PEAK).toFixed(2)+' dBFS).'+(sfxOnly?' BGM and beat maps left untouched (--sfx-only).':' Prepared seven BGM files and fixed beat maps.'));

@@ -195,7 +195,9 @@
       const showCeiling=active&&flipZones.some(z=>z.start-.6<songPos+W*.8/SPEED&&z.end+.6>songPos-W*.4/SPEED);
       // Song position freezes during pause/death and rewinds with retries/checkpoints.
       // Alternating mirrored panels meet at identical image edges without a hard wrap.
-      const distance=Math.max(0,songPos)*scenerySpeed();
+      // Counted from the start of the 3-2-1 run-up, so the scenery moves while counting.
+      const runUp=typeof COUNT_SEC==="number"?LEAD+COUNT_SEC:0;
+      const distance=Math.max(0,songPos+runUp)*scenerySpeed();
       const phase=((distance/W)%2)*100;
       // Write only what changed: the DOM is otherwise dirtied every frame even
       // while paused, dead or in the menu.
@@ -207,7 +209,7 @@
         if(panel.lastX!==x){panel.lastX=x;panel.floorFrame.style.transform=`translateX(${x}%) scaleX(${flip})`;}
         if(showCeiling&&panel.ceilingX!==x){panel.ceilingX=x;panel.ceilingFrame.style.transform=`translateX(${x}%) scale(${flip},-1)`;}
       });
-      const gatePositions=[-distance,Math.max(0,duration-songPos)*scenerySpeed()-W*.9+player.x];
+      const gatePositions=[-distance,(duration-songPos)*scenerySpeed()-W*.9+player.x];   // past the goal it keeps scrolling away
       // The start and goal gates belong to every stage, world skins included.
       const gatesOn=['ready','play','dead','paused','clear'].includes(state)&&stageIdx<NSTAGE;
       gates.forEach((gate,i)=>{

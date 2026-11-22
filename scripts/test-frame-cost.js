@@ -61,7 +61,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  assert.equal(logic.nextJudged,true,'early jump for the next note is judged');
  assert.equal(logic.ledgeFalls,true,'walking off a ledge onto a lower block falls');
  // A retry judges from its own start, not from where the last run ended.
- const retry=await page.evaluate(()=>{window.playTrack=()=>{};window.stopMusic=()=>{};setupRun(0,{duration:AUDIO_TRACKS[STAGES[0].file].duration},[]);practice=true;noteJudgeIdx=level.length;startAttempt(0);const first=noteJudgeIdx;noteJudgeIdx=level.length;const mid=level[Math.floor(level.length/2)].t;startAttempt(mid);return {first,expect:level.findIndex(o=>o.t-TAP_OFFSET>=-0.3),mid:level[noteJudgeIdx]&&level[noteJudgeIdx].t-TAP_OFFSET>=mid-0.3-1e-9&&(noteJudgeIdx===0||level[noteJudgeIdx-1].t-TAP_OFFSET<mid-0.3)};});
+ const retry=await page.evaluate(()=>{window.playTrack=()=>{};window.stopMusic=()=>{};setupRun(0,{duration:AUDIO_TRACKS[STAGES[0].file].duration},[]);practice=true;noteJudgeIdx=level.length;startAttempt(0);const first=noteJudgeIdx;noteJudgeIdx=level.length;startAttempt(level[Math.floor(level.length/2)].t);const mid=attemptOffset;/* a revive may step back to a calm spot */return {first,expect:level.findIndex(o=>o.t-TAP_OFFSET>=-0.3),mid:level[noteJudgeIdx]&&level[noteJudgeIdx].t-TAP_OFFSET>=mid-0.3-1e-9&&(noteJudgeIdx===0||level[noteJudgeIdx-1].t-TAP_OFFSET<mid-0.3)};});
  assert.equal(retry.first,retry.expect,'a retry from the start judges from the first note');
  assert.equal(retry.mid,true,'a resumed run judges from its resume point');
  const stored=await page.evaluate(()=>({ghost:localStorage.getItem('rdash_v3beat_normal_ghost_3'),hs:localStorage.getItem('rdash_v2_normal_hs_3')}));

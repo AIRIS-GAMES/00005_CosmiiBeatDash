@@ -163,6 +163,7 @@
 <link rel="stylesheet" href="stage-select.css">
 <link rel="stylesheet" href="cosmii-rides.css">
 <link rel="stylesheet" href="cosmii-mobile-dialogs.css">
+<link rel="stylesheet" href="cosmii-fx.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -219,6 +220,15 @@
 </div>
 
 <button id="backbtn" class="hudbtn" aria-label="ホームに戻る">‹</button>
+<div id="reviveov" aria-hidden="true">
+  <b class="rv-title">まだいける！</b>
+  <div class="rv-ring">
+    <svg viewBox="0 0 120 120"><circle class="rv-track" cx="60" cy="60" r="52"/><circle id="rv-arc" class="rv-arc" cx="60" cy="60" r="52"/></svg>
+    <img id="rv-char" alt="">
+    <span id="rv-left">5</span>
+  </div>
+  <small id="rv-pct"></small>
+</div>
 <button id="revivebtn" class="hudbtn">REVIVE</button>
 <div id="toast"></div>
 
@@ -318,7 +328,7 @@ let W = 640, SC = 1;
 // again by screen-recording re-encode.
 // Raising it costs fill rate, so it is overridable for device A/B without a
 // rebuild:  localStorage.setItem('rdash_dpr_cap','1.5'); resize();
-const DPR_CAP = 2;
+const DPR_CAP = 2, CANVAS_PIXEL_BUDGET = 1.8e6;
 function dprCap() {
   // ?dpr=1.5 wins over the stored value, so the cap can be A/B'd on a phone
   // with no debugger attached.
@@ -335,11 +345,20 @@ function resize() {
   const h = portrait ? innerWidth : innerHeight;
   app.style.width = w + 'px'; app.style.height = h + 'px';
   app.style.transform = portrait ? 'rotate(90deg) translateY(-100%)' : 'none';
-  const dpr = Math.min(devicePixelRatio || 1, dprCap());
+  // Big screens (iPad) are capped by pixel count too: 2x of a 1180x820 iPad is
+  // ~3.9M pixels a frame, three times an iPhone's, and it stuttered. Keep the
+  // canvas near an iPhone's load (~1.8M px); the DOM art stays at full sharpness.
+  const dpr = Math.min(devicePixelRatio || 1, dprCap(), Math.max(1, Math.sqrt(CANVAS_PIXEL_BUDGET / (w * h))));
   cv.style.width = w + 'px'; cv.style.height = h + 'px';
   cv.style.top = '0px';
   cv.width = w * dpr; cv.height = h * dpr;
   SC = cv.height / DH; W = cv.width / SC;
+  // Menus and dialogs are laid out for a phone in landscape (~844x390). On a
+  // bigger screen (iPad) they scale up with it instead of floating tiny in the
+  // middle; the game canvas already scales on its own.
+  const uiz = Math.max(1, Math.min(1.7, Math.min(w / 844, h / 390)));
+  document.documentElement.style.setProperty('--uiz', uiz.toFixed(3));
+  document.documentElement.classList.toggle('big-screen', uiz > 1.05);
 }
 addEventListener('resize', resize);
 addEventListener('resize', () => bakeCoin());
@@ -660,10 +679,11 @@ function buildLevel(beats, duration, seed, diff, gimmick = null) {
     // Introduce one silhouette at a time; the first appearance has extra space.
     const choices=SILHOUETTES.filter(k=>diff>=OBSTACLES[k].unlock);
     if(choices.length&&phrase%5===3&&o.t-last>=.85)type=choices[Math.floor(phrase/5)%choices.length];
-    // A jump lasts JUMP_T: the next obstacle has to come after landing, with a
-    // little more room before a wide one, or tapping on the beat cannot clear it.
+    // A jump lasts JUMP_T: the next obstacle has to come after landing with
+    // real time on the ground (0.1 s; more before a wide one). Back-to-back
+    // beats just over JUMP_T apart left ~10 ms to take off again: not playable.
     const wide = type !== 'spike' && type !== 'block';
-    if (obs.length && o.t + TAP_OFFSET - obs[obs.length - 1].t < JUMP_T + (wide ? 0.08 : 0)) continue;
+    if (obs.length && o.t + TAP_OFFSET - obs[obs.length - 1].t < JUMP_T + 0.1 + (wide ? 0.08 : 0)) continue;
     obs.push({ t: o.t + TAP_OFFSET, type });
     phrase++;
     burst++;
@@ -850,7 +870,7 @@ function openStageSelect() {
   $('stageSelect').style.display = 'flex';
   gaDesign('UI:StageSelect', 1);
 }
-function closeStageSelect() { $('stageSelect').style.display = 'none'; window.fromStageSelect = false; }
+function closeStageSelect() { window.stageSelectView?.stopListening(); $('stageSelect').style.display = 'none'; window.fromStageSelect = false; }
 $('stageSelectBtn').onclick = openStageSelect;
 $('stageback').onclick = closeStageSelect;
 
@@ -933,6 +953,8 @@ function prewarmStage() {
   try {
     window.worldSkins?.prewarm?.();
     window.stageGimmicks?.prewarm?.();
+    window.cosmiiFx?.prewarm(W, DH, B, skinImage(skinIdx));
+    markBadge(markWorld());
     const seen = new Set(), sample = [];
     for (const o of level) if (!seen.has(o.type + (o.low === false ? 'h' : '') + (o.c || ''))) { seen.add(o.type + (o.low === false ? 'h' : '') + (o.c || '')); sample.push(o); }
     songPos = 0; state = 'play'; flipZones = [];
@@ -963,7 +985,7 @@ function backToMenu() {
     gaCoins('Source', banked, 'Gameplay', gaStageId() + '_exit');
     coinRun = 0;
   }
-  stopMusic(); state = 'menu';
+  stopMusic(); state = 'menu'; goalRun = null; clearToken++;
   window.cosmiiPower?.reset();
   window.cosmiiCharacterMotion?.reset();
   $('menu').style.display = 'flex';
@@ -971,7 +993,7 @@ function backToMenu() {
   $('loading').style.display = 'none';
   $('clearov').style.display = 'none';
   $('backbtn').style.display = 'none';
-  $('revivebtn').style.display = 'none';
+  $('revivebtn').style.display = 'none'; hideRevive();
   reviveOffered = false;
   refreshMenu();
   // A stage started from the stage select returns there.
@@ -986,14 +1008,30 @@ $('nextbtn').onclick = () => {
   if (n < NSTAGE && unlocked(n)) selectStage(n);
   else backToMenu();
 };
+const REVIVE_SHOW = 600, REVIVE_WAIT = 5000;
+let reviveShown = false;
+function showRevive(t) {
+  if (t < REVIVE_SHOW) return;   // let the burst play first
+  if (!reviveShown) {
+    reviveShown = true;
+    $('reviveov').classList.add('on');
+    $('revivebtn').style.display = 'block';
+    $('revivebtn').innerHTML = `▶ REVIVE <img src="Asset/cosmo-coin.png" alt="" style="width:18px;height:18px;vertical-align:-3px"> ${REVIVE_COST}`;
+  }
+  const k = Math.min(1, (t - REVIVE_SHOW) / REVIVE_WAIT);
+  $('rv-arc').style.strokeDashoffset = (k * 326.7).toFixed(1);
+  $('reviveov').classList.toggle('hurry', k > 0.7);
+  $('rv-left').textContent = String(Math.max(1, Math.ceil((1 - k) * REVIVE_WAIT / 1000)));
+}
+function hideRevive() { reviveShown = false; $('reviveov').classList.remove('on', 'hurry'); }
 $('revivebtn').onclick = () => {
   // コインでコンティニュー: 死亡地点の少し手前から、スコア・コイン・コンボ記録を保持して再開
   if (state !== 'dead' || !reviveOffered) return;
-  if (!spendCoins(REVIVE_COST)) { reviveOffered = false; $('revivebtn').style.display = 'none'; return; }
+  if (!spendCoins(REVIVE_COST)) { reviveOffered = false; $('revivebtn').style.display = 'none'; hideRevive(); return; }
   gaCoins('Sink', REVIVE_COST, 'Revive', 'Continue');
   gaDesign('Revive:Use:' + gaStageId(), Math.max(0, Math.min(100, Math.round(deathPos / duration * 100))));
   reviveOffered = false; revivesUsed++;
-  $('revivebtn').style.display = 'none';
+  $('revivebtn').style.display = 'none'; hideRevive();
   attempts--;   // コンティニューはATTEMPT数を増やさない
   startAttempt(Math.max(0, deathPos - 1.5));
   invulnUntil = performance.now()/1000 + 1.2;
@@ -1070,6 +1108,14 @@ renderPromo(true);
 })();
 
 
+const COUNT_SEC = 2.4;   // 3, 2, 1 at 0.8 s each, then GO with the music
+let countdown = null;
+// After a pause during the count: carry on counting from where it stopped.
+function resumeCountdown() {
+  if (!countdown) return false;
+  countdown.t0 = performance.now() - (songPos - countdown.from) * 1000;
+  return true;
+}
 function startAttempt(offset = 0) {
   if (offset === 0 && dailyMode()) {   // デイリーは1日3ラン
     if (dailyTriesLeft() <= 0) { backToMenu(); toast('DAILY 0/3'); return; }
@@ -1080,6 +1126,20 @@ function startAttempt(offset = 0) {
   stopMusic();
   // Never resume inside a gimmick section (cannon ride, pit): start just before it.
   if (offset > 0 && window.stageGimmicks) offset = window.stageGimmicks.safeOffset(offset);
+  // A revive starts running LEAD before the offset: step back until nothing
+  // needs a tap in the first 0.75s (a spike right at the restart could not be dodged).
+  if (offset > 0) {
+    const notes = level.filter(o => !isFreeNote(o)).map(o => o.t);
+    // nothing reaching the player at the start, nor needing a tap in the first `room` seconds
+    const calm = (off, room) => { const s0 = off - LEAD; return !notes.some(t => t > s0 - 0.2 && t - TAP_OFFSET < s0 + room); };
+    let best = null;
+    for (const room of [0.75, 0.35]) {
+      for (let d = 0; d <= 8 && offset - d > 0; d += 0.05) if (calm(offset - d, room)) { best = offset - d; break; }
+      if (best !== null) break;
+    }
+    offset = best ?? 0;
+    if (offset > 0 && window.stageGimmicks) offset = window.stageGimmicks.safeOffset(offset);
+  }
   if (offset === 0) {
     window.cosmiiPower?.reset();
   window.cosmiiCharacterMotion?.reset();
@@ -1100,7 +1160,7 @@ function startAttempt(offset = 0) {
   window.stageGimmicks?.reset(offset);
   feverOn = false; feverEnd = 0;
   feverGraceUntil = 0;
-  reviveOffered = false; $('revivebtn').style.display = 'none';
+  reviveOffered = false; $('revivebtn').style.display = 'none'; hideRevive();
   orbsLive = orbDefs.map(o => ({ t: o.t, y: o.y, used: collectedOrbs.has(o.t) }));
   lastGdir = inFlipT(offset - LEAD) ? -1 : 1;   // 助走開始時点の重力向き
   player.y = lastGdir === -1 ? CEIL : GROUND - B;
@@ -1108,8 +1168,10 @@ function startAttempt(offset = 0) {
   holdJump = 0; offLedgeAt = -9;
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
-  particles = []; floats = []; rings = []; pulse = 0;
-  playTrack(offset, LEAD, offset===0);
+  particles = []; floats = []; rings = []; pulse = 0; window.cosmiiFx?.reset(); goalRun = null; clearToken++;
+  // A fresh start counts 3-2-1 while Cosmii already runs; the song starts on GO.
+  if (offset === 0 && !DEMO) { countdown = { t0: performance.now(), from: -LEAD - COUNT_SEC }; songPos = countdown.from; }
+  else { countdown = null; playTrack(offset, LEAD, offset===0); }
   state = 'play';
   if (offset === 0) {
     gaProgress('Start');
@@ -1121,6 +1183,48 @@ function startAttempt(offset = 0) {
 
 
 // opts.fall: the player fell out of the stage (a hole): no burst, no shake.
+// Clear screen dressing (cosmii-fx.css): a band behind the title, the rank
+// stamp, Cosmii hopping beside the band, raining coins and a score count-up.
+function clearFlair(finalScore, coins) {
+  const ov = $('clearov');
+  ov.querySelectorAll('.clear-band,.clear-coins,.clear-hop,.clear-flash').forEach(e => e.remove());
+  const title = $('cleartitle');
+  const band = document.createElement('div'); band.className = 'clear-band';
+  const rain = document.createElement('div'); rain.className = 'clear-coins';
+  const n = Math.min(22, 8 + Math.round((coins || 0) / 6));
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('img'); c.src = 'Asset/cosmo-coin.png'; c.alt = '';
+    c.style.left = (Math.random() * 100).toFixed(1) + '%';
+    c.style.animationDuration = (1.8 + Math.random() * 1.6).toFixed(2) + 's';
+    c.style.animationDelay = (0.4 + Math.random() * 2.2).toFixed(2) + 's';
+    rain.appendChild(c);
+  }
+  const flash = document.createElement('div'); flash.className = 'clear-flash';
+  ov.prepend(band); ov.prepend(rain); ov.appendChild(flash);
+  const hopUrl = skinImageUrl(skinIdx);
+  let hop = null;
+  if (hopUrl) { hop = document.createElement('img'); hop.className = 'clear-hop'; hop.alt = ''; hop.src = hopUrl; ov.appendChild(hop); }
+  const place = () => {
+    // offsets, not client rects: the title is still popping (scaled) at this point
+    const mid = title.offsetTop + title.offsetHeight / 2;
+    band.style.top = (mid - band.offsetHeight / 2) + 'px';
+    if (hop) { hop.style.top = (mid - hop.offsetHeight / 2 - 6) + 'px'; hop.style.left = Math.max(8, title.offsetLeft - hop.offsetWidth - 14) + 'px'; }
+  };
+  place(); requestAnimationFrame(place);
+  // the score counts up while the band settles
+  const big = ov.querySelector('.result-heading strong');
+  if (big && finalScore > 0) {
+    const t0 = performance.now(), dur = 900;
+    const tick = () => {
+      if (ov.style.display !== 'flex') return;
+      const k = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      big.textContent = Math.round(finalScore * e).toLocaleString();
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    big.textContent = '0'; requestAnimationFrame(tick);
+  }
+}
+
 function die(opts = {}) {
   const nowT = performance.now() / 1000;
   if (state === 'play' && feverProtected()) return;
@@ -1165,9 +1269,14 @@ function die(opts = {}) {
   deathPos = songPos;
   reviveOffered = !practice && revivesUsed === 0 && totalCoins() >= REVIVE_COST &&
     songPos > 3 && songPos < duration - 2;
-  if (reviveOffered) $('revivebtn').style.display = 'block';
+  if (reviveOffered) { const im = skinImageUrl(skinIdx); if (im) $('rv-char').src = im; $('rv-pct').textContent = `ゴールまで あと ${Math.max(1, 100 - Math.round(songPos / duration * 100))}%`; }
   const px = player.x + B/2, py = player.y + B/2;
-  if (!opts.fall) for (let i = 0; i < 26; i++) {
+  // The burst depends on what was hit (cosmii-fx.js); plain squares only as a fallback.
+  const fxKind = window.cosmiiFx?.deathKind(opts, opts.ob, opts.part);
+  if (fxKind) {
+    window.cosmiiFx.startDeath(fxKind, px, py, lastGdir, skinImage(skinIdx));
+    shake = { boom: 16, squash: 9, shatter: 8, zap: 5, eaten: 6, fall: 0 }[fxKind] ?? shake;
+  } else if (!opts.fall) for (let i = 0; i < 26; i++) {
     const a = Math.random()*Math.PI*2, v = 90 + Math.random()*260;
     particles.push({ x: px, y: py, vx: Math.cos(a)*v, vy: Math.sin(a)*v - 120,
       s: 4 + Math.random()*7, l: 1, hue: Math.random() < 0.5 ? 0 : 45 });
@@ -1175,9 +1284,62 @@ function die(opts = {}) {
   sfxDeath();
 }
 
+// 3 / 2 / 1 / GO! over the running start.
+function drawCountdown() {
+  let text, k;
+  if (state === 'clear' && goalRun) {   // the big GOAL! while Cosmii runs on
+    const g = (performance.now() - goalRun.at) / 1600;
+    if (g >= 1) return;
+    text = 'GOAL!'; k = g;
+  } else if (state !== 'play' && state !== 'paused') return;
+  const left = -LEAD - songPos;
+  if (text) {}
+  else if (left > 0 && left <= COUNT_SEC + 0.01 && attemptOffset === 0) { const n = Math.ceil(left / (COUNT_SEC / 3)); text = String(n); k = 1 - (left - (n - 1) * COUNT_SEC / 3) / (COUNT_SEC / 3); }
+  else if (left <= 0 && left > -0.55 && attemptOffset === 0 && attempts > 0) { text = 'GO!'; k = -left / 0.55; }
+  else return;
+  const sc = k < 0.18 ? 1.6 - (k / 0.18) * 0.6 : 1, a = text === 'GO!' || text === 'GOAL!' ? 1 - k * k : Math.min(1, 1.6 - k);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, a);
+  ctx.translate(W / 2, DH * 0.42); ctx.scale(sc, sc);
+  ctx.font = `italic 900 ${text === 'GO!' || text === 'GOAL!' ? 64 : 84}px "Exo 2", "M PLUS 1p", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 10; ctx.strokeStyle = '#2a1050'; ctx.strokeText(text, 0, 0);
+  ctx.fillStyle = text === 'GO!' ? '#7dffb0' : text === 'GOAL!' ? '#ff8fd0' : '#ffd94a'; ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+const GOAL_HOLD = 2700, GOAL_FADE = 3.4;   // the card comes in once the goal pose has landed
+let goalRun = null, clearToken = 0;
+// After the goal: keep scrolling on the frame clock and let Cosmii land and run.
+function goalStep(dt) {
+  if (!goalRun) return;
+  const pose = window.cosmiiFx?.goalPose((performance.now() - goalRun.at) / 1000);
+  if (pose) {   // hop, hop, banzai jump, slide into a pose (cosmii-fx.js)
+    songPos += dt * pose.speed;
+    const floor = lastGdir === 1 ? GROUND - B : CEIL;
+    goalRun.y0 ??= player.y;
+    const settle = Math.max(0, 1 - (performance.now() - goalRun.at) / 250);   // from wherever the goal caught us
+    player.y = floor + (goalRun.y0 - floor) * settle - pose.lift * lastGdir;
+    player.vy = 0; player.grounded = true;
+    for (const f of floats) { f.y -= 28 * dt; f.l -= dt * 0.8; }
+    floats = floats.filter(f => f.l > 0);
+    return;
+  }
+  songPos += dt;
+  if (!player.grounded) {
+    player.vy += GRAV * lastGdir * dt; player.y += player.vy * dt;
+    const floor = lastGdir === 1 ? GROUND - B : CEIL;
+    if (lastGdir === 1 ? player.y >= floor : player.y <= floor) { player.y = floor; player.vy = 0; player.grounded = true; landAt = performance.now() / 1000; }
+  }
+  for (const f of floats) { f.y -= 28 * dt; f.l -= dt * 0.8; }
+  floats = floats.filter(f => f.l > 0);
+}
 function clearStage() {
   if (state !== 'play') return;
-  stopMusic(); state = 'clear';
+  // The goal: the music fades out instead of stopping dead, Cosmii runs on
+  // for a moment under the confetti, and only then the result card comes in.
+  state = 'clear';
+  if (typeof fadeOutMusic === 'function') fadeOutMusic(GOAL_FADE); else stopMusic();
+  goalRun = { at: performance.now() };
+  window.cosmiiFx?.goalStart();
   const extra = [];
   let isNewBest=false;
   const gimmickResult = practice ? null : window.stageGimmicks?.onClear();
@@ -1234,8 +1396,13 @@ function clearStage() {
   $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
-  $('clearov').style.display = 'flex';
-  window.cosmiiWorld?.onClear();
+  const token = ++clearToken, finalScore = score, coinsWon = coinRun;
+  setTimeout(() => {
+    if (token !== clearToken || state !== 'clear') return;   // left the stage meanwhile
+    $('clearov').style.display = 'flex';
+    clearFlair(finalScore, coinsWon);
+    window.cosmiiWorld?.onClear();
+  }, GOAL_HOLD);
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
     x: Math.random()*W, y: -20 - Math.random()*DH,
@@ -1318,7 +1485,7 @@ function judge() {
     if(skinEffect('score'))window.beatPSF?.skill('score');
     window.cosmiiCharacterMotion?.emit('judge');
     mission('perfect10', 1); mission('combo15', combo, true);
-    floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' });
+    floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' }); if(typeof sfxJudge==='function')sfxJudge('perfect');
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1328,7 +1495,7 @@ function judge() {
     window.stageGimmicks?.onJudge('great');
     if(skinEffect('judge')) window.cosmiiCharacterMotion?.emit('judge');
     mission('combo15', combo, true);
-    floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' });
+    floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' }); if(typeof sfxJudge==='function')sfxJudge('great');
   } else if (d <= 0.21 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1337,7 +1504,7 @@ function judge() {
     judgeFlash = 'GOOD';
     window.stageGimmicks?.onJudge('good');
     mission('combo15', combo, true);
-    floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' });
+    floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' }); if(typeof sfxJudge==='function')sfxJudge('good');
   } else {
     // 判定窓内にノートがないジャンプは無判定(ホールド移動でコンボ・FEVERを壊さない)
   }
@@ -1382,7 +1549,7 @@ function update(dt, frameSongPos = null) {
     while (noteJudgeIdx < level.length && level[noteJudgeIdx].t-TAP_OFFSET < songPos-missWindow) {
       if (!judgedNotes.has(noteJudgeIdx)) {
         judgedNotes.add(noteJudgeIdx);combo=0;perfectRun=0;
-        floats.push({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});
+        floats.push({text:'MISS',x:player.x+B/2,y:player.y-14,l:0.6,c:'#ff8fae'});if(typeof sfxJudge==='function')sfxJudge('miss');
         window.stageGimmicks?.onJudge('miss');
         if (state !== 'play') return;   // a gimmick may end the run on a miss
       }
@@ -1479,34 +1646,34 @@ function update(dt, frameSongPos = null) {
     }
     // 衝突
     const hx = player.x + B*0.2, hw = B*0.6, hy = player.y + B*0.2, hh = B*0.6;
-    let hit = false;
+    let hit = false, hitOb = null, hitPart = '';
     const pcx = player.x + B/2, onFloor = gdir === 1 && player.y + B >= GROUND - 1;
     for (const ob of feverProtected() ? [] : level) {
       if (!obNear(ob, 1.5)) continue;
       const parts = obstacleRects(ob);
       if (parts.hazards) for (const z of parts.hazards) {
-        if (hx < z.x + z.w && hx + hw > z.x && hy < z.y + z.h && hy + hh > z.y) { hit = true; break; }
+        if (hx < z.x + z.w && hx + hw > z.x && hy < z.y + z.h && hy + hh > z.y) { hit = true; hitPart = 'hazard'; break; }
       }
       if (!hit && onFloor && parts.pits) for (const pit of parts.pits) {
-        if (pcx > pit.x && pcx < pit.x + pit.w) { hit = true; break; }
+        if (pcx > pit.x && pcx < pit.x + pit.w) { hit = true; hitPart = 'pit'; break; }
       }
       for (const s of parts.spikes) {
         const sx = s.x + s.w*0.36, sw = s.w*0.28;
         const sy = s.y + (s.f ? 0 : s.h*0.4), sh = s.h*0.6;
-        if (hx < sx+sw && hx+hw > sx && hy < sy+sh && hy+hh > sy) { hit = true; break; }
+        if (hx < sx+sw && hx+hw > sx && hy < sy+sh && hy+hh > sy) { hit = true; hitPart = 'spike'; break; }
       }
       if (!hit) for (const bl of parts.blocks) {
         if (bl.oneWay) continue;   // pass-through from below and the sides; land from above
         if (player.x + B - 5 > bl.x && player.x + 5 < bl.x + bl.w &&
             (bl.f ? (player.y < bl.y + bl.h - 9 && player.y + B > bl.y)
-                  : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { hit = true; break; }
+                  : (player.y + B > bl.y + 9 && player.y < bl.y + bl.h))) { hit = true; hitPart = 'block'; break; }
       }
-      if (hit) break;
+      if (hit) { hitOb = ob; break; }
     }
     // A shield or the post-revive grace keeps the run going: only stop this
     // step if the hit actually ended it, so coins, effects and the clear check
     // keep running while the player is protected inside an obstacle.
-    if (hit) { die(); if (state !== 'play') return; }
+    if (hit) { die({ ob: hitOb, part: hitPart }); if (state !== 'play') return; }
     }
     // コイン取得
     for (const c of coinsLive) {
@@ -1561,13 +1728,11 @@ function update(dt, frameSongPos = null) {
 
   if (state === 'dead') {
     // コンティニュー提示中は待ち時間を延長してカウントダウン表示
-    const wait = reviveOffered ? 3400 : 1000;
-    if (reviveOffered) {
-      const left = Math.max(0, Math.ceil((wait - (performance.now() - deadAt)) / 1000));
-      $('revivebtn').innerHTML = `▶ REVIVE <img src="Asset/cosmo-coin.png" alt="" style="width:16px;height:16px;vertical-align:-2px"> ${REVIVE_COST} (${left})`;
-    }
+    // The revive offer waits 5 s (after a 0.6 s look at the burst) so nobody has to rush.
+    const wait = reviveOffered ? REVIVE_SHOW + REVIVE_WAIT : 1100;
+    if (reviveOffered) showRevive(performance.now() - deadAt);
     if (performance.now() - deadAt > wait) {
-      reviveOffered = false; $('revivebtn').style.display = 'none';
+      reviveOffered = false; $('revivebtn').style.display = 'none'; hideRevive();
       if (dailyMode()) {
         // デイリーは自動リスタートで回数を消費しない: タップ待ちのreadyへ
         if (dailyTriesLeft() > 0) {
@@ -1665,7 +1830,7 @@ function draw() {
 
   }
 
-  if (inGame) {
+  if (inGame || (state === 'clear' && goalRun)) {   // the world keeps running past the goal
     player.x = W * 0.3;
     for (const ob of level) {
       const def = OBSTACLES[ob.type], dt0 = ob.t - songPos, reach = obSpan(ob) * SPEED;
@@ -1772,6 +1937,8 @@ function draw() {
       ctx.restore();
     }
     window.stageGimmicks?.drawOverlay(ctx);
+    if (state === 'clear' && goalRun) window.cosmiiFx?.drawGoal(ctx, (performance.now() - goalRun.at) / 1000, { x: pcx, footY: lastGdir === 1 ? GROUND : CEIL, W, DH, B });
+    window.cosmiiFx?.drawStreak(ctx, { state, run: perfectRun, songPos, x: pcx, y: pcy, B, W, DH, speed: SPEED, pulse, floats });
     // プレイヤー(着地スクワッシュ & 空中ストレッチ)
     if (state !== 'dead' && !window.stageGimmicks?.hidesPlayer()) {
       const now = performance.now()/1000;
@@ -1781,18 +1948,29 @@ function draw() {
       else if (!player.grounded) { sx = 0.94; sy = 1.08; }
       const acting=window.cosmiiCharacterMotion?.pose(now);
       if(acting){sx=acting.sx;sy=acting.sy;}
+      const goalPose = state === 'clear' && goalRun ? window.cosmiiFx?.goalPose((performance.now() - goalRun.at) / 1000) : null;
+      if (goalPose) { sx = goalPose.sx; sy = goalPose.sy; }
+      const cheerW = goalPose ? goalPose.cheer : 0;
       ctx.save();
       if (now < invulnUntil) ctx.globalAlpha = 0.7;  // 保護中は明滅させず半透明にする
       // Enlarge only the artwork; keep collision/physics B unchanged and feet on the surface.
-      const artSize = B * (acting?.artScale||1.35);
+      const artSize = B * (acting?.artScale||1.35) * (1 + 0.25 * cheerW);   // the cheering pose a little bigger
       ctx.translate(pcx, lastGdir === 1 ? player.y + B - (artSize*sy)/2 : player.y + (artSize*sy)/2);
-      ctx.rotate((acting?.tilt||0)*lastGdir);
+      ctx.rotate(((acting?.tilt||0) + (goalPose ? goalPose.rot : 0))*lastGdir);
       ctx.scale(sx, sy*lastGdir);
-      const characterArt=acting?.image||sp;
-      if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
+      // Goal: cross-fade to the arms-up art facing us for the banzai jump and the pose.
+      const cheerArt = cheerW > 0 ? (window.cosmiiCharacterMotion?.poses?.[skinIdx] || sp) : null;
+      const characterArt=(cheerW >= 1 && cheerArt)||acting?.image||sp;
+      if (cheerArt && cheerW > 0 && cheerW < 1) {   // mid cross-fade: both, weighted
+        const a0 = ctx.globalAlpha;
+        ctx.globalAlpha = a0 * (1 - cheerW); if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
+        ctx.globalAlpha = a0 * cheerW; ctx.drawImage(cheerArt, -artSize/2, -artSize/2, artSize, artSize);
+        ctx.globalAlpha = a0;
+      } else if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
       else { ctx.fillStyle = '#e33'; ctx.fillRect(-B/2, -B/2, B, B); }
       ctx.restore();
     }
+    if (state === 'dead') window.cosmiiFx?.drawDeath(ctx, B);
     window.stageGimmicks?.drawFront?.(ctx);   // things the player passes behind (rescue rings)
     if(state==='play') window.cosmiiCharacterMotion?.drawEffects(ctx);
     for (const p of particles) {
@@ -1815,6 +1993,7 @@ function draw() {
     window.gameUI?.drawHUD(ctx);
   }
 
+  drawCountdown();
   if (state === 'clear') {
     for (const c of confetti) {
       c.y += c.vy/60; c.x += c.vx/60; c.r += 0.05;
@@ -1837,33 +2016,86 @@ function roundRect(x, y, w, h, r) {
 // PERFECT. It reaches the player's feet at the exact moment to tap. Shown for
 // notes only (not for "stay down" notes), hidden in blackouts and when the
 // player turns it off in the settings.
+// Tap marks: a badge with a note set into the surface you jump from (in the
+// floor, in the ceiling in a flip zone, in a raised road), drawn in each
+// world's own style so it belongs there. A ring closes in on it: tap when it lands.
+const MARK_STYLES = {
+  dash:   { shape: 'circle', fill: '#1b1030', rim: '#ffd94a', note: '#ffd94a', ring: '#ffd94a', glow: true },   // neon lamp
+  rescue: { shape: 'cloud',  fill: '#ffffff', rim: '#7d8cff', note: '#3f5bff', ring: '#3f5bff' },               // a little cloud
+  cannon: { shape: 'star',   fill: '#2a2366', rim: '#7dffb0', note: '#7dffb0', ring: '#7dffb0' },               // a star plate
+  roll:   { shape: 'circle', fill: '#5c4874', rim: '#7dffb0', note: '#ffffff', ring: '#7dffb0', crater: true }, // a moon crater
+  catch:  { shape: 'button', fill: '#ff6fd8', rim: '#7a1f63', note: '#ffffff', ring: '#ff6fd8' },               // crane-game button
+  sudoku: { shape: 'tile',   fill: '#fff3d6', rim: '#e07a2a', note: '#e04436', ring: '#ff6fd8' },               // a number tile
+  mogu:   { shape: 'paint',  fill: 'rgba(255,255,255,0.92)', rim: '#ff8a3a', note: '#ff6a1a', ring: '#ff8a3a' },   // road marking paint
+  match:  { shape: 'tile',   fill: '#e6fbff', rim: '#2bb5d8', note: '#2b8fd8', ring: '#2bb5d8' },               // a candy tile
+  arcade: { shape: 'pixel',  fill: '#14112a', rim: '#5ff0ff', note: '#5ff0ff', ring: '#5ff0ff' },               // pixel block
+};
+const markBakes = new Map();
+function markBadge(world) {
+  const st = MARK_STYLES[world] || MARK_STYLES.dash, key = world + ':' + SC, hit = markBakes.get(key); if (hit) return hit;
+  const R = 13, pad = 6, size = (R + pad) * 2, c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(size * SC);
+  const g = c.getContext('2d'); g.scale(SC, SC);
+  const m = size / 2;
+  const path = () => {
+    g.beginPath();
+    if (st.shape === 'circle' || st.shape === 'button' || st.shape === 'paint') g.arc(m, m, R, 0, 6.283);
+    else if (st.shape === 'tile') g.roundRect(m - R, m - R, R * 2, R * 2, 6);
+    else if (st.shape === 'pixel') g.rect(m - R, m - R, R * 2, R * 2);
+    else if (st.shape === 'star') for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? R * 0.78 : R * 1.32; g.lineTo(m + Math.cos(a) * r, m + Math.sin(a) * r); }
+    else if (st.shape === 'cloud') { for (const [dx, dy, r] of [[-8, 3, 8], [0, -3, 10], [9, 2, 8], [0, 5, 9]]) { g.moveTo(m + dx + r, m + dy); g.arc(m + dx, m + dy, r, 0, 6.283); } }
+    if (st.shape !== 'cloud') g.closePath();
+  };
+  if (st.glow) { g.save(); g.globalAlpha = 0.35; g.fillStyle = st.rim; g.beginPath(); g.arc(m, m, R + 5, 0, 6.283); g.fill(); g.restore(); }
+  if (st.shape === 'button') { g.fillStyle = st.rim; g.beginPath(); g.arc(m, m + 3, R, 0, 6.283); g.fill(); }   // its side, for depth
+  g.lineJoin = 'round';
+  if (st.shape === 'cloud') {   // outline first (thick), then the white on top: one puffy shape
+    g.lineWidth = 5; g.strokeStyle = st.rim; path(); g.stroke();
+    g.fillStyle = st.fill; path(); g.fill();
+  } else {
+    path(); g.fillStyle = st.fill; g.fill();
+    g.lineWidth = st.shape === 'paint' ? 2.5 : 3; g.strokeStyle = st.rim;
+    if (st.shape === 'paint') g.setLineDash([5, 4]);
+    path(); g.stroke(); g.setLineDash([]);
+  }
+  if (st.crater) { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.arc(m + 6, m + 6, 3, 0, 6.283); g.arc(m - 7, m - 6, 2, 0, 6.283); g.fill(); }
+  if (st.shape === 'button') { g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(m - 4, m - 6, 5, 2.5, -0.4, 0, 6.283); g.fill(); }
+  g.fillStyle = st.note; g.font = '900 17px "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('♪', m + 0.5, m + 1);
+  const bake = { c, size, st }; markBakes.set(key, bake); return bake;
+}
+function markWorld() { return window.worldSkins?.current?.(true) || 'dash'; }
 function drawJumpMarks() {
   if (!window.jumpMarks || state === 'menu') return;
   const dark = window.stageGimmicks?.darkness?.() || 0;
   if (dark > 0.05) return;
-  const feet = player.x + B / 2;
+  const feet = player.x + B / 2, badge = markBadge(markWorld()), col = badge.st.ring;
   for (let k = Math.max(0, noteJudgeIdx - 1); k < level.length; k++) {
     const ob = level[k], tap = ob.t - TAP_OFFSET, dx = (tap - songPos) * SPEED;
     if (dx > W) break;
     if (dx < -B || isFreeNote(ob) || judgedNotes.has(k) || ob.noMark) continue;   // noMark: the gimmick shows its own cue
     const x = feet + dx, f = inFlipT(tap), near = Math.max(0, 1 - Math.abs(dx) / 60);
-    const y = ob.markY ?? (f ? CEIL : GROUND), s = f ? -1 : 1;   // markY: a raised floor (cannon rail)
+    const y = ob.markY ?? (f ? CEIL : GROUND), s = f ? -1 : 1;   // markY: a raised road (mid road, cannon rail)
+    // set into the surface just under its edge; in the ceiling only half way in,
+    // so the HUD along the top never hides it
+    const by = y + s * (ob.markY !== undefined ? 11 : f ? 7 : 17);
     ctx.save();
-    // A soft light column rising from the mark.
-    const g0 = ctx.createLinearGradient(0, y, 0, y - 46 * s);
-    g0.addColorStop(0, `rgba(255,217,74,${0.35 + 0.35 * near})`); g0.addColorStop(1, 'rgba(255,217,74,0)');
-    ctx.fillStyle = g0; ctx.fillRect(x - 7, Math.min(y, y - 46 * s), 14, 46);
-    // The diamond, bigger and outlined in white.
-    ctx.globalAlpha = 0.75 + 0.25 * near;
-    ctx.fillStyle = '#ffd94a'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(x, y + 1 * s); ctx.lineTo(x + 11, y + 13 * s); ctx.lineTo(x, y + 25 * s); ctx.lineTo(x - 11, y + 13 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // A ring closing in on the mark: when it lands on the diamond, tap.
+    // the badge (a little bigger as it reaches you)
+    const z = 1 + 0.12 * near, d = badge.size * z;
+    ctx.globalAlpha = 0.92 + 0.08 * near;
+    ctx.drawImage(badge.c, x - d / 2, by - d / 2, d, d);
+    // a soft light rising from it on the jumping side
+    ctx.globalAlpha = 0.25 + 0.35 * near; ctx.fillStyle = col;
+    ctx.fillRect(x - 1.5, Math.min(y, y - s * 22), 3, 22);
+    // the closing ring: on the badge = tap
     const dt = dx / SPEED;
     if (dt > -0.05 && dt < 0.6) {
-      const rr = 10 + Math.max(0, dt) * 55;
+      const rr = 15 + Math.max(0, dt) * 60;
       ctx.globalAlpha = Math.min(1, (0.6 - dt) / 0.25);
-      ctx.strokeStyle = dt < 0.06 ? '#ffffff' : '#ffd94a'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.ellipse(x, y + 13 * s, rr, rr * 0.55, 0, 0, 6.283); ctx.stroke();
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(20,10,40,.45)';
+      ctx.beginPath(); ctx.arc(x, by, rr, 0, 6.283); ctx.stroke();
+      ctx.lineWidth = 3; ctx.strokeStyle = dt < 0.06 ? '#ffffff' : col;
+      ctx.beginPath(); ctx.arc(x, by, rr, 0, 6.283); ctx.stroke();
     }
     ctx.restore();
   }
@@ -1930,12 +2162,18 @@ function loop(t) {
     if (!player.grounded && player.vy >= 0 && player.y + B >= GROUND) { player.y = GROUND-B; player.vy = 0; player.grounded = true; }
   } else {
     if(state==='play'){
-      const target=musicPosition(),elapsed=Math.max(0,target-songPos);
+      let target;
+      if(countdown){
+        target=countdown.from+(performance.now()-countdown.t0)/1000;
+        if(target>=-LEAD){target=-LEAD;countdown=null;playTrack(0,LEAD,true);}
+      }else target=musicPosition();
+      const elapsed=Math.max(0,target-songPos);
       // Advance physics and scrolling together, including ordinary dropped frames.
       const steps=Math.max(1,Math.min(60,Math.ceil(elapsed/0.02)));
       const from=songPos;
       for(let i=1;i<=steps&&state==='play';i++)update(Math.min(elapsed/steps,1/30),from+(target-from)*i/steps);
-    }else update(dt);
+    }else if(state==='clear')goalStep(dt);
+    else update(dt);
   }
   window.cosmiiPower?.tick();
   draw();
@@ -1990,5 +2228,6 @@ if ('serviceWorker' in navigator &&
 <script src="cosmii-home.js"></script>
 <script src="cosmii-ui-art.js"></script>
 <script src="cosmii-tutorial.js"></script>
+<script src="cosmii-fx.js"></script>
 </body>
 </html>

@@ -30,3 +30,8 @@
 @media (max-height:340px) { .wm-card { width:min(44vh,132px); } .wm-g { font-size:10px; } #stageSelect h2 { font-size:17px; } }
 #stageback { width:auto !important; height:40px !important; padding:0 16px 0 12px; border-radius:999px !important; font-size:15px !important; font-weight:900;
   background:#ffffffe6 !important; color:#1b1236 !important; border:2px solid #5fe8ff !important; box-shadow:0 3px 0 #00000066; z-index:5; }
+/* ♪ on a cleared stage: listen to its song (tap again to stop). */
+.wm-listen { position:absolute; right:8px; top:8px; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:#ffd94a; color:#3a2400; font:900 16px "M PLUS 1p", sans-serif; box-shadow:0 3px 0 #a0641a; z-index:2; }
+.wm-listen.on { background:#ff6fb5; color:#fff; box-shadow:0 3px 0 #9a1f62, 0 0 14px #ff6fb5aa; animation:wmbeat .6s ease-in-out infinite; }
+@keyframes wmbeat { 50% { transform:scale(1.12); } }

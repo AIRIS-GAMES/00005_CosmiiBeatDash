@@ -1,0 +1,65 @@
+/* Revive offer: a gold ring around a ghostly Cosmii that runs down over 5 s. */
+#reviveov { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:6px; padding-bottom:64px; pointer-events:none; opacity:0; transition:opacity .25s;
+  background:radial-gradient(circle at 50% 45%, rgba(20,12,50,.35), rgba(6,4,20,.72)); }
+#reviveov.on { opacity:1; }
+#reviveov .rv-title { font:italic 900 min(7vh,30px) "M PLUS 1p", sans-serif; color:#ffd94a; letter-spacing:.06em;
+  text-shadow:0 3px 0 #6a3a00, 0 0 18px #ffb34a88; }
+#reviveov.on .rv-title { animation:rvpop .45s cubic-bezier(.2,1.6,.4,1) both; }
+#reviveov .rv-ring { position:relative; width:min(34vh,150px); height:min(34vh,150px); }
+#reviveov svg { position:absolute; inset:0; transform:rotate(-90deg); }
+#reviveov .rv-track { fill:rgba(10,6,30,.55); stroke:rgba(255,255,255,.16); stroke-width:9; }
+#reviveov .rv-arc { fill:none; stroke:#ffd94a; stroke-width:9; stroke-linecap:round; stroke-dasharray:326.7; stroke-dashoffset:0;
+  filter:drop-shadow(0 0 5px #ffb34a); transition:stroke .3s; }
+#reviveov.hurry .rv-arc { stroke:#ff5a7a; filter:drop-shadow(0 0 6px #ff3a5a); }
+#rv-char { position:absolute; left:20%; top:20%; width:60%; height:60%; object-fit:contain; opacity:.72;
+  animation:rvfloat 1.2s ease-in-out infinite; }
+#rv-left { position:absolute; right:-2px; bottom:-2px; min-width:38px; height:38px; border-radius:19px; display:flex;
+  align-items:center; justify-content:center; background:#ffd94a; color:#4a2a00; font:italic 900 22px "Exo 2", sans-serif;
+  box-shadow:0 3px 0 #a0641a; }
+#reviveov.hurry #rv-left { background:#ff5a7a; color:#fff; box-shadow:0 3px 0 #a02040; animation:rvbeat .5s ease-in-out infinite; }
+#rv-pct { color:#e8e2ff; font:700 13px "M PLUS 1p", sans-serif; text-shadow:0 1px 3px #000; }
+#revivebtn { z-index:9; font:900 17px "M PLUS 1p", sans-serif; padding:13px 30px; border-radius:26px;
+  background:linear-gradient(#ffe680,#ffc23a); color:#5a2a00; box-shadow:0 5px 0 #a0641a, 0 0 22px #ffcf4a80; }
+#reviveov.on ~ #revivebtn { animation:rvbtn .9s ease-in-out infinite; }
+@keyframes rvpop { from { transform:scale(.3); opacity:0; } }
+@keyframes rvfloat { 50% { transform:translateY(-6px); } }
+@keyframes rvbeat { 50% { transform:scale(1.15); } }
+@keyframes rvbtn { 50% { transform:translateX(-50%) scale(1.06); } 0%,100% { transform:translateX(-50%) scale(1); } }
+
+/* Clear screen: a slanted pink band sweeps in behind the title, the rank lands
+   as a stamp, Cosmii hops beside it and coins rain down. */
+#clearov .clear-band { position:absolute; left:-10%; right:-10%; height:76px; z-index:0; pointer-events:none;
+  background:linear-gradient(90deg,#ff3f9a,#ff6fb5 45%,#ffb04a); transform:skewY(-5deg);
+  box-shadow:0 6px 0 #9a1f62, 0 0 40px #ff5fa280; animation:clrband .5s cubic-bezier(.2,1,.3,1) both; }
+#clearov .clear-band::after { content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(115deg,transparent 0 26px,rgba(255,255,255,.18) 26px 40px); }
+#clearov > :not(.clear-band):not(.clear-coins):not(.clear-hop):not(.clear-flash) { position:relative; z-index:1; }
+#clearov .clear-hop { position:absolute; z-index:1; width:64px; height:64px; object-fit:contain; pointer-events:none;
+  animation:clrhop .55s ease-in-out infinite alternate; }
+#clearov .result-rank { display:inline-flex; align-items:center; justify-content:center; width:1.35em; height:1.35em;
+  border:6px solid currentColor; border-radius:50%; font-size:62px !important; transform:rotate(-12deg);
+  animation:clrstamp .45s .55s cubic-bezier(.3,1.8,.5,1) both; box-shadow:0 0 0 4px rgba(0,0,0,.25), inset 0 0 0 3px rgba(255,255,255,.25); }
+#clearov .result-heading strong { animation:clrin .4s .35s both; }
+#clearov .result-summary, #clearov .result-best, #clearov .result-bottom, #clearov .btnrow { animation:clrin .4s both; }
+#clearov .result-summary { animation-delay:.8s; } #clearov .result-best { animation-delay:.95s; }
+#clearov .result-bottom { animation-delay:1.05s; } #clearov .btnrow { animation-delay:1.2s; }
+#clearov .clear-coins { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+#clearov .clear-coins img { position:absolute; top:-40px; width:26px; height:26px; animation:clrcoin linear infinite; }
+#clearov .clear-flash { position:absolute; inset:0; background:#fff; pointer-events:none; z-index:2; animation:clrflash .35s ease-out both; }
+@keyframes clrband { from { transform:skewY(-5deg) translateX(-110%); } }
+@keyframes clrhop { from { transform:translateY(0) scale(1.06,.94); } to { transform:translateY(-22px) scale(.96,1.04); } }
+@keyframes clrstamp { from { transform:rotate(-30deg) scale(3); opacity:0; } }
+@keyframes clrin { from { transform:translateY(14px); opacity:0; } }
+@keyframes clrcoin { to { transform:translateY(calc(100vh + 80px)) rotate(540deg); } }
+@keyframes clrflash { to { opacity:0; } }
+@media(max-height:380px){ #clearov .result-rank { font-size:44px !important; border-width:4px; } #clearov .clear-band { height:58px; } #clearov .clear-hop { width:48px; height:48px; } }
+@media (prefers-reduced-motion:reduce){ #clearov *, #reviveov * { animation:none !important; } #clearov .clear-coins { display:none; } }
+
+/* Big screens (iPad): menus, dialogs and buttons scale with the screen (--uiz is
+   set in resize(); 1 on phones). Layout is the phone layout, just larger. */
+.big-screen .overlay, .big-screen #reviveov, .big-screen #mission-popup, .big-screen #toast { zoom:var(--uiz); }
+/* HUD buttons are sized instead of zoomed: the HUD lines its score panel up with
+   the pause button's layout position, which zoom would throw off. */
+.big-screen #backbtn { width:calc(40px * var(--uiz)); height:calc(40px * var(--uiz)); font-size:calc(18px * var(--uiz)); border-radius:calc(10px * var(--uiz)); }
+.big-screen #revivebtn { font-size:calc(17px * var(--uiz)); padding:calc(13px * var(--uiz)) calc(30px * var(--uiz)); border-radius:calc(26px * var(--uiz)); }

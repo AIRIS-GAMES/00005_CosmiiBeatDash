@@ -73,15 +73,15 @@
     5:  { world: 'rescue', title: 'そらのレスキュー', bgm: 'Asset/world-bgm/rescue-normal.mp3', length: 24, g: { ring: 0.9, mid: 1 } },
     6:  { world: 'rescue', title: 'さかさまのそら',   g: { ring: 0.3, cake: 0.95, cakeHigh: true }, hint: '頭の高さのケーキはくぐろう' },
     7:  { world: 'cannon', title: 'ドッカン大砲',     g: { cannon: [['blue', 'blue', 'gold'], ['blue', 'blue', 'gold']] } },
-    8:  { world: 'cannon', title: '大砲リレー',       g: { cannon: [['blue', 'blue', 'blue', 'blue', 'gold']] }, hint: '輪が重なったらタップ！ 大砲から大砲へ' },
+    8:  { world: 'cannon', title: '大砲リレー',       g: { cannon: [['blue', 'blue', 'blue', 'blue', 'gold']] }, hint: '大砲が次を向いたらタップ！ 大砲から大砲へ' },
     9:  { world: 'roll',   title: 'ころころコスミー', g: { ball: 0.9, mid: 1 }, hint: 'コスミーごとに転がり方がちがう！' },
     10: { world: 'roll',   title: 'おおだまバウンド', g: { ball: 0.4, bigBall: 1 }, hint: '大きいコスミーはしっかり跳ぼう' },
     11: { world: 'sudoku', title: 'ドットの階段',     g: { stairs: 3, mid: 1, midAt: [0.06] } },
     12: { world: 'sudoku', title: 'てっぺんへ',       g: { stairs: 3, stairsAt: [0.3, 0.55, 0.8], lift: 1, liftAt: [0.1] }, hint: '階段と上下する足場をリズムで' },
     13: { world: 'catch',  title: '月夜のキャッチ',   g: { prize: 0.9, mid: 2 } },
     14: { world: 'catch',  title: 'アームにつかまれ', g: { arm: 4, prize: 0.4 }, hint: 'アームをつかんでトゲを越えよう' },
-    15: { world: 'mogu',   title: 'パクパク',         g: { mogu: true, route: 4, mid: 2 }, hint: '「ガブッ」の拍で跳べ！ コインで離れる' },
-    16: { world: 'mogu',   title: 'もぐもぐパニック', g: { mogu: true, moguStart: 1, moguCreep: 0.14, cake: 0.7 }, hint: 'ガブッの拍で跳べ・コインで逃げ切れ' },
+    15: { world: 'mogu',   title: 'パクパク',         g: { mogu: true, moguStart: 1.0, route: 4, mid: 2 }, hint: '「ガブッ」の拍で跳んでかわせ！' },
+    16: { world: 'mogu',   title: 'もぐもぐパニック', g: { mogu: true, moguStart: 1.8, biteAll: true, cake: 0.7 }, hint: 'すぐ後ろにMOGU！ ガブッの拍で跳べ' },
     17: { world: 'match',  title: 'ブロックマッチ',   g: { match: 6 } },
     18: { world: 'match',  title: 'トリプルマッチ',   g: { match: 8 } },
     19: { world: 'arcade', title: 'ブラックアウト',   g: { dark: 0.6, darkN: 5, mid: 3 } },
@@ -92,7 +92,7 @@
     pad: 'ジャンプ台は跳ばずに乗ろう',
     jelly: '沈んだクラゲは跳ぶ・浮いたらくぐる',
     ring: '浮き輪の真ん中をくぐろう',
-    cannon: '輪が重なったらタップして次の大砲へ',
+    cannon: '大砲が次の大砲を向いた瞬間にタップ！',
     ball: 'コスミーが転がってきたら跳ぼう',
     stairs: '階段をリズムで登ろう',
     prize: '影の場所に景品が落ちる',
@@ -315,11 +315,23 @@
 
   // Cannon relay: the cannons waiting ahead, barrels aimed at the next one.
   const cannonAngle = (ob, x, y) => Math.atan2(ob.next.y - y, Math.max(B, xAt(ob.next.t) - x));
+  // While you sit in a cannon the barrel swings up from low and lines up with
+  // the next cannon exactly on the fire beat, then keeps rising past it
+  // (Donkey Kong barrel style): fire when it points at the next one.
+  const AIM_SWING = 1.15;
+  const aimAngle = (ob, target) => target + AIM_SWING * (ob.fire - songPos) / Math.max(0.2, ob.fire - ob.t);
   OBSTACLES.cannon = {
     free: true,
     parts: () => ({ spikes: [], blocks: [] }),
     draw(g, ob) {
-      if (usedCannons.has(ob.sec)) return;   // boarded: it travels with the player (drawn in the overlay)
+      if (usedCannons.has(ob.sec)) {   // boarded: it travels with the player (drawn in the overlay)
+        if (ob.firedAt === undefined || rideState?.ob === ob) return;
+        // Fired: it stays where it fired, kicked back by the shot.
+        const k = Math.max(0, songPos - ob.firedAt), x = xAt(ob.firedAt), ang = ob.firedAng ?? 0;
+        const kick = B * 0.45 * Math.exp(-k * 9);
+        drawCannon(g, x - Math.cos(ang) * kick, ob.y, CANNON_COLORS[ob.color].c, ang);
+        return;
+      }
       const x = xAt(ob.t), gy = ob.y, col = CANNON_COLORS[ob.color].c;
       g.save();
       if (ob.idx === 0) {
@@ -338,7 +350,8 @@
         g.fillStyle = col + '22'; g.fill();
       }
       g.restore();
-      drawCannon(g, x, gy, col, cannonAngle(ob, x, gy - B * 0.45));
+      const tgt = cannonAngle(ob, x, gy - B * 0.45);
+      drawCannon(g, x, gy, col, Math.min(aimAngle(ob, tgt), tgt + AIM_SWING));   // waits lowered; rises once you are in
     },
   };
   // The fire tap while in a cannon: a judged note with no shape of its own.
@@ -348,6 +361,31 @@
     nearMiss: true,
     parts: (cx, gy, f, ob) => ({ spikes: [{ x: cx - B / 2, y: topOf(ob) - B, w: B, h: B, f: false }], blocks: [] }),
   };
+  // A hole in the road: the road is cut away, so the world's own backdrop
+  // (sky, space, the city...) shows through, with dark walls and a lit rim in
+  // the world's colour. Gradients are made once per colour.
+  const holeShade = new Map();
+  function drawRoadHole(g, x0, x1, hue) {
+    const w = x1 - x0; if (w <= 0) return;
+    const h = DH - GROUND + 2, col = typeof hue === 'string' && hue[0] === '#' ? hue.slice(0, 7) : '#c08cff';
+    let sh = holeShade.get(col);
+    if (!sh) {
+      const down = g.createLinearGradient(0, GROUND, 0, DH); down.addColorStop(0, 'rgba(20,8,40,.15)'); down.addColorStop(1, 'rgba(20,8,40,.7)');
+      sh = { down }; holeShade.set(col, sh);
+    }
+    g.save();
+    g.clearRect(x0, GROUND - 1, w, h);                       // the road is gone: the backdrop behind the canvas shows
+    g.fillStyle = sh.down; g.fillRect(x0, GROUND - 1, w, h); // depth: darker further down
+    // walls: the road's cut edges, shaded inwards
+    for (const [x, dir] of [[x0, 1], [x1, -1]]) {
+      const wall = g.createLinearGradient(x, 0, x + dir * 16, 0); wall.addColorStop(0, 'rgba(20,8,40,.65)'); wall.addColorStop(1, 'rgba(20,8,40,0)');
+      g.fillStyle = wall; g.fillRect(dir > 0 ? x : x - 16, GROUND - 1, 16, h);
+    }
+    // the rim where the road breaks off, in the world's colour
+    g.strokeStyle = col; g.lineWidth = 3; g.lineCap = 'round'; g.shadowColor = col; g.shadowBlur = 8;
+    g.beginPath(); g.moveTo(x0, GROUND); g.lineTo(x0, DH); g.moveTo(x1, GROUND); g.lineTo(x1, DH); g.stroke();
+    g.restore();
+  }
   OBSTACLES.tier = {
     free: true,
     parts(cx, gy, f, ob) {
@@ -362,11 +400,7 @@
       const col = CANNON_COLORS[ob.color].c;
       if (ob.lvl === 0) {
         if (ob.safe) return;
-        const pe = xAt(ob.t + ob.span - 0.3);
-        g.fillStyle = '#2e2456'; g.fillRect(x0, GROUND - 1, pe - x0, DH - GROUND + 1);
-        g.fillStyle = '#ffffff88'; for (let x = x0 + 20; x < pe; x += 46) g.fillRect(x, GROUND + 18 + (x % 3) * 9, 2, 2);
-        g.strokeStyle = '#ff8fc088'; g.lineWidth = 2; g.setLineDash([6, 6]);
-        g.beginPath(); g.moveTo(x0, GROUND + 6); g.lineTo(pe, GROUND + 6); g.stroke(); g.setLineDash([]);
+        drawRoadHole(g, x0, xAt(ob.t + ob.span - 0.3), hue);
         return;
       }
       if (!ob.safe) return;
@@ -449,16 +483,28 @@
       return { spikes: [], blocks: [], hazards: [{ x: cx - B * 0.3, y: GROUND - B * 0.8, w: B * 0.6, h: B * 0.8 }], cx };
     },
     draw(g, ob, parts) {
-      const cx = parts.cx, land = ob.t - TAP_OFFSET - ob.p, drop = 0.35;
-      const k = ease((songPos - (land - drop)) / drop), y = 26 + (GROUND - B * 0.45 - 26) * k;
-      if (songPos < land) {
+      // It falls from above the screen (gravity: slow, then fast), spinning a
+      // little, and lands with a squash and a puff one beat before you get there.
+      const cx = parts.cx, land = ob.t - TAP_OFFSET - ob.p, drop = 0.45;
+      const rest = GROUND - B * 0.45;
+      if (songPos < land) {   // its shadow on the floor grows as it comes down
         const near = Math.max(0, Math.min(1, 1 - (land - songPos) / (ob.p * 1.5)));
         g.fillStyle = `rgba(255,157,240,${0.15 + 0.55 * near})`;
         g.beginPath(); g.ellipse(cx, GROUND + 2, B * 0.55 * (0.5 + 0.5 * near), 5, 0, 0, 6.283); g.fill();
       }
-      g.strokeStyle = '#c7d2e8'; g.lineWidth = 2;
-      g.beginPath(); g.moveTo(cx, 18); g.lineTo(cx, songPos < land ? y - B * 0.45 : 26); g.stroke();
-      if (window.worldSkins?.drawArt(g, 'catch', 'leek.png', cx - B * 0.4, y - B * 0.45, B * 0.8, B * 0.9)) return;
+      if (songPos < land - drop) return;   // still above the screen
+      const u = Math.min(1, (songPos - (land - drop)) / drop), y = -B + (rest + B) * u * u;
+      const after = songPos - land, sq = after > 0 && after < 0.22 ? Math.sin(after / 0.22 * Math.PI) * 0.22 : 0;
+      if (after > 0 && after < 0.35) {   // landing puff
+        const a = 1 - after / 0.35; g.fillStyle = `rgba(255,255,255,${0.6 * a})`;
+        for (const sgn of [-1, 1]) { g.beginPath(); g.ellipse(cx + sgn * (B * 0.35 + after * 70), GROUND - 3, B * (0.18 + after * 0.5), B * 0.1, 0, 0, 6.283); g.fill(); }
+      }
+      const cy = Math.min(y, rest), bottom = cy + B * 0.45;   // pivot at its foot
+      g.save(); g.translate(cx, bottom); g.rotate(u < 1 ? (1 - u) * 1.4 : 0); g.scale(1 + sq, 1 - sq);
+      const drew = window.worldSkins?.drawArt(g, 'catch', 'leek.png', -B * 0.4, -B * 0.9, B * 0.8, B * 0.9);
+      g.restore();
+      if (drew) return;
+      { const y = cy;   // fallback art (no image yet)
       g.fillStyle = '#7df'; g.beginPath(); g.arc(cx, y, B * 0.45, 0, 6.283); g.fill();
       g.fillStyle = '#ff9df0'; g.beginPath(); g.arc(cx, y, B * 0.45, Math.PI, 0); g.fill();
       g.strokeStyle = '#4a2a3a'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, y, B * 0.45, 0, 6.283); g.stroke();
@@ -466,7 +512,7 @@
       g.fillStyle = '#ffffffaa'; g.beginPath(); g.arc(cx - 6, y - 7, 4, 0, 6.283); g.fill();
       g.fillStyle = '#ffd94a'; g.beginPath();
       for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? 2.6 : 5.5; g.lineTo(cx + 4 + Math.cos(a) * rad, y + 8 + Math.sin(a) * rad); }
-      g.closePath(); g.fill();
+      g.closePath(); g.fill(); }
     },
   };
 
@@ -958,7 +1004,7 @@
       }
     }
     // A hop needs a jump (0.5s) per step: one step per beat only if that fits.
-    const stepBeats = p >= 0.55 ? 1 : 2;
+    const stepBeats = p >= JUMP_T + 0.1 ? 1 : 2;   // one hop per beat only with real time on the ground between hops
     const sectionBeats = (frac, n) => {
       const b0 = beatAfter(ctx.duration * frac);
       if (b0 === undefined) return null;
@@ -1110,7 +1156,7 @@
     const PLAIN = new Set(['spike', 'spike2', 'block', 'block2', 'hold', 'tower', 'steps', 'spike3', 'bridge']);
     const tries = [];
     // Shorter zones too, so a stage packed with sections still keeps its flips.
-    for (const len of [0.14, 0.1, 6 / ctx.duration, 4.5 / ctx.duration]) for (const f of [0.3, 0.5, 0.7, 0.2, 0.85, 0.4, 0.6, 0.75, 0.15, 0.55, 0.65, 0.8, 0.25, 0.45, 0.35]) tries.push([f, len]);
+    for (const len of [0.14, 0.1, 6 / ctx.duration, 4.5 / ctx.duration, 3.4 / ctx.duration]) for (const f of [0.3, 0.5, 0.7, 0.2, 0.85, 0.4, 0.6, 0.75, 0.15, 0.55, 0.65, 0.8, 0.25, 0.45, 0.35, 0.1, 0.9, 0.05, 0.95, ...Array.from({ length: 18 }, (_, k) => 0.075 + k * 0.05)]) tries.push([f, len]);
     for (const [f, len] of tries) {
       if (built.zones.length >= wantZones) break;
       const gaps = [];
@@ -1310,7 +1356,7 @@
 
   // ---------- Runtime state ----------
   let carry = null, bounce = null, matches = 0;
-  let rideState = null, chase = 0, chaseShow = 0, usedCannons = new Set();
+  let rideState = null, chase = 0, chaseShow = 0, usedCannons = new Set(), cannonFx = [];
   function setup(built, cfg) {
     run = { p: built.p || 0.5, dark: built.dark || [], sabi: built.sabi || null, sections: built.sections || [], g: cfg.gimmick || {}, bites: (built.bites || []).map(t => ({ t })) };
     reset(0);
@@ -1324,9 +1370,13 @@
       if (o.type === 'door' && o.t > offset - 0.5) delete o.openAt;
       if (o.type === 'pad' && o.t > offset - 0.5) delete o.usedAt;
     }
-    for (const b of run.bites || []) if (b.t > offset - 0.5) { delete b.on; delete b.done; }
+    for (const b of run.bites || []) if (b.t > offset - 0.5) { delete b.on; delete b.done; } else b.done = true;
     biteCount = 0; biteFx = null;
+    // Cannons from the restart point on are back (a revive used to leave them "used": gone, no way in).
+    cannonFx = [];
     if (!offset) usedCannons = new Set();
+    else for (const o of level) if (o.type === 'cannon' && o.t > offset - 0.5) usedCannons.delete(o.sec);
+    for (const o of level) if (o.type === 'cannon' && !usedCannons.has(o.sec)) { delete o.firedAt; delete o.firedAng; }
   }
   function safeOffset(offset) {
     for (const s of run.sections) if (offset - LEAD < s.to && offset > s.from - 0.6) return Math.max(0, s.from - 0.3);
@@ -1335,12 +1385,9 @@
   const active = () => STAGES[stageIdx]?.gimmick && stageIdx < NSTAGE;
 
 
-  // MOGU: creeps closer all the time (chase 0..3, 3 = eaten); each coin you
-  // pick up pushes it back a little. Timing grades play no part.
-  const MOGU_CREEP = 0.08, MOGU_COIN = 0.08;
   // Bites: two beats ahead MOGU decides (the closer, the more often) and opens
   // wide; on the beat it snaps forward: be in the air (jump on that beat) or be eaten.
-  const biteEvery = () => chase >= 1 ? 1 : 2;   // close: every chance; far: every other one
+  const biteEvery = () => run.g.biteAll ? 1 : 2;   // 16: every chance; 15: every other one
   let biteCount = 0, biteFx = null;
   function biteStep() {
     for (const b of run.bites) {
@@ -1353,7 +1400,7 @@
       const onFloor = player.grounded && lastGdir === 1 && Math.abs(player.y + B - GROUND) < 3;
       if (onFloor && !feverProtected() && performance.now() / 1000 >= invulnUntil) {
         floats.push({ text: 'ガブッ！', x: player.x + B / 2, y: player.y - 30, l: 1.2, c: '#ff5a6e' });
-        die();
+        die({ kind: 'eaten' });
         if (state === 'play') chase = Math.max(0, chase - 1);   // a shield saved the run
       } else {
         floats.push({ text: 'セーフ！', x: player.x + B / 2, y: player.y - 26, l: 0.7, c: '#9fe870' });
@@ -1366,17 +1413,9 @@
     if (state !== 'play' || songPos < 2) return;
     biteStep();
     if (state !== 'play') return;
-    chase += (run.g.moguCreep || MOGU_CREEP) * dt;
-    if (chase >= 3) {
-      floats.push({ text: 'パクッ！', x: player.x + B / 2, y: player.y - 30, l: 1.2, c: '#ff8f8f' });
-      die();
-      if (state === 'play') chase = 1.5;   // a shield saved the run
-    }
+    // It keeps its distance (15: a little behind, 16: right behind you); the danger is the bite.
   }
-  function onCoin() {
-    if (!active() || !run.g.mogu) return;
-    chase = Math.max(0, chase - MOGU_COIN);
-  }
+  function onCoin() {}
   // Cannon ride and flight own the player; everything else uses normal physics.
   function ownsPlayer(dt, now) {
     if (!active()) return false;
@@ -1408,7 +1447,13 @@
         if (tapped) judge();   // the shot is a note: PERFECT / GREAT / GOOD like a jump
         r.phase = 'fly'; r.from = songPos; r.to = Math.max(songPos + 0.2, ob.next.t);
         r.y0 = ob.y - B; r.y1 = ob.next.y - B; r.h = B * 1.1 + Math.max(0, r.y0 - r.y1) * 0.3;
-        rings.push({ r: B, a: 0.7 }); shake = 4;
+        // BOOM: muzzle flash, smoke, a kick on the screen; the cannon stays behind recoiling.
+        const pcx = player.x + B / 2, cy = ob.y - B * 0.45;
+        ob.firedAt = songPos; ob.firedAng = Math.atan2(ob.next.y - B * 0.45 - cy, Math.max(B, xAt(ob.next.t) - pcx));
+        cannonFx.push({ kind: 'blast', t: songPos, y: cy, ang: ob.firedAng, at: songPos, col: CANNON_COLORS[ob.color].c });
+        floats.push({ text: 'ドン！', x: pcx + 10, y: cy - B * 0.9, l: 0.7, c: '#ffffff' });
+        rings.push({ r: B, a: 0.8 }); shake = 9;
+        if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} }
       } else if (w > 0.24) {
         // Missed the beat: the cannon tips you out.
         r.phase = 'miss'; player.vy = -120; player.grounded = false;
@@ -1424,9 +1469,9 @@
     if (r.phase === 'fly') {
       const s = Math.min(1, (songPos - r.from) / (r.to - r.from));
       if (s >= 1) {
-        if (ob.last) { player.y = r.y1; player.vy = 0; player.grounded = true; landAt = now; rideState = null; return false; }
+        if (ob.last) { player.y = r.y1; player.vy = 0; player.grounded = true; landAt = now; rideState = null; cannonFx.push({ kind: 'land', t: songPos, y: r.y1 + B, at: songPos }); shake = Math.max(shake, 5); return false; }
         const nx = level.find(o => o.type === 'cannon' && o.chain === ob.chain && o.idx === ob.idx + 1);
-        if (nx) { board(nx); return true; }
+        if (nx) { board(nx); cannonFx.push({ kind: 'catch', at: songPos }); shake = Math.max(shake, 4); return true; }
         rideState = null; return false;
       }
       player.grounded = false;
@@ -1453,6 +1498,7 @@
     // On the road over a hole: fall through it.
     if (player.grounded && Math.abs(player.y + B - GROUND) < 2 && !feverProtected() && performance.now() / 1000 >= invulnUntil) {
       for (const ob of level) {
+      if (ob.t < attemptOffset - 0.05) continue;   // before a revive's restart point: already passed
         if (ob.type !== 'ring' || Math.abs(ob.t - songPos) > 0.5) continue;
         const h = OBSTACLES.ring.parts(xAt(ob.t)).hole;
         if (pcx > h.x && pcx < h.x + h.w) { bounce = { t: songPos }; player.vy = 0; player.grounded = false; return true; }
@@ -1460,6 +1506,7 @@
     }
     const hx = player.x + B * 0.2, hy = player.y + B * 0.2, hw = B * 0.6, hh = B * 0.6;
     for (const ob of level) {
+      if (ob.t < attemptOffset - 0.05) continue;   // before a revive's restart point: already passed
       if (ob.type !== 'ring' || Math.abs(ob.t - songPos) > 0.4) continue;
       const cx = xAt(ob.t);
       if (ob.inAt === undefined && cx < pcx && !player.grounded && songPos - ob.t < 0.15) {
@@ -1590,9 +1637,21 @@
     const c = document.createElement('canvas'), r = 150; c.width = c.height = Math.ceil(r * 2 * sc);
     const g = c.getContext('2d'); g.scale(sc, sc);
     const grd = g.createRadialGradient(r, r, 40, r, r, r);
-    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(2,3,10,0.93)');
+    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(2,3,10,0.9)');
     g.fillStyle = grd; g.fillRect(0, 0, r * 2, r * 2);
     darkBake = { sc, c }; return c;
+  }
+  // Red vignette for MOGU's bite warning, baked once per screen size.
+  let edgeBake = null;
+  function dangerEdge() {
+    const sc = typeof SC === 'number' && SC > 0 ? SC : 1, w = Math.ceil(W), key = sc + ':' + w;
+    if (edgeBake && edgeBake.key === key) return edgeBake.c;
+    const c = document.createElement('canvas'); c.width = Math.ceil(w * sc / 2); c.height = Math.ceil(DH * sc / 2);
+    const g = c.getContext('2d'); g.scale(c.width / w, c.height / DH);
+    const grd = g.createRadialGradient(w / 2, DH / 2, DH * 0.45, w / 2, DH / 2, Math.hypot(w, DH) / 2);
+    grd.addColorStop(0, 'rgba(255,40,70,0)'); grd.addColorStop(1, 'rgba(255,40,70,0.75)');
+    g.fillStyle = grd; g.fillRect(0, 0, w, DH);
+    edgeBake = { key, c }; return c;
   }
   function inDark() {
     let a = 0;
@@ -1627,18 +1686,21 @@
     // Darkness with a small light around the player; obstacles flash on the beat.
     const dark = inDark();
     if (dark > 0) {
-      const lastBeat = beats[beatIdx - 1]?.t ?? -9, flash = Math.max(0, 1 - (songPos - lastBeat) / 0.35);
+      // Easy on the eyes: the outlines never go fully dark, swell softly on the
+      // beat (eased, ~0.6 s) and peak well below white instead of strobing.
+      const lastBeat = beats[beatIdx - 1]?.t ?? -9, u = Math.max(0, Math.min(1, (songPos - lastBeat) / 0.6));
+      const flash = u < 0.12 ? Math.sin(u / 0.12 * Math.PI / 2) : (1 - (u - 0.12) / 0.88) ** 2;
       // The light around the player is baked once; the rest is a plain fill.
       const v = darkLight(), r = 150;
       g.save(); g.globalAlpha = dark;
       g.drawImage(v, pcx - r, pcy - r, r * 2, r * 2);
-      g.fillStyle = 'rgba(2,3,10,0.93)';
+      g.fillStyle = 'rgba(2,3,10,0.9)';
       g.fillRect(-20, -20, W + 40, pcy - r + 20);
       g.fillRect(-20, pcy + r, W + 40, DH - pcy - r + 20);
       g.fillRect(-20, pcy - r, pcx - r + 20, r * 2);
       g.fillRect(pcx + r, pcy - r, W - pcx - r + 20, r * 2);
       g.restore();
-      g.save(); g.lineWidth = 2.5; g.strokeStyle = `rgba(255,226,196,${(0.08 + 0.9 * flash) * dark})`;
+      g.save(); g.lineWidth = 2.5; g.lineJoin = 'round'; g.strokeStyle = `rgba(255,214,170,${(0.32 + 0.43 * flash) * dark})`;
       for (const ob of level) {
         const dx = (ob.t - songPos) * SPEED; if (dx < -W * 0.4 || dx > W) continue;
         const parts = obstacleRects(ob);
@@ -1648,7 +1710,7 @@
       }
       g.restore();
       g.globalAlpha = dark; g.fillStyle = '#ffd94a';
-      g.globalAlpha = dark * (0.25 + 0.75 * flash); g.beginPath(); g.arc(W / 2, 64, 6, 0, 6.283); g.fill(); g.globalAlpha = 1;
+      g.globalAlpha = dark * (0.35 + 0.45 * flash); g.beginPath(); g.arc(W / 2, 64, 6, 0, 6.283); g.fill(); g.globalAlpha = 1;
     }
     // 3Match: from ~3s before a row, a banner and the hop path (road -> block
     // -> block -> block), so the row never comes as a surprise.
@@ -1702,16 +1764,70 @@
     if (rideState && rideState.phase === 'ride') {
       const ob = rideState.ob, col = CANNON_COLORS[ob.color].c, by = ob.y, cy = by - B * 0.45;
       const tx = xAt(ob.next.t), ty = ob.next.y - B * 0.45;
-      g.save(); g.strokeStyle = '#ffd94a'; g.lineWidth = 2.5; g.setLineDash([5, 6]);
-      g.beginPath(); g.moveTo(pcx, cy); g.quadraticCurveTo((pcx + tx) / 2, Math.min(cy, ty) - B * 2, tx, ty); g.stroke(); g.restore();
-      drawCannon(g, pcx, by, col, Math.atan2(ty - cy, Math.max(B, tx - pcx)));
-      const left = ob.fire - songPos;
-      if (left > -0.1 && left < run.p * 1.2) {
-        const rr = B * 0.75 + Math.max(0, left) * 90;
-        g.save(); g.globalAlpha = Math.min(1, (run.p * 1.2 - left) / 0.25);
-        g.strokeStyle = Math.abs(left) < 0.06 ? '#ffffff' : '#ffd94a'; g.lineWidth = 4;
-        g.beginPath(); g.arc(pcx, cy, rr, 0, 6.283); g.stroke();
-        g.lineWidth = 2; g.strokeStyle = '#ffd94a88'; g.beginPath(); g.arc(pcx, cy, B * 0.75, 0, 6.283); g.stroke();
+      const target = Math.atan2(ty - cy, Math.max(B, tx - pcx)), ang = aimAngle(ob, target);
+      const left = ob.fire - songPos, lined = Math.abs(left) < 0.09;
+      // The aim line out of the barrel: dim while it swings, bright when it lines up.
+      g.save();
+      const L = Math.hypot(tx - pcx, ty - cy) * 0.92;
+      g.strokeStyle = lined ? '#ffffff' : '#ffd94a'; g.globalAlpha = lined ? 1 : 0.55; g.lineWidth = lined ? 3.5 : 2.5; g.setLineDash([6, 7]);
+      g.lineDashOffset = -songPos * 60;
+      g.beginPath(); g.moveTo(pcx + Math.cos(ang) * B * 1.1, cy + Math.sin(ang) * B * 1.1); g.lineTo(pcx + Math.cos(ang) * L, cy + Math.sin(ang) * L); g.stroke();
+      g.restore();
+      drawCannon(g, pcx, by, col, ang);
+      // A reticle on the next cannon (or the rail), closing in on the beat.
+      if (left > -0.12 && left < run.p * 1.6) {
+        const k = Math.max(0, left) / (run.p * 1.6), rr = B * (0.85 + 1.4 * k), rot = songPos * 3;
+        g.save(); g.translate(tx, ty); g.globalAlpha = Math.min(1, (1 - k) * 2.5);
+        g.strokeStyle = lined ? '#ffffff' : '#ff5a7a'; g.lineWidth = lined ? 4 : 3;
+        g.beginPath(); g.arc(0, 0, rr, 0, 6.283); g.stroke();
+        g.rotate(rot); g.lineWidth = 3;
+        for (let i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(rr - 7, 0); g.lineTo(rr + 7, 0); g.stroke(); }
+        g.restore();
+      }
+    }
+    // In flight: a sparkle trail behind the shot.
+    if (rideState && rideState.phase === 'fly') {
+      const r = rideState, col = CANNON_COLORS[r.ob.color].c;
+      g.save();
+      for (let i = 1; i <= 7; i++) {
+        const s0 = Math.min(1, (songPos - r.from) / (r.to - r.from)) - i * 0.035;
+        if (s0 <= 0) break;
+        const y = r.y0 + (r.y1 - r.y0) * s0 - 4 * r.h * s0 * (1 - s0) + B / 2, x = xAt(r.from + s0 * (r.to - r.from));   // where the shot was then, scrolled since
+        g.globalAlpha = 0.75 * (1 - i / 8); g.fillStyle = i % 2 ? '#fff6b0' : col;
+        g.beginPath(); g.arc(x, y, B * 0.3 * (1 - i / 9), 0, 6.283); g.fill();
+      }
+      g.restore();
+    }
+    // Blast, catch and landing effects.
+    if (cannonFx.length) {
+      cannonFx = cannonFx.filter(f => songPos - f.at < 0.8 && songPos >= f.at - 0.05);
+      for (const f of cannonFx) {
+        const k = songPos - f.at;
+        g.save();
+        if (f.kind === 'blast') {
+          const x = xAt(f.t), mx = x + Math.cos(f.ang) * B * 1.15, my = f.y + Math.sin(f.ang) * B * 1.15;
+          if (k < 0.16) {   // muzzle flash
+            const R = B * (0.6 + k * 7);
+            g.globalAlpha = 1 - k / 0.16; g.fillStyle = '#fff3a8';
+            g.beginPath();
+            for (let i = 0; i < 16; i++) { const a = f.ang + i * Math.PI / 8, rad = i % 2 ? R * 0.45 : R; g.lineTo(mx + Math.cos(a) * rad, my + Math.sin(a) * rad); }
+            g.closePath(); g.fill();
+            g.fillStyle = '#ffffff'; g.beginPath(); g.arc(mx, my, R * 0.35, 0, 6.283); g.fill();
+          }
+          for (let i = 0; i < 5; i++) {   // smoke puffs drifting back
+            const a = f.ang + Math.PI + (i - 2) * 0.5, d = B * (0.3 + k * 2.2);
+            g.globalAlpha = Math.max(0, 0.6 * (1 - k / 0.8)); g.fillStyle = '#e8e2f4';
+            g.beginPath(); g.arc(mx + Math.cos(a) * d * 0.4 - k * 30, my + Math.sin(a) * d * 0.4 - k * 20, B * (0.22 + k * 0.6), 0, 6.283); g.fill();
+          }
+        } else if (f.kind === 'catch' && rideState?.phase === 'ride') {   // the next cannon bounces as you drop in
+          const cy = rideState.ob.y - B * 0.45;
+          g.globalAlpha = Math.max(0, 1 - k / 0.35); g.strokeStyle = '#ffffff'; g.lineWidth = 3;
+          g.beginPath(); g.arc(pcx, cy, B * (0.7 + k * 3), 0, 6.283); g.stroke();
+        } else if (f.kind === 'land') {   // dust where the last shot lands on the rail
+          const x = xAt(f.t);
+          g.globalAlpha = Math.max(0, 0.8 * (1 - k / 0.6)); g.fillStyle = '#fff6d0';
+          for (const sgn of [-1, 1]) { g.beginPath(); g.ellipse(x + sgn * (B * 0.4 + k * 90), f.y - 4, B * (0.25 + k * 0.4), B * 0.14, 0, 0, 6.283); g.fill(); }
+        }
         g.restore();
       }
     }
@@ -1750,27 +1866,15 @@
       }
       g.restore();
       // Close behind you: the screen's edges pulse red with the beat.
-      if (chaseShow > 1.6 && state === 'play') {
-        const a2 = Math.min(1, (chaseShow - 1.6) / 1.2) * (0.35 + 0.35 * Math.abs(Math.sin(beatPh * Math.PI)));
+      if (warn > 0 && state === 'play') {   // a bite is coming: the edges pulse red
+        const a2 = Math.min(1, warn * 1.4) * (0.35 + 0.35 * Math.abs(Math.sin(beatPh * Math.PI)));
         g.save(); g.globalAlpha = a2; g.drawImage(dangerEdge(), 0, 0, W, DH); g.restore();
       }
-      // The rule, always on screen: a gauge of how close it is (3 = eaten).
-      if (state === 'play' || state === 'ready' || state === 'paused') {
-        const x0 = W / 2 - 92, y = lastGdir === -1 ? GROUND - 100 : 104, danger = chase >= 2.2;   // ceiling run: gauge on the free floor side
-        g.save();
-        g.fillStyle = danger ? '#ffe3e3f2' : '#ffffffe8'; g.strokeStyle = danger ? '#e0445a' : '#4a2a3a'; g.lineWidth = 2;
-        g.beginPath(); g.roundRect(x0, y - 17, 184, 34, 17); g.fill(); g.stroke();
-        drawMoguSide(g, x0 + 18, y + 2, 13, 0, 0.6, songPos);
-        // How close it is: the bar fills towards the mouth mark on the right.
-        const bx = x0 + 38, bw = 118, f = Math.min(1, chase / 3);
-        g.fillStyle = '#f1ebff'; g.beginPath(); g.roundRect(bx, y - 7, bw, 14, 7); g.fill(); g.stroke();
-        if (f > 0.02) { g.fillStyle = danger ? '#e0445a' : f > 0.4 ? '#ff9a4d' : '#7fd16b'; g.beginPath(); g.roundRect(bx + 1, y - 6, Math.max(12, (bw - 2) * f), 12, 6); g.fill(); }
-        g.fillStyle = '#e0445a'; g.font = '900 12px sans-serif'; g.textAlign = 'center'; g.fillText('×', bx + bw + 14, y + 4);
-        g.restore();
-        g.textAlign = 'center'; g.font = '800 13px "M PLUS 1p", sans-serif'; g.lineWidth = 3; g.strokeStyle = '#2a1650';
-        const msg = chase >= 2.2 ? 'コインを取って逃げて！' : songPos < 7 ? '「ガブッ」の拍で跳ぶ・コインで離れる' : '';
-        if (msg) { const my = y + 34; g.fillStyle = chase >= 2 ? '#ff8f8f' : '#ffffff'; g.strokeText(msg, W / 2, my); g.fillText(msg, W / 2, my); }
-        g.textAlign = 'left';
+      // The rule, at the start only.
+      if ((state === 'play' || state === 'ready') && songPos < 6) {
+        g.textAlign = 'center'; g.font = '800 14px "M PLUS 1p", sans-serif'; g.lineWidth = 3; g.strokeStyle = '#2a1650'; g.fillStyle = '#ffffff';
+        const my = lastGdir === -1 ? GROUND - 90 : 104;
+        g.strokeText('「ガブッ」の拍で跳んでかわそう', W / 2, my); g.fillText('「ガブッ」の拍で跳んでかわそう', W / 2, my); g.textAlign = 'left';
       }
     }
   }
