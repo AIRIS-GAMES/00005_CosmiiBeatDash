@@ -26,10 +26,15 @@
     }
   });
   const gates=['start','finish'].map(name=>{
-    const gate=document.createElement('div');gate.hidden=true;
-    const speaker=document.createElement('img');speaker.src=ASSET+'neon-speaker.png';speaker.alt='';
-    gate.append(speaker);
-    gate.className='world-boundary';gate.id='world-gate-'+name;app.append(gate);return gate;
+    const layers=['back','front'].map(side=>{
+      const layer=document.createElement('div');layer.hidden=true;
+      layer.className=`world-boundary world-boundary-${name} world-boundary-${side}`;
+      if(side==='back')layer.id='world-gate-'+name;
+      const art=document.createElement('img');art.alt='';art.decoding='async';
+      layer.append(art);app.append(layer);
+      return {layer,art};
+    });
+    return {name,layers,lastTransform:''};
   });
   let tempoBeats=null,tempoScale=1;
   const themes=[
@@ -55,7 +60,11 @@
       image.src=ASSET+file;
     };
     scenery.forEach(panel=>{setImage(panel.floor,false,theme.file,theme.floor);setImage(panel.ceiling,true,theme.file,theme.floor);});
-    gates.forEach(g=>g.style.filter=filter);
+    const gateWorld=i===NSTAGE-1?'finale':(window.stageGimmicks?.PLAN?.[i+1]?.world||'dash');
+    for(const {name,layers} of gates){
+      const source=ASSET+`gates/${gateWorld}-${name}.png`;
+      for(const {art} of layers)if(art.getAttribute('src')!==source)art.src=source;
+    }
     app.dataset.worldTheme=theme.name;
   }
   function scenerySpeed(){
@@ -209,17 +218,25 @@
         if(panel.lastX!==x){panel.lastX=x;panel.floorFrame.style.transform=`translateX(${x}%) scaleX(${flip})`;}
         if(showCeiling&&panel.ceilingX!==x){panel.ceilingX=x;panel.ceilingFrame.style.transform=`translateX(${x}%) scale(${flip},-1)`;}
       });
-      const gatePositions=[-distance,(duration-songPos)*scenerySpeed()-W*.9+player.x];   // past the goal it keeps scrolling away
-      // The start and goal gates belong to every stage, world skins included.
+      // The opening passes over the player's centre. The near pillar is
+      // drawn over the canvas while the rest of the gate sits behind it.
+      const characterX=W*.3+B/2, speed=scenerySpeed();
+      const time=state==='ready'?-runUp:songPos;
+      const gatePositions=[
+        characterX+(-runUp+.65-time)*speed,
+        characterX+(duration-.18-time)*speed,
+      ];
       const gatesOn=['ready','play','dead','paused','clear'].includes(state)&&stageIdx<NSTAGE;
       gates.forEach((gate,i)=>{
         const x=gatePositions[i];
-        const visible=i===0?x>-W*.1:x<W*.1&&x>-W;
-        const hidden=!gatesOn||!visible;
-        if(gate.hidden!==hidden)gate.hidden=hidden;
+        const hidden=!gatesOn||x<-W*.18||x>W*1.18;
+        for(const {layer} of gate.layers)if(layer.hidden!==hidden)layer.hidden=hidden;
         if(hidden)return;
         const transform=`translateX(${(x/W*100).toFixed(3)}%)`;
-        if(gate.lastTransform!==transform){gate.lastTransform=transform;gate.style.transform=transform;}
+        if(gate.lastTransform!==transform){
+          gate.lastTransform=transform;
+          for(const {layer} of gate.layers)layer.style.transform=transform;
+        }
       });
       return active;
     },

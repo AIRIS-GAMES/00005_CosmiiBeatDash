@@ -25,8 +25,9 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  assert.equal(scrolling.first,scrolling.retry,'Retry restores the matching scenery position');
  const boundaries=await page.evaluate(()=>{
    const saved=beats;
+   state='play';
    const check=t=>{songPos=t;cosmiiWorld.background();return ['start','finish'].map(n=>!document.getElementById('world-gate-'+n).hidden);};
-   const start=check(0),middle=check(duration/2),finish=check(duration);
+   const start=check(-LEAD-COUNT_SEC+.65),middle=check(duration/2),finish=check(duration-.18);
    const speed=dt=>{beats=Array.from({length:30},(_,i)=>({t:i*dt,s:1}));songPos=.1;cosmiiWorld.background();return Math.abs(parseFloat(document.getElementById('world-backdrop').parentElement.style.transform.match(/translateX\(([-.0-9]+)/)[1]));};
    const slow=speed(.6),fast=speed(.4);beats=saved;songPos=4;cosmiiWorld.background();
    return {start,middle,finish,slow,fast};

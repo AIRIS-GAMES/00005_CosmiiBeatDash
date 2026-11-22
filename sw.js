@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v144-1.07b24';
+const CACHE = 'rdash-v145-1.07b26';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
@@ -15,7 +15,7 @@ const ASSETS = [
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
   'Asset/promo/6811575619.jpg', 'Asset/promo/6809099787.jpg',
-  'Asset/promo/6829253493.jpg', 'Asset/promo/6797260932.jpg',
+  'Asset/promo/6829253493.jpg', 'Asset/promo/6797260932.jpg', 'Asset/promo/6828976380.jpg',
   'Asset/promo/6784988703.jpg', 'Asset/promo/6789935783.jpg', 'Asset/promo/6790154239.jpg',
   './',
   'index.html',
@@ -42,7 +42,8 @@ const ASSETS = [
   ...['rescue','rescue-normal','cannon','roll','sudoku','catch','mogu','match'].map(id=>'Asset/audio/world-'+id+'.mp3'),
   'ui.css',
   'cosmii-world.js',
-  'Asset/world/neon-speaker.png',
+  ...['dash','rescue','cannon','roll','sudoku','catch','mogu','match','arcade','finale']
+    .flatMap(world => ['start','finish'].map(side => `Asset/world/gates/${world}-${side}.png`)),
   'cosmii-opening.js',
   'cosmii-opening.css',
   'cosmii-home.js',

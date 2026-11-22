@@ -8,12 +8,12 @@
 (function () {
   'use strict';
   const SOURCE = {   // stage world -> PROMO_GAMES id
-    rescue: '6811575619', cannon: '6809099787', roll: '6829253493', sudoku: '6797260932',
+    rescue: '6811575619', cannon: '6809099787', roll: '6829253493', sudoku: '6797260932', catch: '6828976380',
     mogu: '6789935783', match: '6784988703', arcade: '6790154239',
   };
   const ART = {
     rescue: 'Asset/worlds/rescue/sunset-background.jpg', cannon: 'Asset/worlds/cannon/background.jpg',
-    roll: 'Asset/worlds/roll/background.jpg', sudoku: 'Asset/worlds/sudoku/background.jpg',
+    roll: 'Asset/worlds/roll/background.jpg', sudoku: 'Asset/worlds/sudoku/background.jpg', catch: 'Asset/worlds/catch/background.jpg',
     mogu: 'Asset/worlds/mogu/background.jpg', match: 'Asset/worlds/match/background.jpg',
     arcade: 'Asset/worlds/arcade/background.jpg',
   };
