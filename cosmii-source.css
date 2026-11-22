@@ -1,0 +1,46 @@
+/* "The game this stage comes from" (cosmii-source.js). */
+/* 1. result card banner: slides up once the rank and buttons have landed */
+#clearov .src-banner{display:flex;align-items:center;gap:10px;width:min(440px,92%);margin:2px auto 0;padding:8px 10px 8px 8px;border-radius:16px;
+  background:linear-gradient(90deg,#1b1640f2,#22134af2);border:1.5px solid #7dffb099;box-shadow:0 6px 16px #0007,0 0 14px #7dffb033;color:#fff;text-decoration:none;
+  animation:srcIn .5s 1.6s both cubic-bezier(.2,1.4,.4,1)}
+#clearov .src-banner[hidden]{display:none}
+#clearov .src-banner:active{transform:translateY(1px)}
+#clearov .src-banner:focus-visible{outline:3px solid #ffd25e;outline-offset:3px}
+.src-banner img{width:46px;height:46px;border-radius:11px;flex:none}
+.src-banner span{display:flex;flex-direction:column;line-height:1.25;min-width:0;flex:1;text-align:left}
+.src-banner small{font:700 10px "M PLUS 1p",sans-serif;color:#7dffb0}
+.src-banner b{font:900 15px "M PLUS 1p",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-banner em{font:700 10px "M PLUS 1p",sans-serif;font-style:normal;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-banner i{font:italic 800 11px "Exo 2",sans-serif;font-style:normal;color:#121028;background:#ffd25e;border-radius:99px;padding:6px 10px;flex:none}
+@keyframes srcIn{from{opacity:0;transform:translateY(14px)}}
+@media(max-height:350px){#clearov .src-banner{padding:5px 8px 5px 5px}.src-banner img{width:36px;height:36px}.src-banner em{display:none}}
+
+/* 2. world clear card */
+.src-modal{position:absolute;inset:0;z-index:60;display:grid;place-items:center;background:#05061acc;animation:srcFade .3s both;
+  padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.src-card{width:min(520px,86vw);max-height:100%;overflow:auto;border-radius:22px;background:#14123a;border:1.5px solid #ffffff30;box-shadow:0 20px 50px #000a;color:#fff;font-family:"M PLUS 1p",sans-serif;
+  animation:srcPop .45s .1s both cubic-bezier(.2,1.4,.4,1)}
+.src-art{position:relative;height:118px;background:#20204a center/cover no-repeat;border-radius:20px 20px 0 0}
+.src-art::after{content:"";position:absolute;inset:0;background:linear-gradient(#14123a00 40%,#14123a)}
+.src-art .icon{position:absolute;left:20px;bottom:-26px;width:72px;height:72px;border-radius:17px;border:3px solid #14123a;z-index:1;box-shadow:0 6px 14px #0008}
+.src-art .cosmii{position:absolute;right:18px;bottom:-8px;width:84px;height:84px;object-fit:contain;z-index:1;filter:drop-shadow(0 4px 6px #0008)}
+.src-art .tag{position:absolute;left:16px;top:12px;z-index:1;font:italic 800 10px "Exo 2",sans-serif;letter-spacing:.08em;background:#7dffb0;color:#10201a;border-radius:99px;padding:4px 9px}
+.src-body{padding:32px 22px 18px}
+.src-body small{color:#7dffb0;font-weight:700;font-size:11px}
+.src-body h3{margin:2px 0 4px;font-size:21px;font-weight:900}
+.src-body p{margin:0;color:#c9cbe6;font-size:12px}
+.src-actions{display:flex;gap:10px;margin-top:14px}
+.src-actions a,.src-actions button{flex:1;display:grid;place-items:center;min-height:44px;border-radius:13px;font:900 14px "M PLUS 1p",sans-serif;text-decoration:none;border:0;cursor:pointer}
+.src-actions a{background:#ffd25e;color:#2a1038}
+.src-actions button{flex:.6;background:#ffffff14;color:#fff;border:1px solid #ffffff30}
+.src-actions :focus-visible{outline:3px solid #fff;outline-offset:2px}
+@keyframes srcFade{from{opacity:0}} @keyframes srcPop{from{opacity:0;transform:scale(.85) translateY(20px)}}
+@media(max-height:350px){.src-art{height:84px}.src-art .icon{width:58px;height:58px;bottom:-20px}.src-art .cosmii{width:64px;height:64px}.src-body{padding:26px 18px 12px}.src-body h3{font-size:18px}}
+
+/* 3. stage select: beside each world heading */
+.wm-src{display:inline-flex;align-items:center;gap:5px;margin-left:10px;padding:2px 9px 2px 3px;border-radius:99px;background:#ffffff18;border:1px solid #ffffff38;
+  color:#fff;font:700 10px "M PLUS 1p",sans-serif;vertical-align:middle;text-decoration:none;letter-spacing:0;font-style:normal}
+.wm-src img{width:18px;height:18px;border-radius:5px}
+.wm-src:focus-visible{outline:2px solid #ffd25e;outline-offset:2px}
+
+@media (prefers-reduced-motion:reduce){#clearov .src-banner,.src-modal,.src-card{animation:none}}

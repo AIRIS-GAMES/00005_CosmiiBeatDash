@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v142-1.07b22';
+const CACHE = 'rdash-v144-1.07b24';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
@@ -57,6 +57,8 @@ const ASSETS = [
   'cosmii-fx.js',
   'cosmii-fx.css',
   'cosmii-impact.js',
+  'cosmii-source.js',
+  'cosmii-source.css',
   'Asset/world/memory-photos.jpg',
   ...['Exo2','Exo2-Italic','MPLUS1p-Medium','MPLUS1p-Bold','MPLUS1p-ExtraBold'].map(name=>'Asset/fonts/'+name+'.woff2'),
   ...['ui-panel.png','ui-progress.png','ui-words.png','ui-japanese.png'].map(file=>'Asset/world/'+file),

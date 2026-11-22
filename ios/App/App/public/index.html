@@ -164,6 +164,7 @@
 <link rel="stylesheet" href="cosmii-rides.css">
 <link rel="stylesheet" href="cosmii-mobile-dialogs.css">
 <link rel="stylesheet" href="cosmii-fx.css">
+<link rel="stylesheet" href="cosmii-source.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -1402,6 +1403,7 @@ function clearStage() {
     $('clearov').style.display = 'flex';
     clearFlair(finalScore, coinsWon);
     window.cosmiiWorld?.onClear();
+    window.cosmiiSource?.onClear();   // the game this stage comes from
   }, GOAL_HOLD);
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
@@ -2232,5 +2234,6 @@ if ('serviceWorker' in navigator &&
 <script src="cosmii-tutorial.js"></script>
 <script src="cosmii-fx.js"></script>
 <script src="cosmii-impact.js"></script>
+<script src="cosmii-source.js"></script>
 </body>
 </html>
