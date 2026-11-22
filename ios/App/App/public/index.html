@@ -1168,7 +1168,7 @@ function startAttempt(offset = 0) {
   holdJump = 0; offLedgeAt = -9;
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
-  particles = []; floats = []; rings = []; pulse = 0; window.cosmiiFx?.reset(); goalRun = null; clearToken++;
+  particles = []; floats = []; rings = []; pulse = 0; window.cosmiiFx?.reset(); window.cosmiiImpact?.reset(); goalRun = null; clearToken++;
   // A fresh start counts 3-2-1 while Cosmii already runs; the song starts on GO.
   if (offset === 0 && !DEMO) { countdown = { t0: performance.now(), from: -LEAD - COUNT_SEC }; songPos = countdown.from; }
   else { countdown = null; playTrack(offset, LEAD, offset===0); }
@@ -1303,7 +1303,7 @@ function drawCountdown() {
   ctx.translate(W / 2, DH * 0.42); ctx.scale(sc, sc);
   ctx.font = `italic 900 ${text === 'GO!' || text === 'GOAL!' ? 64 : 84}px "Exo 2", "M PLUS 1p", sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round'; ctx.lineWidth = 10; ctx.strokeStyle = '#2a1050'; ctx.strokeText(text, 0, 0);
-  ctx.fillStyle = text === 'GO!' ? '#7dffb0' : text === 'GOAL!' ? '#ff8fd0' : '#ffd94a'; ctx.fillText(text, 0, 0);
+  ctx.fillStyle = text === 'GO!' ? (window.cosmiiImpact?.goFill(ctx, 64) || '#7dffb0') : text === 'GOAL!' ? '#ff8fd0' : '#ffd94a'; ctx.fillText(text, 0, 0);
   ctx.restore();
 }
 const GOAL_HOLD = 2700, GOAL_FADE = 3.4;   // the card comes in once the goal pose has landed
@@ -1485,7 +1485,7 @@ function judge() {
     if(skinEffect('score'))window.beatPSF?.skill('score');
     window.cosmiiCharacterMotion?.emit('judge');
     mission('perfect10', 1); mission('combo15', combo, true);
-    floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' }); if(typeof sfxJudge==='function')sfxJudge('perfect');
+    if (!window.cosmiiImpact?.judge('perfect', px, py, combo)) floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' }); if(typeof sfxJudge==='function')sfxJudge('perfect');
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1495,7 +1495,7 @@ function judge() {
     window.stageGimmicks?.onJudge('great');
     if(skinEffect('judge')) window.cosmiiCharacterMotion?.emit('judge');
     mission('combo15', combo, true);
-    floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' }); if(typeof sfxJudge==='function')sfxJudge('great');
+    if (!window.cosmiiImpact?.judge('great', px, py, combo)) floats.push({ text: 'GREAT', x: px, y: py, l: 1, c: '#7df' }); if(typeof sfxJudge==='function')sfxJudge('great');
   } else if (d <= 0.21 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1504,7 +1504,7 @@ function judge() {
     judgeFlash = 'GOOD';
     window.stageGimmicks?.onJudge('good');
     mission('combo15', combo, true);
-    floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' }); if(typeof sfxJudge==='function')sfxJudge('good');
+    if (!window.cosmiiImpact?.judge('good', px, py, combo)) floats.push({ text: 'GOOD', x: px, y: py, l: 0.8, c: '#bdf' }); if(typeof sfxJudge==='function')sfxJudge('good');
   } else {
     // 判定窓内にノートがないジャンプは無判定(ホールド移動でコンボ・FEVERを壊さない)
   }
@@ -1761,7 +1761,7 @@ function activateFever(seconds = 10) {
   if (!window.cosmiiPower?.enabled || feverOn || state !== 'play') return;
   feverLength = seconds;
   feverOn = true; feverEnd = songPos + seconds; fever = 1;
-  floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
+  if (!window.cosmiiImpact?.fever()) floats.push({ text: 'FEVER TIME!!', x: player.x + B/2, y: DH*0.35, l: 1.6, c: '#ff7ad9' });
   rings.push({ r: B, a: 0.8 });
   sfxFever();
 }
@@ -1832,6 +1832,7 @@ function draw() {
 
   if (inGame || (state === 'clear' && goalRun)) {   // the world keeps running past the goal
     player.x = W * 0.3;
+    window.cosmiiImpact?.drawBack(ctx);   // speed lines, behind the course
     for (const ob of level) {
       const def = OBSTACLES[ob.type], dt0 = ob.t - songPos, reach = obSpan(ob) * SPEED;
       const dx = def?.offset ? def.offset(ob, dt0) : dt0 * SPEED;
@@ -1988,6 +1989,7 @@ function draw() {
       ctx.textAlign = 'left';
     }
     ctx.globalAlpha = 1;
+    window.cosmiiImpact?.drawFront(ctx);   // judgement pops, bursts, FEVER cut-in (cosmii-impact.js)
 
     window.cosmiiPower?.drawArtwork(ctx);
     window.gameUI?.drawHUD(ctx);
@@ -2229,5 +2231,6 @@ if ('serviceWorker' in navigator &&
 <script src="cosmii-ui-art.js"></script>
 <script src="cosmii-tutorial.js"></script>
 <script src="cosmii-fx.js"></script>
+<script src="cosmii-impact.js"></script>
 </body>
 </html>

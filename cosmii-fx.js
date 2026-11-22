@@ -258,7 +258,8 @@
     if (tier < tierShown || s.run === 0) tierShown = 0;
     if (tier > tierShown) {   // a word when a new level is reached
       tierShown = tier;
-      s.floats.push({ text: tier >= 2 ? `${TIER_WORD[tier]} ×${s.run}` : `${s.run}連続 PERFECT!`, x: s.x, y: s.y - s.B * 1.4, l: 1.4, c: tier >= 4 ? '#ffffff' : tier === 3 ? '#8fe8ff' : '#ffd94a' });
+      const word = tier >= 2 ? `${TIER_WORD[tier]} ×${s.run}` : `${s.run}連続 PERFECT!`, color = tier >= 4 ? '#ffffff' : tier === 3 ? '#8fe8ff' : '#ffd94a';
+      if (!window.cosmiiImpact?.streak(word, color)) s.floats.push({ text: word, x: s.x, y: s.y - s.B * 1.4, l: 1.4, c: color });   // else it rides under the PERFECT pop
       if (tier >= 2) { beatRings.push({ x: s.x, y: s.y, l: 1, big: true }); for (let i = 0; i < 14; i++) { const a = i * TAU / 14; sparks.push({ x: s.x, y: s.y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, l: 0.6, s: 4 }); } }
     }
     // spawn

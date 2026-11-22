@@ -154,7 +154,7 @@
     // On the ceiling (flip zone) the mission note moves down, off the ceiling's obstacles.
     const low=lastGdir===-1&&state==='play';if(missionPopup.classList.contains('low')!==low)missionPopup.classList.toggle('low',low);
     const now=performance.now()/1000;
-    if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=now+0.8;}previousCombo=combo;
+    if(combo>previousCombo&&Math.floor(combo/10)>Math.floor(previousCombo/10)){milestone=Math.floor(combo/10)*10;milestoneUntil=window.cosmiiImpact?.milestone(milestone)?0:now+0.8;}previousCombo=combo;
     // Running on the ceiling: the top bars shrink up into the corner band and
     // fade, so the ceiling, its obstacles and its tap marks stay in plain view.
     hudCeil+=(((lastGdir===-1&&(state==='play'||state==='dead'))?1:0)-hudCeil)*0.12;const ceil=hudCeil;
