@@ -38,3 +38,42 @@
 .home-link-list a{display:block;padding:14px;border:1px solid #66dfff;border-radius:10px;background:#151731;color:#e9fbff;text-decoration:none;font-weight:700;}
 @media(max-width:700px),(max-height:450px){#menu #home-footer{left:3%;right:3%;gap:5px;}#menu #home-footer button{font-size:9px;}.home-extra-icon{width:30px;height:30px;}}
 @media(max-height:350px){#menu{padding-top:96px;}#menu #home-header{height:80px;min-height:0;}#menu .home-title-art{height:100%;}#menu #home-header #coinsdisp{top:8px;font-size:12px;padding:6px 8px;}}
+
+/* Title background: stage worlds cross-fading (cosmii-home.js). */
+#menu.home-bg-cycle{background-image:none;isolation:isolate}
+#menu .home-bg{position:absolute!important;inset:0;width:auto;height:auto;margin:0;z-index:-1;overflow:hidden;pointer-events:none;background:#090b32}
+#menu .home-bg-layer{position:absolute;inset:-2%;background:center/cover no-repeat;opacity:0;transition:opacity 1.4s ease}
+#menu .home-bg-layer.on{opacity:1}
+#menu .home-bg-layer.zoom{animation:homeKen 13.4s linear both}
+@keyframes homeKen{from{transform:scale(1) translateX(0)}to{transform:scale(1.08) translateX(-1.5%)}}
+#menu .home-bg-shade{position:absolute;inset:0;background:linear-gradient(90deg,#090b32a8,#090b3240 45%,#090b3266),linear-gradient(#090b3200 60%,#090b32b0)}
+#menu .home-world-chip{position:absolute!important;left:3%;top:18px;z-index:3;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 8px;border-radius:99px;background:#120f2ad9;border:1px solid #ffffff30;color:#fff;font:700 11px/1.2 "M PLUS 1p",sans-serif;box-shadow:0 4px 10px #0006;transition:opacity .5s;pointer-events:none}
+#menu .home-world-chip b{font:italic 800 10px "Exo 2",sans-serif;letter-spacing:.08em;color:#121028;background:#ffd25e;border-radius:99px;padding:3px 7px}
+#menu .home-world-chip.fade{opacity:0}
+#menu .home-world-dots{position:absolute!important;left:50%;bottom:79px;transform:translateX(-50%);display:flex;gap:5px;z-index:3;pointer-events:none}
+#menu .home-world-dots i{width:6px;height:6px;border-radius:50%;background:#ffffff55;transition:background .4s,width .4s}
+#menu .home-world-dots i.on{width:16px;border-radius:3px;background:#ffd25e}
+/* Character column: no box over the changing worlds - Cosmii stands on a glowing
+   stage spot, and the column is short enough to end above the footer bar. */
+#app #menu.home-bg-cycle #charcol{background:none!important;border:0;box-shadow:none;padding:8px 14px 10px;gap:1px!important;align-self:center;margin-bottom:6px}
+#menu.home-bg-cycle #charimg{width:88px;height:88px}
+#menu.home-bg-cycle #charname{font-size:16px}
+#menu.home-bg-cycle #avatar-btn{position:relative;isolation:isolate}
+#menu.home-bg-cycle #avatar-btn>span{margin-top:8px}
+#menu.home-bg-cycle #avatar-btn::before{content:"";position:absolute;left:50%;top:63px;width:120px;height:22px;margin-left:-60px;border-radius:50%;background:radial-gradient(closest-side,#9ff4ffcc,#6fe8ff55 55%,#6fe8ff00);z-index:-1;pointer-events:none}
+#menu.home-bg-cycle #avatar-btn::after{content:"";position:absolute;left:50%;top:66px;width:150px;height:28px;margin-left:-75px;border-radius:50%;border:2px solid #ff7ad9aa;box-shadow:0 0 12px #ff7ad988;z-index:-1;pointer-events:none}
+#menu.home-bg-cycle #charcol :is(#charname,#skineffect,#cleared),#menu.home-bg-cycle .world-plaque{text-shadow:0 2px 4px #000e,0 0 10px #000a}
+
+/* Logo shine + float, character idle hop, breathing play button. */
+#menu.home-alive .wordmark{position:relative;animation:homeFloat 3.2s ease-in-out infinite}
+#menu.home-alive .wordmark::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#ffffffd0 50%,transparent 60%) -120% 0/250% 100% no-repeat;-webkit-mask:url(Asset/world/title-arcade.png) center/contain no-repeat;mask:url(Asset/world/title-arcade.png) center/contain no-repeat;animation:homeShine 4s ease-in-out infinite}
+@keyframes homeShine{0%,55%{background-position:-120% 0}85%,100%{background-position:220% 0}}
+@keyframes homeFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+#menu.home-alive #charimg{animation:homeHop .5s cubic-bezier(.3,0,.4,1) infinite;transform-origin:50% 100%}
+@keyframes homeHop{0%{transform:translateY(0) scale(1.08,.92)}18%{transform:translateY(-12px) scale(.95,1.06)}50%{transform:translateY(-16px) scale(1,1)}82%{transform:translateY(-3px) scale(.98,1.03)}100%{transform:translateY(0) scale(1.08,.92)}}
+#menu.home-alive #continue-btn{overflow:hidden;animation:homeGlow 1.6s ease-in-out infinite}
+#menu.home-alive #continue-btn::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-50%;pointer-events:none;background:linear-gradient(100deg,transparent,#ffffff40,transparent);animation:homeSweep 2.8s ease-in-out infinite}
+@keyframes homeGlow{0%,100%{box-shadow:0 0 0 2px #6fe8ff55,0 0 14px #6fe8ff40}50%{box-shadow:0 0 0 3px #ffd25e,0 0 26px #ffd25e90}}
+@keyframes homeSweep{0%,40%{left:-50%}80%,100%{left:120%}}
+@media (prefers-reduced-motion:reduce){#menu .home-bg-layer{transition:none}#menu .home-bg-layer.zoom,#menu.home-alive .wordmark,#menu.home-alive .wordmark::after,#menu.home-alive #charimg,#menu.home-alive #continue-btn,#menu.home-alive #continue-btn::after{animation:none}}
+@media(max-height:350px){#menu.home-bg-cycle #charimg{width:74px;height:74px}#app #menu.home-bg-cycle #charcol{padding-top:2px;margin-bottom:10px}#menu.home-bg-cycle #avatar-btn::before{top:50px;width:104px;margin-left:-52px}#menu.home-bg-cycle #avatar-btn::after{top:53px;width:128px;height:24px;margin-left:-64px}#menu.home-bg-cycle #avatar-btn>span{margin-top:10px}}
