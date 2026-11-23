@@ -167,6 +167,10 @@
 <link rel="stylesheet" href="cosmii-source.css">
 <link rel="stylesheet" href="cosmii-dialogs.css">
 <link rel="stylesheet" href="cosmii-screens.css">
+<link rel="stylesheet" href="cosmii-welcome.css">
+<link rel="stylesheet" href="cosmii-guide.css">
+<link rel="stylesheet" href="cosmii-bond.css">
+<link rel="stylesheet" href="cosmii-capsule.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -607,6 +611,7 @@ function trimSprite(img) {
         console.warn('skin trim failed:', skin.src, e);
       }
       refreshMenu();
+      window.cosmiiWardrobe?.bake(idx);
     };
     img.onerror = () => {
       console.warn('skin image failed:', skin.src);
@@ -817,7 +822,11 @@ const cache = {};
 function refreshMenu() {
   // キャラ表示
   const u = skinImageUrl(skinIdx);
-  if (u) { $('charimg').src = u; $('clearchar').src = u; $('loginchar').src = u; }
+  if (u) {
+    if (window.cosmiiWardrobe) window.cosmiiWardrobe.setPortrait($('charimg'), skinIdx, 'front', u);
+    else $('charimg').src = u;
+    $('loginchar').src = u;
+  }
   $('charname').textContent = currentSkin().n;
   $('skineffect').textContent = currentSkin().desc;
   $('cleared').textContent = '★ ' + clearedCount() + ' / ' + NSTAGE;
@@ -908,8 +917,11 @@ $('stageback').onclick = closeStageSelect;
 function showHome() {
   bootDone = true;
   $('splash').className = 'overlay hide';
-  $('menu').style.display = DEMO ? 'none' : 'flex';
+  // First launch goes straight into stage 1, which teaches itself (cosmii-guide.js).
+  const firstRun = !!window.cosmiiGuide?.isFirstRun();
+  $('menu').style.display = DEMO || firstRun ? 'none' : 'flex';
   setTimeout(() => $('splash').style.display = 'none', 380);
+  if (firstRun) { window.cosmiiGuide.startFirstRun(); return; }
   gaDesign('UI:Home', 1);
   if (!DEMO) checkLoginBonus();
 }
@@ -1235,7 +1247,7 @@ function clearFlair(finalScore, coins) {
   }
   const flash = document.createElement('div'); flash.className = 'clear-flash';
   ov.prepend(band); ov.prepend(rain); ov.appendChild(flash);
-  const hopUrl = skinImageUrl(skinIdx);
+  const hopUrl = window.cosmiiWardrobe?.portrait(skinIdx,'hands') || skinImageUrl(skinIdx);
   let hop = null;
   if (hopUrl) { hop = document.createElement('img'); hop.className = 'clear-hop'; hop.alt = ''; hop.src = hopUrl; ov.appendChild(hop); }
   const place = () => {
@@ -1362,7 +1374,7 @@ function die(opts = {}) {
   deathPos = songPos;
   reviveOffered = !practice && revivesUsed === 0 && totalCoins() >= REVIVE_COST &&
     songPos > 3 && songPos < duration - 2;
-  if (reviveOffered) { const im = skinImageUrl(skinIdx); if (im) $('rv-char').src = im; const done = Math.min(99, Math.round(songPos / duration * 100)), left = Math.max(1, 100 - done); $('rv-pct').setAttribute('aria-label', `ゴールまで あと ${left}%`); $('rv-pct').innerHTML = `<span class="rv-goal" aria-hidden="true"><i style="width:${done}%"></i><img src="${im || ''}" alt="" style="left:${done}%"></span><span class="rv-flag" aria-hidden="true"></span><span class="rv-remain">あと <b>${left}%</b></span>`; }
+  if (reviveOffered) { const im = skinImageUrl(skinIdx); if(window.cosmiiWardrobe)window.cosmiiWardrobe.setPortrait($('rv-char'),skinIdx,'front',im);else if(im)$('rv-char').src=im; const done = Math.min(99, Math.round(songPos / duration * 100)), left = Math.max(1, 100 - done); $('rv-pct').setAttribute('aria-label', `ゴールまで あと ${left}%`); $('rv-pct').innerHTML = `<span class="rv-goal" aria-hidden="true"><i style="width:${done}%"></i><img src="${im || ''}" alt="" style="left:${done}%"></span><span class="rv-flag" aria-hidden="true"></span><span class="rv-remain">あと <b>${left}%</b></span>`; }
   const px = player.x + B/2, py = player.y + B/2;
   // The burst depends on what was hit (cosmii-fx.js); plain squares only as a fallback.
   const fxKind = window.cosmiiFx?.deathKind(opts, opts.ob, opts.part);
@@ -1497,7 +1509,8 @@ function clearStage() {
   $('nextbtn').style.display = 'inline-block';
   $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? '↻ もう一度' : '次のステージ ▶';
   const u = skinImageUrl(skinIdx);
-  if (u) $('clearchar').src = u;
+  if (window.cosmiiWardrobe) window.cosmiiWardrobe.setPortrait($('clearchar'),skinIdx,'hands',u);
+  else if (u) $('clearchar').src = u;
   const token = ++clearToken, finalScore = score, coinsWon = coinRun;
   setTimeout(() => {
     if (token !== clearToken || state !== 'clear') return;   // left the stage meanwhile
@@ -1506,6 +1519,7 @@ function clearStage() {
     clearFlair(finalScore, coinsWon);
     window.cosmiiWorld?.onClear();
     window.cosmiiSource?.onClear();   // the game this stage comes from
+    window.cosmiiBond?.onClear();     // the Cosmii's word and the bond it earned
   }, GOAL_HOLD);
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
@@ -1873,6 +1887,10 @@ function activateFever(seconds = 10) {
   sfxFever();
 }
 
+function drawPlayerArt(image, pose, size) {
+  if (window.cosmiiWardrobe) window.cosmiiWardrobe.draw(ctx, skinIdx, pose, image, -size/2, -size/2, size, size);
+  else ctx.drawImage(image,-size/2,-size/2,size,size);
+}
 function draw() {
   if(window.reducedEffects){shake=0;particles.length=0;rings.length=0;confetti.length=0;}
   ctx.setTransform(SC, 0, 0, SC, 0, 0);
@@ -2071,10 +2089,10 @@ function draw() {
       const characterArt=(cheerW >= 1 && cheerArt)||acting?.image||sp;
       if (cheerArt && cheerW > 0 && cheerW < 1) {   // mid cross-fade: both, weighted
         const a0 = ctx.globalAlpha;
-        ctx.globalAlpha = a0 * (1 - cheerW); if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
-        ctx.globalAlpha = a0 * cheerW; ctx.drawImage(cheerArt, -artSize/2, -artSize/2, artSize, artSize);
+        ctx.globalAlpha = a0 * (1 - cheerW); if (characterArt) drawPlayerArt(characterArt, acting?.wardrobePose || 'front', artSize);
+        ctx.globalAlpha = a0 * cheerW; drawPlayerArt(cheerArt, 'hands', artSize);
         ctx.globalAlpha = a0;
-      } else if (characterArt) ctx.drawImage(characterArt, -artSize/2, -artSize/2, artSize, artSize);
+      } else if (characterArt) drawPlayerArt(characterArt, cheerW >= 1 && cheerArt ? 'hands' : acting?.wardrobePose || 'front', artSize);
       else { ctx.fillStyle = '#e33'; ctx.fillRect(-B/2, -B/2, B, B); }
       ctx.restore();
     }
@@ -2349,5 +2367,11 @@ if ('serviceWorker' in navigator &&
 <script src="cosmii-fx.js"></script>
 <script src="cosmii-impact.js"></script>
 <script src="cosmii-source.js"></script>
+<script src="cosmii-welcome.js"></script>
+<script src="cosmii-guide.js"></script>
+<script src="cosmii-bond.js"></script>
+<script src="cosmii-wardrobe-anchors.js"></script>
+<script src="cosmii-wardrobe.js"></script>
+<script src="cosmii-capsule.js"></script>
 </body>
 </html>

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<base href="../">
+<title>ガチャとスキン テスト</title>
+<style>
+  @font-face{font-family:"Exo 2";src:url(Asset/fonts/Exo2-Italic.woff2);font-style:italic;font-weight:100 900}
+  @font-face{font-family:"M PLUS 1p";src:url(Asset/fonts/MPLUS1p-ExtraBold.woff2);font-weight:800 900}
+  @font-face{font-family:"M PLUS 1p";src:url(Asset/fonts/MPLUS1p-Bold.woff2);font-weight:500 700}
+  :root{color-scheme:dark;--ink:#eef0ff;--sub:#a9b3d8;--line:#3a3f63;--gold:#ffd25a;--pink:#ff5fc8;--cyan:#4ed6ff;--n:#9fb4d8;--r:#4ed6ff;--sr:#ffd25a}
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b0e1f;color:var(--ink);font:14px/1.6 "M PLUS 1p",system-ui,sans-serif}
+  main{max-width:1100px;margin:auto;padding:20px 16px 40px;display:grid;gap:12px}
+  h1{margin:0;font-size:22px}.lead{margin:0;color:var(--sub)}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .row button{font:inherit;font-weight:800;font-size:13px;min-height:38px;padding:6px 14px;border-radius:9px;border:1px solid var(--line);background:#151a33;color:var(--ink);cursor:pointer}
+  .row button[aria-pressed=true]{background:var(--gold);color:#22152c;border-color:var(--gold)}
+  .row small{display:block;font-weight:600;font-size:11px;opacity:.8}
+  .who button{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px}.who img{width:30px;height:30px;object-fit:contain}
+  button:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+  .stage{position:relative;width:100%;aspect-ratio:844/390;overflow:hidden;border-radius:12px;border:1px solid var(--line);background:#0c0a24;container-type:inline-size;user-select:none}
+  .stage>*{position:absolute}
+  .about{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+  .about div{background:#141936;border:1px solid #2d3360;border-radius:10px;padding:10px 12px}
+  .about b{display:block;color:var(--gold);font-size:12px}.about p{margin:2px 0 0;color:#c9cbe6;font-size:13px}
+  .bg{inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.4) blur(2px)}
+  .coins{right:3%;top:5%;display:flex;align-items:center;gap:.8cqw;padding:.6cqw 1.6cqw;border-radius:99px;background:#14123ae6;border:1px solid #ffffff30;font:italic 900 clamp(12px,2cqw,18px) "Exo 2";z-index:5}
+  .coins img{width:3cqw;height:3cqw}
+
+  /* the character with a wearable layer */
+  .wear{position:relative;width:100%;height:100%}
+  .wear>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+  .wear svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+  .wear.glow>img{filter:drop-shadow(0 0 1.2cqw #4ed6ff) drop-shadow(0 0 2.4cqw #ff5fc8)}
+  .wear.gold>img{filter:sepia(.7) saturate(2.2) hue-rotate(-12deg) brightness(1.08) drop-shadow(0 0 1.4cqw #ffd25a)}
+  .wear.night>img{filter:hue-rotate(200deg) saturate(.9) brightness(.92) drop-shadow(0 0 1cqw #8a7dff)}
+
+  /* gacha machine */
+  .machine{left:10%;bottom:5%;width:24cqw;height:36cqw}
+  .m-dome{position:absolute;left:8%;right:8%;top:0;height:52%;border-radius:50% 50% 12% 12%;background:radial-gradient(circle at 35% 30%,#ffffff55,#ffffff10 40%,#2a1f6a55 70%);border:.5cqw solid #c9b8ff;overflow:hidden}
+  .m-dome i{position:absolute;width:6cqw;height:6cqw;border-radius:50%;border:.3cqw solid #0006}
+  .m-body{position:absolute;left:0;right:0;top:50%;bottom:0;border-radius:2cqw;background:linear-gradient(180deg,#ff5fc8,#b8338f);border:.5cqw solid #2a1038;box-shadow:inset 0 -2cqw 0 #8a2470}
+  .m-handle{position:absolute;left:50%;top:62%;width:9cqw;height:9cqw;margin-left:-4.5cqw;border-radius:50%;background:#ffd25a;border:.5cqw solid #2a1038;display:grid;place-items:center;transition:transform .9s cubic-bezier(.4,1.6,.4,1)}
+  .m-handle::after{content:"";width:70%;height:1.4cqw;border-radius:99px;background:#2a1038}
+  .m-slot{position:absolute;left:50%;bottom:6%;width:12cqw;height:7cqw;margin-left:-6cqw;border-radius:1.4cqw;background:#2a1038}
+  .m-sign{position:absolute;left:0;right:0;top:51%;text-align:center;font:italic 900 2.6cqw "Exo 2";color:#fff;text-shadow:0 .3cqw 0 #6a1a7a}
+  .capsule{left:19.5%;bottom:8%;width:9cqw;height:9cqw;border-radius:50%;overflow:hidden;border:.45cqw solid #2a1038;opacity:0;z-index:6}
+  .capsule::before{content:"";position:absolute;left:0;right:0;top:0;height:50%;background:var(--cap)}
+  .capsule::after{content:"";position:absolute;left:0;right:0;bottom:0;height:50%;background:#fff}
+  .capsule.roll{animation:roll 1s forwards cubic-bezier(.3,.9,.4,1)}
+  .capsule.shake{animation:shake .5s 2}
+  @keyframes roll{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:1;transform:translate(28cqw,-6cqw) rotate(540deg) scale(1.8)}}
+  @keyframes shake{25%{transform:translate(28cqw,-6cqw) rotate(-14deg) scale(1.8)}75%{transform:translate(28cqw,-6cqw) rotate(14deg) scale(1.8)}}
+  .reveal{inset:0;display:grid;place-items:center;background:#05061acc;z-index:8;animation:fade .3s both}
+  .rays{position:absolute;left:50%;top:46%;width:90cqw;height:90cqw;margin:-45cqw 0 0 -45cqw;background:repeating-conic-gradient(var(--rc) 0 8deg,transparent 8deg 20deg);opacity:.35;animation:spin 8s linear infinite;border-radius:50%;mask:radial-gradient(closest-side,#000 30%,transparent)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .r-card{position:relative;display:grid;justify-items:center;gap:.8cqw;padding:2cqw 4cqw;border-radius:2.4cqw;background:#14123a;border:.4cqw solid var(--rc);box-shadow:0 0 4cqw var(--rc);animation:pop .55s both cubic-bezier(.2,1.5,.4,1)}
+  .r-rare{font:italic 900 4cqw "Exo 2";color:var(--rc);letter-spacing:.1em}
+  .r-fig{width:22cqw;height:22cqw}
+  .r-name{font:900 clamp(14px,2.8cqw,26px) "M PLUS 1p"}
+  .r-dup{font:800 clamp(11px,1.7cqw,15px) "M PLUS 1p";color:#ff8adf}
+  .r-btns{display:flex;gap:1.2cqw}
+  .r-btns button,.g-btns button{font:900 clamp(12px,1.9cqw,17px) "M PLUS 1p";padding:.9cqw 2.6cqw;border-radius:99px;border:0;cursor:pointer}
+  .g-btns{right:6%;bottom:12%;display:grid;gap:1.2cqw;justify-items:end;z-index:4}
+  .g-btns .free{background:var(--pink);color:#fff;box-shadow:0 0 2cqw #ff5fc888}
+  .g-btns .paid{background:var(--gold);color:#2a1038}
+  .g-btns .ten{background:#ffffff18;color:#fff;border:1px solid #ffffff50}
+  .g-btns small{font:700 clamp(10px,1.4cqw,13px) "M PLUS 1p";color:var(--sub)}
+  .g-title{right:6%;top:18%;text-align:right;z-index:4}
+  .g-title b{display:block;font:italic 900 clamp(18px,4.6cqw,44px)/1 "Exo 2";color:#fff;text-shadow:0 .4cqw 0 #6a1a7a}
+  .g-title span{font:800 clamp(11px,1.7cqw,15px) "M PLUS 1p";color:var(--sub)}
+  .pity{right:6%;top:42%;z-index:4;font:800 clamp(10px,1.5cqw,13px) "M PLUS 1p";color:var(--gold)}
+  @keyframes pop{from{opacity:0;transform:scale(.4)}} @keyframes fade{from{opacity:0}}
+
+  /* closet */
+  .c-fig{left:4%;bottom:8%;width:30cqw;height:30cqw}
+  .c-spot{left:4%;bottom:4%;width:30cqw;height:6cqw;border-radius:50%;background:radial-gradient(closest-side,#9ff4ffaa,transparent)}
+  .c-name{left:4%;top:6%;width:30cqw;text-align:center;font:900 clamp(14px,2.6cqw,24px) "M PLUS 1p"}
+  .c-name small{display:block;color:var(--sub);font-size:clamp(10px,1.5cqw,13px)}
+  .grid{left:38%;right:3%;top:6%;bottom:6%;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:min-content;gap:1.2cqw;overflow:auto;padding:.4cqw}
+  .slot{position:relative;aspect-ratio:1;border-radius:1.6cqw;background:#1a1542;border:.3cqw solid var(--rc);cursor:pointer;display:grid;place-items:center;padding:0}
+  .slot.locked{border-color:#3a3470;cursor:default}
+  .slot.locked .wear{filter:brightness(0) opacity(.35)}
+  .slot.on{box-shadow:0 0 0 .4cqw #fff,0 0 2cqw var(--rc)}
+  .slot .wear{width:80%;height:80%}
+  .slot em{position:absolute;left:.6cqw;top:.4cqw;font:italic 900 1.4cqw "Exo 2";color:var(--rc);font-style:normal}
+  .slot span{position:absolute;left:0;right:0;bottom:.3cqw;text-align:center;font:800 clamp(8px,1.2cqw,11px) "M PLUS 1p";color:#fff}
+  .slot .bondlock{position:absolute;inset:0;display:grid;place-items:center;font:800 clamp(8px,1.2cqw,11px) "M PLUS 1p";color:#ff8adf}
+
+  /* in play */
+  .p-floor{left:0;right:0;bottom:18%;height:.4cqw;background:#6fe8ff;box-shadow:0 0 1.5cqw #6fe8ff}
+  .p-run{left:22%;bottom:18%;width:14cqw;height:14cqw;animation:bob .34s ease-in-out infinite alternate}
+  @keyframes bob{to{transform:translateY(-6%)}}
+  .p-home{right:8%;bottom:14%;width:22cqw;height:22cqw}
+  .p-cap{font:800 clamp(10px,1.6cqw,14px) "M PLUS 1p";color:var(--sub)}
+  @media (prefers-reduced-motion:reduce){.stage *{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <h1>ガチャとスキン テスト</h1>
+  <p class="lead">ゲーム内のコインで回せる「コスミーのカプセル」と、手に入れたアイテムで着せかえるクローゼットの試作です。アイテムの絵は仮の図形で、本番は専用のイラストに置き換えます。</p>
+  <div class="row" id="tabs"></div>
+  <div class="row who" id="who"></div>
+  <div class="stage" id="stage"></div>
+  <div class="about" id="about"></div>
+</main>
+<script>
+const q = new URLSearchParams(location.search);
+const CH = [['red', '赤'], ['blue', '水色'], ['pink', 'ピンク'], ['green', '黄緑'], ['purple', '紫']];
+const RARE = { N: { c: 'var(--n)', cap: '#9fb4d8', name: 'ノーマル' }, R: { c: 'var(--r)', cap: '#4ed6ff', name: 'レア' }, SR: { c: 'var(--sr)', cap: '#ffd25a', name: 'スーパーレア' } };
+// Wearables shared by all five. svg = the accessory drawn over a 100x100 box (the character art).
+const ITEMS = [
+  { id: 'phones', name: 'ヘッドホン', r: 'N', svg: '<path d="M22 44 Q50 4 78 44" fill="none" stroke="#2a1038" stroke-width="7"/><path d="M22 44 Q50 4 78 44" fill="none" stroke="#4ed6ff" stroke-width="4"/><rect x="13" y="38" width="13" height="20" rx="5" fill="#ff5fc8" stroke="#2a1038" stroke-width="2.5"/><rect x="74" y="38" width="13" height="20" rx="5" fill="#ff5fc8" stroke="#2a1038" stroke-width="2.5"/>' },
+  { id: 'cap', name: 'ナイトキャップ', r: 'N', svg: '<path d="M30 30 Q50 -6 80 8 Q66 14 70 30 Z" fill="#6a5cff" stroke="#2a1038" stroke-width="2.5"/><circle cx="82" cy="8" r="6" fill="#fff" stroke="#2a1038" stroke-width="2"/><rect x="27" y="26" width="46" height="9" rx="4" fill="#fff" stroke="#2a1038" stroke-width="2"/>' },
+  { id: 'glasses', name: 'まるメガネ', r: 'N', svg: '<circle cx="39" cy="50" r="9" fill="#ffffff22" stroke="#2a1038" stroke-width="3"/><circle cx="61" cy="50" r="9" fill="#ffffff22" stroke="#2a1038" stroke-width="3"/><path d="M48 50 h4" stroke="#2a1038" stroke-width="3"/>' },
+  { id: 'star', name: 'スターヘアピン', r: 'N', svg: '<path d="M70 22 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1 z" fill="#ffd25a" stroke="#2a1038" stroke-width="2"/>' },
+  { id: 'bow', name: 'おおきなリボン', r: 'R', svg: '<path d="M50 20 L30 8 Q22 20 30 32 Z M50 20 L70 8 Q78 20 70 32 Z" fill="#ff5fc8" stroke="#2a1038" stroke-width="2.5"/><circle cx="50" cy="20" r="6" fill="#ff8adf" stroke="#2a1038" stroke-width="2.5"/>' },
+  { id: 'shades', name: 'ネオングラス', r: 'R', svg: '<path d="M28 44 h44 l-3 12 h-14 l-3 -6 h-4 l-3 6 h-14 z" fill="#14123a" stroke="#4ed6ff" stroke-width="2.5"/>' },
+  { id: 'neon', name: 'ネオンカラー', r: 'R', filter: 'glow', svg: '' },
+  { id: 'night', name: 'よぞらカラー', r: 'R', filter: 'night', svg: '' },
+  { id: 'crown', name: 'スターかんむり', r: 'SR', svg: '<path d="M30 30 l6 -18 9 12 5 -16 5 16 9 -12 6 18 z" fill="#ffd25a" stroke="#2a1038" stroke-width="2.5"/><circle cx="50" cy="22" r="3" fill="#ff5fc8"/>' },
+  { id: 'gold', name: 'ゴールドカラー', r: 'SR', filter: 'gold', svg: '' },
+  { id: 'halo', name: 'ネオンの輪', r: 'SR', svg: '<ellipse cx="50" cy="8" rx="20" ry="5" fill="none" stroke="#fff" stroke-width="2"/><ellipse cx="50" cy="8" rx="20" ry="5" fill="none" stroke="#ff5fc8" stroke-width="4" opacity=".7"/>' },
+];
+const POOL = ITEMS.filter(i => !i.bond);
+let who = Number(q.get('c') || 0), tab = q.get('v') || 'gacha', coins = 520, free = true, pity = 0;
+const owned = new Set(['phones', 'star']), equip = [['phones'], [], [], [], []];
+const stage = document.getElementById('stage');
+const el = (tag, cls, parent = stage, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; parent.append(e); return e; };
+function figure(i, itemIds, parent, cls = '') {
+  const w = el('div', 'wear ' + cls, parent);
+  const filters = itemIds.map(id => ITEMS.find(x => x.id === id)).filter(x => x?.filter).map(x => x.filter);
+  if (filters.length) w.classList.add(filters.at(-1));
+  w.innerHTML = `<img src="Asset/world/cast-neon/${CH[i][0]}.png" alt=""><svg viewBox="0 0 100 100">${itemIds.map(id => ITEMS.find(x => x.id === id)?.svg || '').join('')}</svg>`;
+  return w;
+}
+function coinsBox() { el('div', 'coins', stage, `<img src="Asset/cosmo-coin.png" alt="">${coins}`); }
+
+const TABS = {
+  gacha: {
+    label: 'コスミーのカプセル', sub: 'ガチャ',
+    about: [['しくみ', 'ゲーム内のコインで1回100枚。毎日1回は無料。N 70%・R 25%・SR 5%で、10回以内に必ずSR'], ['愛着との関係', 'ダブったアイテムは、いま選んでいるキャラとの「きずな +10」に変わる。回すほど推しとの関係が深まる'], ['続ける工夫', '毎日の無料1回が、翌日も開く理由になる。課金はなく、遊んで集めたコインだけで回す想定']],
+    build() {
+      el('img', 'bg').src = 'Asset/world/arcade-neon.jpg';
+      coinsBox();
+      const m = el('div', 'machine');
+      const dome = el('div', 'm-dome', m);
+      for (let k = 0; k < 9; k++) { const b = el('i', '', dome); b.style.left = (8 + (k % 4) * 22) + '%'; b.style.top = (14 + Math.floor(k / 4) * 26) + '%'; b.style.background = ['#9fb4d8', '#4ed6ff', '#ffd25a', '#ff5fc8'][k % 4]; }
+      el('div', 'm-body', m); el('div', 'm-sign', m, 'COSMII CAPSULE'); const handle = el('div', 'm-handle', m); el('div', 'm-slot', m);
+      const cap = el('div', 'capsule');
+      el('div', 'g-title', stage, '<b>CAPSULE</b><span>コスミーのきせかえアイテム</span>');
+      el('div', 'pity', stage, `SR確定まで あと ${10 - pity} 回`);
+      const btns = el('div', 'g-btns');
+      const go = (cost) => {
+        if (cost && coins < cost) return;
+        if (cost) coins -= cost; else free = false;
+        pity++; let item;
+        const roll = q.get('force') || (pity >= 10 ? 'SR' : Math.random() < .05 ? 'SR' : Math.random() < .26 ? 'R' : 'N');
+        const list = POOL.filter(x => x.r === roll); item = q.get('item') ? ITEMS.find(x => x.id === q.get('item')) : list[Math.floor(Math.random() * list.length)];
+        if (item.r === 'SR') pity = 0;
+        handle.style.transform = 'rotate(360deg)';
+        cap.style.setProperty('--cap', RARE[item.r].cap); cap.className = 'capsule'; void cap.offsetWidth; cap.classList.add('roll');
+        setTimeout(() => cap.classList.add('shake'), 1000);
+        setTimeout(() => reveal(item), 2050);
+      };
+      el('button', 'free', btns, '今日の無料 1回').onclick = () => free && go(0);
+      if (!free) btns.firstChild.disabled = true, btns.firstChild.style.opacity = .4;
+      el('button', 'paid', btns, '<img src="Asset/cosmo-coin.png" alt="" style="width:1.1em;vertical-align:-.15em"> 100 で1回').onclick = () => go(100);
+      el('small', '', btns, 'コインはステージクリアやミッションで集まる');
+      function reveal(item) {
+        const dup = owned.has(item.id); owned.add(item.id);
+        const r = el('div', 'reveal'); r.style.setProperty('--rc', RARE[item.r].c);
+        el('div', 'rays', r);
+        const card = el('div', 'r-card', r);
+        el('div', 'r-rare', card, item.r === 'SR' ? '★ SUPER RARE' : item.r === 'R' ? 'RARE' : 'NORMAL');
+        figure(who, [item.id], el('div', 'r-fig', card));
+        el('div', 'r-name', card, item.name);
+        if (dup) el('div', 'r-dup', card, `もう持っているので ${CH[who][1]}とのきずな +10 に変わりました`);
+        const b = el('div', 'r-btns', card);
+        const wear = el('button', '', b, `${CH[who][1]}に着せる`); wear.style.cssText = 'background:var(--gold);color:#2a1038';
+        wear.onclick = () => { equip[who] = [...equip[who].filter(id => ITEMS.find(x => x.id === id).filter ? !item.filter : true).filter(id => id !== item.id), item.id]; tab = 'closet'; render(); };
+        const again = el('button', '', b, 'もう1回'); again.style.cssText = 'background:#ffffff18;color:#fff;border:1px solid #ffffff50';
+        again.onclick = () => { r.remove(); render(); };
+      }
+      if (q.has('pull')) setTimeout(() => go(0), 300);
+    },
+  },
+  closet: {
+    label: 'クローゼット', sub: '着せかえ',
+    about: [['しくみ', '手に入れたアイテムを、キャラごとに着せかえる。帽子・顔・首・カラーを1つずつ組み合わせられる'], ['愛着との関係', '自分で選んだ見た目は「自分のコスミー」になる。きずなLv5でだけもらえる限定アイテム（なかよしスカーフ）も置ける'], ['見え方', '着せかえはホーム、プレイ中、結果画面、プロフィールのすべてに出る']],
+    build() {
+      el('img', 'bg').src = 'Asset/world/arcade-neon.jpg';
+      el('div', 'c-spot'); figure(who, equip[who], el('div', 'c-fig'));
+      el('div', 'c-name', stage, `${CH[who][1]}コスミー<small>${equip[who].map(id => ITEMS.find(x => x.id === id).name).join('・') || 'なにも着ていない'}</small>`);
+      const grid = el('div', 'grid');
+      for (const it of ITEMS) {
+        const has = owned.has(it.id) || q.has('all');
+        const s = el('button', 'slot' + (has ? '' : ' locked') + (equip[who].includes(it.id) ? ' on' : ''), grid);
+        s.style.setProperty('--rc', RARE[it.r].c);
+        figure(who, [it.id], s);
+        el('em', '', s, it.r);
+        el('span', '', s, has ? it.name : '？？？');
+        if (it.bond && !has) el('div', 'bondlock', s, `♥ きずなLv${it.bond}`);
+        s.onclick = () => { if (!has) return; const on = equip[who].includes(it.id); equip[who] = equip[who].filter(id => id !== it.id && !(it.filter && ITEMS.find(x => x.id === id).filter)); if (!on) equip[who].push(it.id); render(); };
+      }
+    },
+  },
+  play: {
+    label: '着せかえの見え方', sub: 'プレイ中とホーム',
+    about: [['プレイ中', '走っている姿にもアイテムが付く。リズムに合わせてヘッドホンが揺れるなど、小さな動きも付けられる'], ['ホーム', '台座の上で着せかえた姿のまま、タップやなでなでに反応する'], ['注意', '当たり判定や能力は変えない。見た目だけの要素にする（能力はキャラごとの特性のまま）']],
+    build() {
+      el('img', 'bg').src = 'Asset/world/rhythm-neon.jpg';
+      el('div', 'p-floor');
+      figure(who, equip[who].length ? equip[who] : ['phones'], el('div', 'p-run'));
+      figure(who, equip[who].length ? equip[who] : ['phones'], el('div', 'p-home'));
+      const cap = el('div', 'p-cap', stage, 'プレイ中（左）・ホームの台座（右）'); cap.style.cssText += ';left:3%;top:5%';
+    },
+  },
+};
+function render() {
+  stage.innerHTML = '';
+  for (const b of document.querySelectorAll('#tabs button')) b.setAttribute('aria-pressed', String(b.dataset.k === tab));
+  for (const b of document.querySelectorAll('#who button')) b.setAttribute('aria-pressed', String(+b.dataset.i === who));
+  document.getElementById('about').innerHTML = TABS[tab].about.map(([h, p]) => `<div><b>${h}</b><p>${p}</p></div>`).join('');
+  TABS[tab].build();
+}
+for (const [k, t] of Object.entries(TABS)) { const b = el('button', '', document.getElementById('tabs'), `${t.label}<small>${t.sub}</small>`); b.dataset.k = k; b.onclick = () => { tab = k; render(); }; }
+CH.forEach(([id, name], i) => { const b = el('button', '', document.getElementById('who'), `<img src="Asset/world/cast-neon/${id}.png" alt="">${name}`); b.dataset.i = i; b.onclick = () => { who = i; render(); }; });
+if (q.has('equip')) equip[who] = q.get('equip').split(',');
+if (q.has('all')) ITEMS.forEach(i => !i.bond && owned.add(i.id));
+if (q.has('capture')) { document.querySelector('main').style.cssText = 'padding:0;max-width:none'; for (const e of document.querySelectorAll('h1,.lead,#tabs,#who,.about')) e.style.display = 'none'; stage.style.cssText = 'border:0;border-radius:0;width:100vw;height:100vh;aspect-ratio:auto'; }
+render();
+</script>
+</body>
+</html>

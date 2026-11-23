@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<base href="../">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cosmii Rhythm Dash｜全着せかえパターン</title>
+<style>
+  *{box-sizing:border-box}
+  :root{color-scheme:dark;background:#131021;color:#fff2ff;font-family:system-ui,sans-serif}
+  body{margin:0;background:radial-gradient(ellipse at 15% 0,#33244d,transparent 57%)}
+  main{max-width:1180px;margin:auto;padding:clamp(16px,4vw,48px)}
+  h1{margin:0;font-size:clamp(25px,4vw,46px);line-height:1.16;letter-spacing:-.035em}
+  header p{margin:8px 0 20px;color:#d2c4e4}
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px}
+  label{display:grid;gap:4px;color:#e5d7f2;font-size:13px;font-weight:700}
+  select,button{min-height:42px;border:1px solid #927eb3;border-radius:8px;background:#2b2141;color:#fff8ff;padding:6px 9px;font:inherit}
+  button{cursor:pointer}button:disabled{opacity:.42;cursor:default}
+  select:focus-visible,button:focus-visible{outline:2px solid #8df5ec;outline-offset:2px}
+  nav{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:18px 0 10px}
+  nav p{margin:0;color:#f8e2b2;font-size:14px;font-weight:750}
+  nav div{display:flex;align-items:center;gap:7px}
+  #gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,136px),1fr));gap:9px}
+  figure{min-width:0;margin:0;border:1px solid #655382;border-radius:11px;background:radial-gradient(ellipse at 50% 43%,#3d2e58,#211a34 68%);overflow:hidden}
+  canvas{display:block;width:100%;aspect-ratio:1}
+  figcaption{padding:7px 8px;background:#211a33;color:#eee2f7;font-size:11px;line-height:1.48;min-height:44px}
+</style>
+<main>
+  <header>
+    <h1>コスミーの着せかえ図鑑</h1>
+    <p>全11アイテムを使ったテスト用の一覧です。頭・顔・カラーを絞り込めます。</p>
+  </header>
+  <div class="filters" id="filters">
+    <label>キャラ<select id="character"></select></label>
+    <label>ポーズ<select id="pose"></select></label>
+  </div>
+  <nav aria-label="一覧のページ">
+    <p id="status" role="status">素材を読み込み中…</p>
+    <div><button type="button" id="previous" disabled>前へ</button><button type="button" id="next" disabled>次へ</button></div>
+  </nav>
+  <div id="gallery" aria-label="着せかえ一覧"></div>
+</main>
+<script src="cosmii-wardrobe-anchors.js"></script>
+<script src="cosmii-wardrobe.js"></script>
+<script src="prototypes/capsule-preview-sprite.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const characters = {red:'赤',blue:'水色',pink:'ピンク',green:'黄緑',purple:'紫'};
+  const categories = {
+    head: ['頭',{phones:'ヘッドホン',cap:'ナイトキャップ',star:'スターヘアピン',bow:'おおきなリボン',crown:'スターかんむり',halo:'ネオンの輪'}],
+    face: ['顔',{glasses:'まるメガネ',shades:'ネオングラス'}],
+    color: ['カラー',{neon:'ネオンカラー',night:'よぞらカラー',gold:'ゴールドカラー'}],
+  };
+  const poseNames = {front:'正面',hands:'両手を上げる',run:'走る',skate:'スケボー',bike:'自転車'};
+  const anchors = window.COSMII_WARDROBE_ANCHORS;
+  const addOptions = (field, entries) => {
+    for (const [id, label] of entries) field.add(new Option(label,id));
+  };
+  addOptions($('character'), Object.entries(characters).map(([id,label])=>[id,label+'コスミー']));
+  addOptions($('pose'), Object.keys(anchors.red).map(pose=>{
+    const type=pose.replace(/\d$/,'');
+    return [pose,poseNames[type]+(type===pose?'':' '+(Number(pose.slice(-1))+1))];
+  }));
+  $('pose').value='front';
+
+  for (const [slot, [label,items]] of Object.entries(categories)) {
+    const field = document.createElement('label'), select = document.createElement('select');
+    field.textContent=label;
+    select.id=slot;
+    addOptions(select,[['*','すべて'],['','なし'],...Object.entries(items)]);
+    field.append(select);
+    $('filters').append(field);
+  }
+  const pageSize=28;
+  let page=0, request=0;
+  function combinations() {
+    let options=[{}];
+    for (const [slot,[,items]] of Object.entries(categories)) {
+      const chosen=$(slot).value;
+      const ids=chosen==='*'?['',...Object.keys(items)]:[chosen];
+      options=options.flatMap(outfit=>ids.map(id=>id?{...outfit,[slot]:id}:outfit));
+    }
+    return options;
+  }
+  async function render() {
+    const current=++request;
+    const outfits=combinations(), character=$('character').value, pose=$('pose').value;
+    const direction=pose==='front'||pose==='hands'?'front':'side';
+    try {
+      const base=await window.capsulePreviewSprite(character,pose);
+      if(current!==request)return;
+      const start=page*pageSize, end=Math.min(start+pageSize,outfits.length);
+      const gallery=document.createDocumentFragment();
+      for (const outfit of outfits.slice(start,end)) {
+        const card=document.createElement('figure'), canvas=document.createElement('canvas'), caption=document.createElement('figcaption');
+        const description=Object.entries(outfit).map(([slot,id])=>categories[slot][1][id]).join('・')||'着せかえなし';
+        canvas.width=canvas.height=192;
+        canvas.setAttribute('role','img');
+        canvas.setAttribute('aria-label',characters[character]+'コスミー：'+description);
+        window.cosmiiWardrobe.paint(canvas.getContext('2d'),base,anchors[character][pose],outfit,direction,18,156,pose==='front'?character:undefined);
+        caption.textContent=description;
+        card.append(canvas,caption);
+        gallery.append(card);
+      }
+      $('gallery').replaceChildren(gallery);
+      $('status').textContent=(start+1)+'〜'+end+' / '+outfits.length+' パターン';
+      $('previous').disabled=page===0;
+      $('next').disabled=end>=outfits.length;
+    } catch (error) {
+      if(current===request)$('status').textContent='素材を読み込めませんでした。再読み込みしてください。';
+    }
+  }
+  $('filters').addEventListener('change',()=>{page=0;render();});
+  $('previous').onclick=()=>{page--;render();};
+  $('next').onclick=()=>{page++;render();};
+  const ready = Object.values(categories).slice(0,2).flatMap(([,items])=>Object.keys(items)).flatMap(id=>
+    (id==='phones'?['front','side',...Object.keys(characters).map(color=>'worn-'+color)]:['front','side']).map(direction=>new Promise((resolve,reject)=>{
+      const image=new Image();
+      image.onload=resolve; image.onerror=reject;
+      image.src='Asset/world/capsule/items/'+id+'-'+direction+'.png';
+    }))
+  );
+  Promise.all(ready).then(render,()=>$('status').textContent='アイテム画像を読み込めませんでした。');
+</script>
+</html>

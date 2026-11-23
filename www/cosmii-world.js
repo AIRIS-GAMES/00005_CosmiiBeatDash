@@ -151,6 +151,7 @@
   function album(index=0){
     if(!Number.isInteger(index))index=0;
     const m=memories[index]||memories[0],unlocked=memoryUnlocked(m);
+    if(unlocked)markSeen(m.stage);   // opened here: no launch notice for it later
     const art=!unlocked?`<img class="album-locked" src="${ASSET}arcade-night.jpg" alt="未解放の思い出">`:index===0?`<img src="${ASSET}first-night.jpg" alt="赤と黄緑の最初の思い出">`:`<div class="memory-photo" role="img" aria-label="${m.title}" style="background-position:${(index-1)%2*100}% ${Math.floor((index-1)/2)*100}%"></div>`;
     const over=unlocked?`<div class="album-caption"><b>${m.title}</b><p style="white-space:pre-line">${m.text}</p></div>`:`<div class="album-lock"><span aria-hidden="true">🔒</span><b>★ STAGE ${m.stage} CLEAR で解放</b></div>`;
     const list=memories.map((entry,i)=>{const open=memoryUnlocked(entry);return `<button data-memory="${i}" aria-pressed="${i===index}" aria-label="STAGE ${entry.stage}の思い出${open?'':'・未解放'}"><span class="memory-thumb${open?'':' locked'}" style="${open?memoryArt(i):`background-image:url('${ASSET}arcade-night.jpg')`}"></span><span><b>STAGE ${entry.stage}</b><small>${open?'★ GET':'🔒 クリアで解放'}</small></span></button>`;}).join('');
@@ -164,11 +165,17 @@
     window.beatPSF?.profile(index,source,skinUnlocked(index));
     const unlocked=skinUnlocked(index),need=SKINS[index].need,count=Math.min(clearedCount(),need);
     const tagline=summaries[index].split('。')[0]+'。';
-    const content=unlocked?`<p class="profile-tagline">${tagline}</p><div class="profile-perk"><span aria-hidden="true">★</span><span><small>ゲーム内の効果</small><b>${SKINS[index].desc}</b></span></div><div class="profile-row"><button id="profile-select">この子で遊ぶ ▶</button>`:
+    const closet=window.cosmiiCapsule?'<button id="profile-closet" type="button">きせかえ</button>':'';
+    const content=unlocked?`<p class="profile-tagline">${tagline}</p>${window.cosmiiBond?.profileHtml(index)||''}<div class="profile-perk"><span aria-hidden="true">★</span><span><small>ゲーム内の効果</small><b>${SKINS[index].desc}</b></span></div><div class="profile-row"><button id="profile-select">この子で遊ぶ ▶</button>${closet}`:
       `<div class="profile-locked"><strong>🔒 あと ${Math.max(0,need-count)} ステージ</strong><div class="profile-need" role="progressbar" aria-label="キャラクター解放までの進み具合" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${count}"><i style="width:${count/need*100}%"></i><span>${count} / ${need}</span></div><small>ちがうステージをクリアすると数が増えます</small></div><div class="profile-row"><button id="profile-unlock"><img src="Asset/cosmo-coin.png" alt=""> ${skinPrice(index)} で解放</button>`;
     const links=`<nav class="profile-social" aria-label="公式SNS">${social.map(([id,label,url])=>`<a data-social="${id}" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="公式${label}（外部サイトで開く）"><img src="Asset/social/${{x:'X',tiktok:'TikTok',instagram:'instagram'}[id]}.png" alt=""></a>`).join('')}</nav></div>`;
     open(`<div class="world-paper world-profiles game-paper">${gameHead('cast','CHARACTERS','コスミー紹介',`出会った <b>${ids.filter((_,i)=>skinUnlocked(i)).length} / ${ids.length}</b>`)}<div class="profile-layout"><div class="world-profile-tabs">${ids.map((id,i)=>`<button data-character="${i}" aria-label="${names[i]}の紹介${skinUnlocked(i)?'':'・未解放'}" aria-pressed="${i===index}" class="${skinUnlocked(i)?'':'locked'}"><img class="${skinUnlocked(i)?'':'profile-silhouette'}" src="${ASSET}cast-neon/${id}.png" alt=""></button>`).join('')}</div><div class="world-profile-body"><div class="profile-stage"><img class="${unlocked?'':'profile-silhouette'}" src="${ASSET}cast-neon/${ids[index]}.png" alt="${unlocked?names[index]:'未解放のコスミーのシルエット'}"></div><div class="profile-info"><h3 class="profile-name"><small>NO.0${index+1}</small>${unlocked?names[index]+'コスミー':'？？？'}</h3>${content}${links}</div></div></div></div>`);
     modal.querySelector('#world-close').onclick=close;
+    if(unlocked){
+      const portrait=modal.querySelector('.profile-stage img');
+      window.cosmiiWardrobe?.setPortrait(portrait,index,'front',portrait.getAttribute('src'));
+      modal.querySelector('#profile-closet')?.addEventListener('click',()=>{close();window.cosmiiCapsule.openCloset(index);});
+    }
     modal.querySelector('#profile-select')?.addEventListener('click',()=>{if(!skinUnlocked(index))return;skinIdx=index;localStorage.setItem('rdash_skin',index);gaDesign('Skin:Select:'+SKINS[index].n,1);refreshMenu();close();});
     modal.querySelector('#profile-unlock')?.addEventListener('click',()=>{close();$('avatar-btn').click();});
     modal.querySelectorAll('[data-character]').forEach(b=>b.onclick=()=>profiles(Number(b.dataset.character),'profile'));modal.querySelectorAll('[data-social]').forEach(a=>a.onclick=()=>{emit('external_click',a.dataset.social);window.beatPSF?.external(a.dataset.social,'profile');});emit(unlocked?'profile_open':'profile_locked',source+'_'+ids[index]);
@@ -196,17 +203,35 @@
     ($('clear-unlocks')||$('clearov').querySelector('.btnrow')).prepend(resultBtn);
     resultBtn.onclick=()=>album(index);resultBtn.innerHTML='<i aria-hidden="true">📷</i>思い出'+(fresh?'<small>NEW</small>':'');resultBtn.setAttribute('aria-label',fresh?'新しい思い出が増えました！':'思い出の写真を見る');resultBtn.hidden=false;
   }
-  // A new opening is shown once even if the previous one-page introduction was read.
-  if(!DEMO&&!progress.opening){
-    const bootOpening=setInterval(()=>{
-      if(!bootDone||getComputedStyle($('splash')).display!=='none')return;
-      clearInterval(bootOpening);
-      if(state==='menu'&&modal.hidden)intro('boot');
-    },100);
+  // The picture story is no longer shown by itself (first launch goes straight
+  // into stage 1, cosmii-guide.js); the album keeps it as a replay.
+  // A memory unlocked since it was last looked at is announced once at the next
+  // launch, on the home screen, after the daily bonus.
+  if(!Array.isArray(progress.memSeen)){progress.memSeen=[...progress.memories];save();}
+  const markSeen=stage=>{if(!progress.memSeen.includes(stage)){progress.memSeen.push(stage);save();}};
+  function memoryNotice(){
+    const index=memories.findIndex(m=>memoryUnlocked(m)&&!progress.memSeen.includes(m.stage));if(index<0)return false;
+    const m=memories[index];markSeen(m.stage);
+    open(`<div class="world-paper game-paper memory-notice">${gameHead('book','NEW MEMORY','新しい思い出が届きました',`<span aria-hidden="true">📷</span> <b>STAGE ${m.stage}</b>`)}<div class="memory-notice-body"><div class="memory-notice-photo" role="img" aria-label="${m.title}" style="${memoryArt(index)}"></div><div class="memory-notice-copy"><b>${m.title}</b><p>${m.text}</p><div class="world-actions"><button id="memory-open">アルバムで見る ▶</button><button id="memory-later" class="secondary">あとで</button></div></div></div></div>`);
+    modal.querySelector('#world-close').onclick=close;modal.querySelector('#memory-later').onclick=close;modal.querySelector('#memory-open').onclick=()=>album(index);
+    modal.querySelector('#memory-open').focus();emit('memory_notice','stage_'+m.stage);window.beatPSF?.event('story_notice','launch','stage_'+m.stage);
+    return true;
+  }
+  if(!DEMO){
+    const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+    let since=0;
+    const launchNotice=setInterval(()=>{
+      const home=bootDone&&state==='menu'&&getComputedStyle($('menu')).display!=='none'&&getComputedStyle($('splash')).display==='none'&&modal.hidden&&getComputedStyle($('loginov')).display==='none'&&localStorage.getItem('rdash_login_last')===today();
+      if(!home){since=0;return;}
+      if(!since){since=performance.now();return;}
+      if(performance.now()-since<800)return;   // let the home screen settle first
+      clearInterval(launchNotice);window.cosmiiWorld.launchNotice=memoryNotice()?'shown':'none';
+    },200);
+    setTimeout(()=>clearInterval(launchNotice),120000);   // only around launch
   }
   let lastActive=false;
   window.cosmiiWorld={
-    beforeStage(i){if(i!==0||progress.intro||DEMO)return Promise.resolve(true);if(pending)return Promise.resolve(false);return new Promise(resolve=>{pending=resolve;intro(true);});},
+    beforeStage(){return Promise.resolve(true);},
     // suppressed: a stage world paints its own scenery, so the neon layers hide.
     background(suppressed=false){
       applyTheme(stageIdx);

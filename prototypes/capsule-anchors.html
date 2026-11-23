@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<base href="../">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>コスミーの着せかえ｜取り付け位置</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;padding:24px;font:15px system-ui;color:#fff4ff;background:#19142a}
+  main{max-width:850px;margin:auto}.controls{display:flex;flex-wrap:wrap;align-items:end;gap:10px}
+  label{display:grid;gap:4px}select,input,button,textarea{font:inherit;padding:6px;color:inherit;background:#2b2243;border:1px solid #9c88c1;border-radius:7px}
+  canvas{display:block;max-width:100%;height:auto;margin:16px 0;background:#322650;border-radius:12px;touch-action:none;cursor:crosshair}
+  textarea{display:block;width:100%;min-height:150px;margin:10px 0}
+</style>
+<main>
+  <h1>アクセサリーの取り付け位置</h1>
+  <p>選んだ部位の点をドラッグし、大きさと角度を調整できます。</p>
+  <div class="controls">
+    <label>キャラ<select id="character"></select></label>
+    <label>ポーズ<select id="pose"></select></label>
+    <label>部位<select id="slot"><option value="head">頭</option><option value="face">顔</option></select></label>
+    <label>アイテム<select id="item"></select></label>
+    <label>大きさ<input id="scale" type="range" min="0.15" max="1.15" step=".005"></label>
+    <label>角度<input id="rot" type="range" min="-0.45" max="0.45" step=".005"></label>
+  </div>
+  <canvas id="preview" width="480" height="480" aria-label="取り付け位置を調整するキャラクター画像"></canvas>
+  <button type="button" id="export">全ポーズのJSONを書き出す</button>
+  <button type="button" id="download">JSONを保存</button>
+  <textarea id="json" aria-label="取り付け位置のJSON" readonly></textarea>
+</main>
+<script src="cosmii-wardrobe-anchors.js"></script>
+<script src="cosmii-wardrobe.js"></script>
+<script src="prototypes/capsule-preview-sprite.js"></script>
+<script>
+  const $ = id => document.getElementById(id);
+  const anchors = structuredClone(window.COSMII_WARDROBE_ANCHORS);
+  const colors = ['red','blue','pink','green','purple'], names = ['赤','水色','ピンク','黄緑','紫'];
+  const kinds = {head:['phones','cap','star','bow','crown','halo'],face:['glasses','shades']};
+  const canvas = $('preview'), ctx = canvas.getContext('2d'), margin=48, size=384;
+  const add = (select, id, title=id) => select.add(new Option(title,id));
+  colors.forEach((color,i)=>add($('character'),color,names[i]));
+  Object.keys(anchors.red).forEach(pose=>add($('pose'),pose));
+  const character = () => $('character').value;
+  const pose = () => $('pose').value;
+  const slot = () => $('slot').value;
+  const anchor = () => anchors[character()][pose()][slot()];
+  let sequence = 0, base;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!base)return;
+    const a=anchor();
+    window.cosmiiWardrobe.paint(ctx,base,anchors[character()][pose()],{[slot()]:$('item').value},/^(front|hands)$/.test(pose())?'front':'side',margin,size);
+    ctx.strokeStyle='#a89bcc';ctx.strokeRect(margin,margin,size,size);
+    ctx.beginPath();ctx.arc(margin+size*a.x,margin+size*a.y,7,0,Math.PI*2);ctx.lineWidth=2;ctx.strokeStyle='#73ffeb';ctx.stroke();
+  }
+  async function redraw() {
+    const request=++sequence;
+    $('scale').value=anchor().scale;$('rot').value=anchor().rot;
+    const art=await window.capsulePreviewSprite(character(),pose());
+    if(request!==sequence)return;
+    base=art;draw();
+  }
+  function items(){
+    $('item').replaceChildren();
+    for(const id of kinds[slot()])add($('item'),id);
+    redraw();
+  }
+  for(const id of ['character','pose'])$(id).onchange=redraw;
+  $('slot').onchange=items;$('item').onchange=draw;
+  for(const id of ['scale','rot'])$(id).oninput=()=>{anchor()[id]=+$(id).value;draw();};
+  const drag = e => {
+    const bounds=canvas.getBoundingClientRect();
+    const measure=(pos,start,extent,span)=>Math.round(Math.max(0,Math.min(1,((pos-start)*span/extent-margin)/size))*1000)/1000;
+    anchor().x=measure(e.clientX,bounds.left,bounds.width,canvas.width);
+    anchor().y=measure(e.clientY,bounds.top,bounds.height,canvas.height);
+    draw();
+  };
+  canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);drag(e);};
+  canvas.onpointermove=e=>{if(canvas.hasPointerCapture(e.pointerId))drag(e);};
+  $('export').onclick=()=>{$('json').value=JSON.stringify(anchors,null,2);};
+  $('download').onclick=()=>{
+    $('export').click();
+    const a=document.createElement('a');a.download='wardrobe-anchors.json';
+    a.href=URL.createObjectURL(new Blob([$('json').value],{type:'application/json'}));a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  };
+  window.addEventListener('load',draw);
+  items();
+</script>
+</html>

@@ -6,7 +6,7 @@
   const labels = ['リズム上手！','ナイスステップ','みーつけた！','ふわ〜り','いたずら回避！'];
   ['red','blue','pink','green','purple'].forEach((name,i)=>{
     const image=new Image();
-    image.onload=()=>{poses[i]=trimSprite(image);};
+    image.onload=()=>{poses[i]=trimSprite(image);window.cosmiiWardrobe?.bake(i);};
     image.src=`Asset/world/cast-neon/${name}-hands.png`;
     const run=new Image();
     run.onload=()=>{
@@ -19,6 +19,7 @@
         canvas.getContext('2d').drawImage(run,(frame%2)*size,Math.floor(frame/2)*size,size,size,0,0,size,size);
         return canvas;
       });
+      window.cosmiiWardrobe?.bake(i);
     };
     run.src=`Asset/world/run/${name}.png`;
   });
@@ -60,7 +61,10 @@
     const ride=window.cosmiiRides?.art(skinIdx,frame);
     const rideType=ride?cosmiiRides.selected():'run';
     if(ride){sx=1;sy=1;tilt*=.4;}
-    return {sx,sy,tilt,image:ride||runs[skinIdx]?.[frame]||((reacting||airborne)&&poses[skinIdx])||skinImage(skinIdx),reacting,frame,artScale:rideType==='bike'?1.9:rideType==='skate'?1.65:1.35};
+    const run=runs[skinIdx]?.[frame], hands=(reacting||airborne)&&poses[skinIdx];
+    return {sx,sy,tilt,image:ride||run||hands||skinImage(skinIdx),reacting,frame,
+      wardrobePose:ride?rideType+frame:run?'run'+frame:hands?'hands':'front',
+      artScale:rideType==='bike'?1.9:rideType==='skate'?1.65:1.35};
   }
   // Stroked Japanese text is rasterised once per label and scale instead of
   // every frame for the 0.7s each reaction is shown (the default character

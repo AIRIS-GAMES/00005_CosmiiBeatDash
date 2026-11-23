@@ -1,0 +1,19 @@
+# コスミーのカプセル
+
+Built-in image_gen, 2026-11-23. Style reference: `Asset/world/cast-neon/red.png`. All prompts shared: “Glossy clean COSMII neon game illustration, thick deep-plum outline, saturated soft cel shading, cyan left rim and magenta lower-right rim, compact white highlights. True alpha, no text or shadows.”
+
+- `machine.png`: “One front-view tall very compact cute magenta-pink capsule vending toy arcade cabinet, large clear round glass dome filled with colorful two-tone capsules, small blank star sign plate, dark capsule exit near bottom. Leave middle of cabinet plain pink flat with no turning handle, so a separate gold handle can be added. Single isolated object.”
+- `machine-handle.png`: “One large round gold toy vending machine handle with a horizontal chunky grip, front view, cute, isolated centered single accessory.”
+- `capsule-{n,r,sr}.png` and `capsule-open-{n,r,sr}.png`: “Exactly 3 columns by 2 rows evenly spaced sprite atlas. Top row closed perfectly round capsules with middle seam, bottom row same but open showing two hemispheres visibly separated. Column 1 pastel blue-grey top white bottom, column 2 cyan top white bottom, column 3 shiny gold top white bottom. Every cell centered and independent with ample transparent gutters.”
+- `items/*-{front,side}.png`: One atlas per direction. “Exactly 2 columns x 5 rows equally spaced transparent portrait sprite atlas. Separate one wearable item per cell, centered with generous margins. [FRONT view / Facing RIGHT in slight three-quarter view] every item, no character, no overlap, no dividers. Rows in order, left to right: (1) cyan star headphones, purple floppy star nightcap (2) round plum wire glasses, orange white striped knitted scarf (3) small gold star hairpin, hot pink ribbon bow (4) dark cyan neon sunglasses, gold five-point crown with center pink gem (5) pink neon ellipse halo, soft pink scarf with white heart knot.”
+
+Processing: crop individual atlas cells to their visible alpha bounds and fit inside 512px transparent squares. Cabinet uses a 1024px long edge; handle uses a 384px square. The runtime crops and scales wearable artwork to at most 160px before compositing.
+
+## 装着済みのマフラーとスカーフ
+Built-in image_gen, 2026-11-23. The five original Cosmii portraits and the wardrobe scarf icons were used as references. Draw a transparent 5×2 atlas in the original character order with front and right three-quarter poses. Give each character only one hand on each side, both below the wrapped collar. Keep the face and feet unobstructed and use one short, clearly rectangular cloth end. The orange scarf was finalized with a local edit changing only the approved pink scarf fabric to orange and ivory stripes, preserving the arms and body. The `worn/` assets are cropped front portraits for all five characters and compact fabric-only sprites for compositing on animated frames.
+
+## 装着済みヘッドホン
+Built-in image_gen, 2026-11-23. Reference: contact sheet of the original five Cosmii and the original headphone icon. Prompt: "Five original Cosmii in a transparent 5 by 2 atlas, front and right three-quarter. Cyan over-ear headphones with a magenta stripe and pink star earcups. Curve the band over each hood and keep the earcups at the sides, behind the face in profile. Keep eyes, cheeks, and mouth visible." Cropped the five front portraits and extracted the headset silhouette for the other poses.
+
+## ナイトキャップの横向き用改訂
+Built-in image_gen, 2026-11-23. References: the red running sheet and the previous nightcap. "Generate one isolated right-facing three-quarter indigo nightcap with a wide, snug, shallow arched cream brim wrapping the actual hood. Droop the star pompom back toward screen left and away from the eyes. Match the previous glossy purple fabric and plum outline. True transparency, no character." Cropped and centered in a 512px transparent square.

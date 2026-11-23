@@ -11,9 +11,8 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  await page.waitForFunction(()=>document.querySelector('#world-backdrop').complete);
  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
  await page.screenshot({path:path.join(root,'test-results/world-home.png')});
- await page.click('#continue-btn');await page.waitForSelector('#world-dialog:not([hidden])');await page.screenshot({path:path.join(root,'test-results/world-intro.png')});
- await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>state),'menu');
- await page.click('#continue-btn');for(let i=0;i<7;i++)await page.click('#opening-next');await page.click('#world-start');await page.waitForFunction(()=>state==='ready');
+ // The picture story is no longer put in front of stage 1: continue goes straight to the stage.
+ await page.click('#continue-btn');await page.waitForFunction(()=>state==='ready');assert(await page.locator('#world-dialog').isHidden());
  assert(await page.evaluate(()=>beats===RHYTHM_BEATS[STAGES[stageIdx].file].beats),'Runtime must use the tracked beat grid');
  const chart=await page.evaluate(()=>({level,coins:coinDefs,zones:flipZones,orbs:orbDefs,speed:SPEED,constants:[V0,GRAV,HOLD_MAX,TAP_OFFSET]}));
  assert.equal(chart.speed,350);assert.equal(chart.constants[2],.18);assert.equal(chart.constants[3],.25);

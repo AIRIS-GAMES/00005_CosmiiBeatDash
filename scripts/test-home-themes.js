@@ -9,7 +9,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
  await page.click('#help-open');assert(await page.locator('#live-tutorial').isVisible());await page.click('#tutorial-skip');
  await page.click('#world-album-open');assert(await page.locator('.world-album').isVisible());await page.click('#world-close');
  await page.click('#world-profiles-open');assert.equal(await page.locator('[data-character]').count(),5);await page.click('#world-close');
- await page.click('#avatar-btn');assert(await page.locator('#ui-panel').isVisible());await page.click('#panel-close');
+ await page.click('#avatar-btn .avatar-swap');assert(await page.locator('#ui-panel').isVisible());await page.click('#panel-close');
  await page.evaluate(()=>{refreshMenu();refreshMenu();});assert.equal(await page.locator('#missions-open .home-menu-icon').count(),1);assert.equal(await page.locator('#dailybtn .home-menu-icon').count(),1);
  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});await page.screenshot({path:path.join(root,'test-results/home-redesign.png')});
  await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready');

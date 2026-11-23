@@ -1,0 +1,57 @@
+/* cosmii-bond.js: talking, petting, the bond on the result card and profile, postcards. */
+.bond-bubble{position:absolute;z-index:45;max-width:240px;padding:8px 14px;border-radius:16px;background:#fff;color:#1a1430;font:900 14px/1.45 'M PLUS 1p',sans-serif;white-space:pre-line;pointer-events:none;box-shadow:0 6px 14px #0006;animation:bondPop .35s both cubic-bezier(.2,1.4,.4,1)}
+.bond-bubble::after{content:"";position:absolute;border:8px solid transparent}
+.bond-bubble.home::after{left:18px;bottom:-14px;border-top-color:#fff}
+.bond-bubble.left::after{right:-14px;top:14px;border-left-color:#fff}
+.bond-bubble.right::after{left:-14px;top:14px;border-right-color:#fff}
+.bond-heart{position:absolute;z-index:46;font-size:22px;color:#ff5fc8;pointer-events:none;text-shadow:0 0 8px #ff5fc8aa;animation:bondFloat 1.1s ease-out forwards}
+@keyframes bondPop{from{opacity:0;transform:scale(.4)}}
+@keyframes bondFloat{to{transform:translate(var(--dx),-90px) scale(1.4);opacity:0}}
+#menu #charimg.bond-hop{animation:bondHop .5s!important}
+#menu #charimg.bond-pet{animation:bondWiggle .45s 2!important}
+@keyframes bondHop{30%{transform:translateY(-14%) scale(.95,1.06)}60%{transform:translateY(0) scale(1.08,.92)}}
+@keyframes bondWiggle{25%{transform:rotate(-5deg) scale(1.04,.97)}75%{transform:rotate(5deg) scale(1.04,.97)}}
+#menu #charimg{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.bond-badge{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:#ff5fc833;border:1px solid #ff8adf;color:#ffb3e6;font:italic 900 11px 'Exo 2','M PLUS 1p',sans-serif;vertical-align:middle}
+.bond-badge.best{background:linear-gradient(90deg,#ff5fc8,#ffd25a);color:#2a1038;border-color:#ffd25a}
+
+/* result card chip (inherits .result-unlock from cosmii-screens.css) */
+#app #clearov .result-unlock.bond-chip{border-color:#ff8adf!important}
+#app #clearov .result-unlock.bond-chip i{color:#ff5fc8}
+#app #clearov .result-unlock.bond-chip small{margin-left:6px;font-size:10px;opacity:.8}
+#app #clearov .result-unlock.bond-chip.up{border-color:#ffd25a!important;box-shadow:0 0 14px #ffd25a88!important;background:linear-gradient(180deg,#5a2a6a,#2a1542)!important}
+
+/* profile */
+.bond-profile{margin:6px 0 8px;padding:8px 12px;border-radius:14px;background:#ff5fc812;border:1px solid #ff8adf66;display:grid;gap:4px;text-align:left}
+.bond-row{display:flex;align-items:center;gap:8px}
+.bond-lv{font:italic 900 14px 'Exo 2','M PLUS 1p',sans-serif;color:#ff8adf;white-space:nowrap}
+.bond-bar{flex:1;height:8px;border-radius:99px;background:#3a3470;overflow:hidden}
+.bond-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8adf,#ff5fc8)}
+.bond-row small{font-size:11px;color:#d8c6ea;white-space:nowrap}
+.bond-can{margin:0;font-size:12px;color:#fff}
+.bond-next{font-size:11px;color:#ffd25a}
+.bond-secrets{margin:2px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.bond-secrets li{font-size:12px;line-height:1.5;color:#fff}
+.bond-secrets li b{color:#ff8adf;margin-right:6px;font-size:11px}
+.bond-secrets li.locked{opacity:.5}
+
+/* E: postcard */
+.bond-postcard{position:absolute;inset:0;z-index:72;display:grid;place-items:center;background:#05061acc;padding:12px;animation:bondFade .3s both}
+.bond-postcard .bp-card{position:relative;width:min(640px,86vw);display:flex;gap:18px;align-items:center;background:#fdf8ef;color:#2a2140;border-radius:12px;padding:18px;box-shadow:0 16px 36px #000a;transform:rotate(-1.2deg);animation:bondDrop .6s both cubic-bezier(.2,1.3,.4,1)}
+.bond-postcard .bp-photo{flex:0 0 38%;aspect-ratio:4/3;background:#ccc center/cover;border:8px solid #fff;box-shadow:0 4px 10px #0004;transform:rotate(2deg)}
+.bond-postcard .bp-text{flex:1;min-width:0}
+.bond-postcard small{display:block;font:800 11px 'M PLUS 1p',sans-serif;color:#9a7fb0;letter-spacing:.08em}
+.bond-postcard p{margin:6px 0;font:900 16px/1.6 'M PLUS 1p',sans-serif;white-space:pre-line}
+.bond-postcard .bp-from{display:flex;align-items:center;gap:8px;font:800 12px 'M PLUS 1p',sans-serif;color:#6a5a80}
+.bond-postcard .bp-from img{width:40px;height:40px;object-fit:contain}
+.bond-postcard .bp-stamps{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.bond-postcard .bp-stamps button{font:900 14px 'M PLUS 1p',sans-serif;min-height:40px;padding:6px 14px;border-radius:99px;border:2px solid #e2d4f0;background:#fff;color:#2a2140;cursor:pointer;white-space:nowrap}
+.bond-postcard .bp-x{position:absolute;top:-12px;right:-12px;width:36px;height:36px;border-radius:50%;border:0;background:#2a2140;color:#fff;font-size:15px;cursor:pointer}
+.bond-postcard button:focus-visible{outline:3px solid #ff5fc8;outline-offset:2px}
+.bond-postcard .bp-stamp{position:absolute;right:22px;top:-22px;width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:#ff5fc8;color:#fff;font:900 38px 'M PLUS 1p',sans-serif;transform:rotate(12deg);box-shadow:0 4px 10px #0005;animation:bondStamp .4s both cubic-bezier(.2,1.6,.4,1)}
+@keyframes bondFade{from{opacity:0}} @keyframes bondDrop{from{opacity:0;transform:translateY(-30%) rotate(-8deg)}}
+@keyframes bondStamp{from{transform:scale(3) rotate(12deg);opacity:0}}
+@media(max-height:380px){.bond-postcard .bp-card{padding:12px;gap:12px}.bond-postcard p{font-size:14px}}
+@media(prefers-reduced-motion:reduce){.bond-bubble,.bond-heart,.bond-postcard,.bond-postcard *{animation:none!important}.bond-heart{display:none}}
+/* the result card and the continue ring lay their children out in a column: keep the word floating */
+#app #clearov>.bond-bubble,#reviveov>.bond-bubble{position:absolute!important;z-index:6!important}

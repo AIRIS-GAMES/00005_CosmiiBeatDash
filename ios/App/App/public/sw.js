@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v155-1.07b28-psf';
+const CACHE = 'rdash-v155-1.07b38';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
@@ -11,6 +11,12 @@ const WORLD_ART = {
   arcade: ['background.jpg', 'green.png', 'purple.png'],
 };
 const ASSETS = [
+  'cosmii-wardrobe-anchors.js', 'cosmii-wardrobe.js', 'cosmii-capsule.js', 'cosmii-capsule.css',
+  ...['machine','machine-handle','capsule-n','capsule-r','capsule-sr','capsule-open-n','capsule-open-r','capsule-open-sr']
+    .map(id => 'Asset/world/capsule/' + id + '.png'),
+  ...['phones','cap','glasses','star','bow','shades','crown','halo']
+    .flatMap(id => ['front','side'].map(side => `Asset/world/capsule/items/${id}-${side}.png`)),
+  ...['red','blue','pink','green','purple'].map(color => `Asset/world/capsule/items/phones-worn-${color}.png`),
   ...Object.entries(WORLD_ART).flatMap(([world, files]) => files.map(file => `Asset/worlds/${world}/${file}`)),
   'beat-analytics.js',
   ...['TikTok.png','instagram.png','X.png','LINE.png'].map(file=>'Asset/social/'+file),
@@ -62,6 +68,13 @@ const ASSETS = [
   'cosmii-source.css',
   'cosmii-dialogs.css',
   'cosmii-screens.css',
+  'cosmii-welcome.js',
+  'cosmii-welcome.css',
+  ...[0, 4, 6, 8, 10, 12, 14, 16, 18].map(stage => `Asset/world/tour/world-${stage}.jpg`),
+  'cosmii-guide.js',
+  'cosmii-guide.css',
+  'cosmii-bond.js',
+  'cosmii-bond.css',
   'Asset/world/memory-photos.jpg',
   ...['Exo2','Exo2-Italic','MPLUS1p-Medium','MPLUS1p-Bold','MPLUS1p-ExtraBold'].map(name=>'Asset/fonts/'+name+'.woff2'),
   ...['ui-panel.png','ui-progress.png','ui-words.png','ui-japanese.png'].map(file=>'Asset/world/'+file),

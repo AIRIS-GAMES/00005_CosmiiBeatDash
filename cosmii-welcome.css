@@ -1,0 +1,19 @@
+/* cosmii-welcome.js: idle world tour on the title. */
+/* ---- E ---- */
+.we-root{position:absolute;inset:0;z-index:65;overflow:hidden;background:#05061a;container-type:inline-size;cursor:pointer}
+.we-root>*{position:absolute}
+.we-shot{inset:0;width:100%;height:100%;object-fit:cover;transform-origin:50% 50%}
+.we-label{left:0;bottom:8%;padding:1cqw 3cqw 1cqw max(3.5cqw,env(safe-area-inset-left));background:linear-gradient(90deg,#14123af2,#14123a99);border-radius:0 99px 99px 0;color:#fff;font:900 clamp(14px,2.8cqw,26px) "M PLUS 1p",sans-serif;white-space:nowrap}
+.we-label b{display:block;font:italic 800 clamp(9px,1.4cqw,13px) "Exo 2",sans-serif;color:#ffd25e;letter-spacing:.12em}
+.we-intro{inset:0;display:grid;place-items:center;text-align:center;background:#05061a;color:#fff;font:italic 900 clamp(22px,6cqw,56px) "Exo 2",sans-serif}
+.we-intro small{display:block;font:800 clamp(11px,2cqw,18px) "M PLUS 1p",sans-serif;color:#c9cbe6;font-style:normal}
+.we-grid{inset:0;background:#05061a;padding:3cqw 6cqw;display:grid;grid-template-columns:repeat(3,1fr);gap:1.2cqw}
+.we-grid div{position:relative;border-radius:1.2cqw;background:center/cover;border:.25cqw solid #ffffff30;filter:grayscale(1) brightness(.45)}
+.we-grid div.on{filter:none;border-color:#ffd25e}
+.we-grid span{position:absolute;left:.8cqw;bottom:.6cqw;font:800 clamp(9px,1.5cqw,14px) "M PLUS 1p",sans-serif;color:#fff;text-shadow:0 1px 3px #000}
+.we-final{inset:0;display:grid;place-items:center;align-content:center;gap:1.4cqw;background:#05061acc;z-index:2}
+.we-final[hidden]{display:none}
+.we-final img{width:46cqw}
+.we-final span{font:900 clamp(14px,2.4cqw,22px) "M PLUS 1p",sans-serif;color:#ffd25e}
+.we-flash{inset:0;background:#fff;pointer-events:none;opacity:0;z-index:3}
+.we-hint{right:max(2%,env(safe-area-inset-right));top:max(3%,env(safe-area-inset-top));z-index:4;font:italic 800 clamp(9px,1.3cqw,12px) "Exo 2",sans-serif;letter-spacing:.08em;color:#fff;background:#121737b8;border-radius:99px;padding:5px 12px}

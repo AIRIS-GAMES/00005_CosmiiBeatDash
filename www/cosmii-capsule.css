@@ -1,0 +1,79 @@
+#menu .capsule-home-actions{display:flex;align-items:center;justify-content:center;gap:5px;margin:5px auto 0;max-width:100%}
+#app #clearov #clearchar[data-wardrobe-dressed=true]{display:block;object-fit:contain;width:min(17cqh,88px);height:min(17cqh,88px)}
+#menu .capsule-home-actions #rides-open{margin:0;white-space:nowrap}
+#menu .capsule-home-closet{padding:4px 8px;min-height:29px;border-radius:99px;border:1px solid #efa5ff9c;background:#291a45;color:#fff2ff;font:800 clamp(9px,1.45cqh,12px) var(--pop-font);white-space:nowrap}
+#menu #home-footer .capsule-home-open{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}
+.capsule-footer-icon{width:16px;height:16px;object-fit:contain}
+.capsule-free-dot:not([hidden]){position:absolute;top:1px;right:1px;width:8px;height:8px;border-radius:50%;background:#ffda71;box-shadow:0 0 7px #ffba62}
+#ui-panel:is([data-section=capsule],[data-section=closet]) .panel-shell{max-width:720px}
+.capsule-shop,.capsule-closet{position:relative;display:grid;grid-template-columns:minmax(100px,38%) minmax(0,1fr);align-items:center;gap:clamp(10px,3cqw,24px);min-height:200px;padding:8px;color:#f2eeff}
+.capsule-shop{background:radial-gradient(ellipse at 25% 92%,#63327a 0%,transparent 51%)}
+.capsule-machine{position:relative;height:min(49cqh,300px);min-height:150px;aspect-ratio:1/1.2;justify-self:center;width:min(100%,240px)}
+.capsule-machine-art{position:absolute;width:auto;height:100%;max-width:100%;top:0;left:50%;transform:translateX(-50%);object-fit:contain}
+.capsule-handle{position:absolute;left:50%;top:74%;width:auto;height:17%;transform:translate(-50%,-50%)}
+.capsule-handle.turn{animation:capsule-turn .55s ease-in-out}
+@keyframes capsule-turn{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.capsule-chute{position:absolute;left:49%;bottom:4%;height:21%;width:auto;transform:translate(-50%,0);z-index:1}
+.capsule-chute.roll{animation:capsule-roll 1.4s ease both}
+@keyframes capsule-roll{
+ 0%,29%{opacity:0;transform:translate(-50%,-12%) scale(.55)}
+ 42%{opacity:1;transform:translate(-5%,20%) rotate(73deg)}
+ 57%{transform:translate(125%,26%) rotate(320deg)}
+ 67%,83%{transform:translate(125%,26%) rotate(335deg)}
+ 75%,90%{transform:translate(125%,26%) rotate(304deg)}
+ 100%{transform:translate(125%,26%) rotate(320deg)}
+}
+.capsule-controls{display:grid;gap:7px}
+.capsule-word{margin:0;color:#ffcf7f;font:italic 900 clamp(24px,6cqw,44px)/1 "Exo 2",sans-serif;letter-spacing:-.035em;text-shadow:0 3px #6f265f}
+.capsule-controls p,.capsule-wearer p{margin:0}
+.capsule-pity,.capsule-balance{font-size:clamp(10px,2.2cqh,15px);font-weight:800;color:#e9d6ff}
+.capsule-rates{color:#d4c6e3;font-size:clamp(9px,2cqh,12px)}
+.capsule-controls button,.capsule-reveal button,#profile-closet{min-height:33px;padding:6px 10px;border-radius:11px;border:1px solid #b798e9;background:#312a55;color:#fff;font:800 clamp(10px,2.4cqh,14px) var(--pop-font);cursor:pointer}
+.capsule-controls .capsule-free{background:linear-gradient(150deg,#69edeb,#53b2e5);border-color:#b3faff;color:#122c54}
+.capsule-controls .capsule-pay{background:linear-gradient(150deg,#ffdf84,#fa9d63);border-color:#ffe494;color:#3d1f35}
+.capsule-shop button:disabled,.capsule-tabs button:disabled{opacity:.48;cursor:default}
+.capsule-reveal:not([hidden]){position:absolute;inset:0;overflow:hidden;display:grid;justify-items:center;align-content:center;gap:3px;border-radius:16px;background:#16102b;z-index:3;isolation:isolate;text-align:center;--prize:#c3d2e9}
+.capsule-reveal[data-rarity=r]{--prize:#58f9f1}
+.capsule-reveal[data-rarity=sr]{--prize:#ffd568}
+.capsule-reveal::before{content:"";position:absolute;z-index:-1;inset:-85%;background:repeating-conic-gradient(from 18deg,var(--prize) 0deg 6deg,transparent 6deg 25deg);opacity:.10;animation:capsule-rays 12s linear infinite}
+.capsule-reveal[data-rarity=r]::before{opacity:.19}
+.capsule-reveal[data-rarity=sr]::before{opacity:.28}
+@keyframes capsule-rays{to{transform:rotate(180deg)}}
+.capsule-reveal-art{position:relative}
+.capsule-open-shell{display:block;width:min(18cqh,120px);height:min(18cqh,120px);object-fit:contain}
+.capsule-reveal-item{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(9cqh,58px);height:min(9cqh,58px);object-fit:contain;filter:drop-shadow(0 0 7px var(--prize))}
+.capsule-reveal-rarity{color:var(--prize);font:italic 950 18px/1 "Exo 2",sans-serif}
+.capsule-reveal h3,.capsule-reveal p{margin:0 6px}
+.capsule-reveal p{font-size:clamp(9px,2.2cqh,13px)}
+.capsule-reveal-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:5px}
+body.reduced-effects .capsule-reveal::before,.capsule-reveal[data-reduced=true]::before{display:none}
+@media(prefers-reduced-motion:reduce){.capsule-reveal::before{display:none}}
+.capsule-closet{grid-template-columns:minmax(110px,32%) minmax(0,1fr);align-items:start}
+.capsule-wearer{text-align:center;display:grid;justify-items:center;gap:4px;position:sticky;top:0}
+.capsule-wearer-art{width:min(100%,32cqh,162px);aspect-ratio:1;object-fit:contain;background:radial-gradient(ellipse at 50% 72%,#6355ab,transparent 63%)}
+.capsule-wearer h3{margin:0;font-size:clamp(11px,3cqh,16px)}
+.capsule-wearer p{font-size:10px;color:#dbcee9}
+.capsule-tabs{display:flex;gap:3px;justify-content:center;flex-wrap:wrap}
+.capsule-tabs button{width:29px;height:29px;background:#302550;border:1px solid #8066aa;border-radius:8px;padding:1px;cursor:pointer}
+.capsule-tabs button[aria-pressed=true],.capsule-item[aria-pressed=true]{border-color:#a7ffdf;box-shadow:inset 0 0 0 1px #a7ffdf;background:#23464c}
+.capsule-tabs img{width:100%;height:100%;object-fit:contain}
+.capsule-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(74px,100%),1fr));gap:6px}
+.capsule-item{display:grid;justify-items:center;align-content:center;min-width:0;position:relative;padding:5px 3px;border:1px solid #81699e;border-radius:10px;background:#2c2146;color:#fff;font-family:var(--pop-font);cursor:pointer}
+.capsule-item strong{font-size:10px;line-height:1.2;text-align:center}
+.capsule-item img,.capsule-item .capsule-color{width:36px;height:36px;object-fit:contain}
+.capsule-color{display:block;border-radius:50%;background:linear-gradient(135deg,#62f0fe,#eb89ff);border:2px solid #eedbff}
+.capsule-color.night{background:linear-gradient(135deg,#9c8fe4,#302971)}
+.capsule-color.gold{background:linear-gradient(135deg,#fff4b3,#e99c37)}
+.capsule-item:disabled{background:#262136;color:#baafd0;cursor:default}
+.capsule-item:disabled :is(img,.capsule-color){filter:brightness(0);opacity:.5}
+.capsule-rarity{position:absolute;top:3px;right:4px;font:800 9px "Exo 2",sans-serif;color:#dde4f8}
+.capsule-item[data-rarity=r] .capsule-rarity{color:#73f6f7}
+.capsule-item[data-rarity=sr] .capsule-rarity{color:#ffdf77}
+.capsule-slot{font-size:8px;color:#d0c4e3;text-align:center}
+@container (max-height:390px){
+ #menu .capsule-home-actions{margin-top:3px}
+ #menu .capsule-home-closet{min-height:25px}
+ .capsule-shop,.capsule-closet{padding:3px;min-height:150px}
+ .capsule-controls{gap:4px}
+ .capsule-controls button{min-height:29px}
+}

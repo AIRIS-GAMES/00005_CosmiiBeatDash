@@ -49,6 +49,7 @@
       const size=im.naturalWidth/2;
       sheets[type][i]=Array.from({length:4},(_,f)=>{const c=document.createElement('canvas');c.width=c.height=size;c.getContext('2d').drawImage(im,f%2*size,Math.floor(f/2)*size,size,size,0,0,size,size);return c;});
       icons[type][i]=sheets[type][i][0].toDataURL();refresh();
+      window.cosmiiWardrobe?.bake(i);
     };im.src=`Asset/world/rides/${type}-${name}.png`;
   });
   const section=document.createElement('div');section.id='ride-shop';

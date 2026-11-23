@@ -4,7 +4,9 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{
  const context=await browser.newContext({viewport:{width:960,height:480},serviceWorkers:'block'});await context.route('https://**',r=>r.abort());
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));const base='http://127.0.0.1:'+server.address().port;
- await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base);await page.waitForSelector('#opening-next');assert.equal(await page.locator('#opening-count').innerText(),'1 / 8');
+ await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base);
+ // The picture story only plays as a replay now (first launch goes straight into stage 1).
+ await page.waitForFunction(()=>bootDone&&window.cosmiiWorld);assert(await page.locator('#world-dialog').isHidden());await page.evaluate(()=>{$('loginov').style.display='none';cosmiiWorld.replayOpening();});await page.waitForSelector('#opening-next');assert.equal(await page.locator('#opening-count').innerText(),'1 / 8');
  assert(await page.locator('#world-back').isDisabled());
  assert.equal(await page.locator('#opening-auto').getAttribute('aria-pressed'),'true');await page.click('#opening-auto');
  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
@@ -29,5 +31,5 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+new UR
  await page.click('#world-skip');await context.unroute('**/opening/*.jpg');
  await page.setViewportSize({width:960,height:480});await page.evaluate(()=>cosmiiWorld.replayOpening());while(await page.locator('#opening-count').innerText()!=='8 / 8')await page.click('#opening-next');await page.click('#world-start');await page.waitForFunction(()=>state==='ready');assert(await page.locator('#world-dialog').isHidden());
  await page.addInitScript(()=>localStorage.setItem('cosmii_tutorial_v1','done'));await page.goto(base+'/www/');await page.waitForFunction(()=>bootDone&&window.cosmiiWorld);await page.evaluate(()=>cosmiiWorld.replayOpening());await page.waitForFunction(()=>document.querySelector('.opening-image').naturalWidth>0);
- assert.deepEqual(errors,[]);console.log('Opening: first launch, 8 images/cuts, skip/save/replay, auto, reduced motion, small screens, missing image and gameplay/bundle PASS');
+ assert.deepEqual(errors,[]);console.log('Opening: not shown by itself, replay with 8 images/cuts, skip/save/replay, auto, reduced motion, small screens, missing image and gameplay/bundle PASS');
 }finally{await browser.close();server.close();}})().catch(e=>{console.error(e);process.exitCode=1;server.close();});

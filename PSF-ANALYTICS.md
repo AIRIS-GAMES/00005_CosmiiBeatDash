@@ -69,8 +69,9 @@ SNSはリンク押下までの観測。実際のページ読了・フォロー�
 | `tutorial_step:{entry}:step_1/2/3` | 実際の操作成功。段階ごと1回 |
 | `tutorial_complete/tutorial_exit:{entry}:step_N` | 全3段階を成功して終了、または未完了退出。終了ボタン押下だけを完了にしない |
 | `intro_start/intro_complete/intro_skip:{onboarding/replay}:all` | オープニング開始・終端の「あそぶ」・明示スキップ |
+| `attract_start:title:all` | タイトル画面の待機デモが始まった |
 | `entry_shown:home:{profile/sns/album}` | ホームが可視で、他のダイアログに覆われていないとき。可視状態を500ms間隔で確認。再描画では増えず、短い滞在は取りこぼす可能性あり |
-| `profile_display/profile_locked:{home/album/profile/result}:{color}` | 紹介の表示／未解放条件の表示。profileはキャラタブ操作 |
+| `profile_display/profile_locked:{home/album/profile/bond/result}:{color}` | 紹介の表示／未解放条件の表示。profileはキャラタブ操作 |
 | `interest:profile:{source}_{color}` | 「コスミー紹介」「この子たちを知る」またはキャラタブから、解放済みの実プロフィールに遷移。今回のUIは紹介入口から直接プロフィールを表示するため、その操作も対象。未解放条件は除外 |
 | `social_open:home:all` | SNSパネルを開いた。主指標には含めない |
 | `external_click:{social/profile}:{x/tiktok/instagram}` | 公式SNSのリンクを明示クリック |
@@ -80,7 +81,13 @@ SNSはリンク押下までの観測。実際のページ読了・フォロー�
 | `skill_experienced:{score/timing/coin/hold/shield}:{color}` | 実際に得点増・判定ランク改善・拡大範囲のコイン取得/追加得点・長押しの重力軽減・防御が起きた。1ランで効果ごと1回。単なるエフェクト表示で発火させない |
 | `album_open:{locked/unlocked}:stage_N` | 思い出閲覧 |
 | `story_unlock:album:stage_N` | 思い出初解放。移行や再表示は除外 |
+| `first_run:stage_1:` | 初回起動でホームを通さずステージ1へ入った（2026-11-23〜） |
+| `guide_done:{tap/hold/orb/orb_missed}:` | 初回ステージ1の最初の4ノーツ／初めての高いブロック／初めてのオーブのガイドを通過 |
 | `story_notice:launch:stage_N` | 起動時の「新しい思い出」ポップアップを表示。1起動1回 |
+| `bond_level:{color}:lv_N` | そのキャラとのきずながLvNに上がった（クリア・PERFECT・なでなで） |
+| `bond_talk:{color}:home` / `bond_pet:{color}:home` | ホームでキャラをタップ／長押しでなでた |
+| `postcard_shown:{color}:launch` / `postcard_reply:{color}:{heart/star}` | 次回起動の絵はがき（きずなLv3以上）を表示／スタンプで返事 |
+| `interest:profile:bond_{color}` | 結果画面のきずなチップから解放済みプロフィールへ遷移。主指標 interest:profile に含める |
 
 LINEは準備中でリンクがないため送らない。他ゲームへのリンクは従来 `Promo:Click:*` に残し、キャラ関心率から除外。廃止中のFEVER/POWERの自然発動を架空のイベントとして追加しない。
 
@@ -100,3 +107,14 @@ LINEは準備中でリンクがないため送らない。他ゲームへのリ�
 - **管理画面ログイン・受信確認・ダッシュボード保存は行っていない。** 公開ビルドのDebug/RealtimeでKPIイベントとビルドを確認し、翌日以降に人数/Retentionへ反映されるか確認する必要がある。今回の自動テストを実ユーザーの改善成果とは扱わない。
 
 API仕様：[GameAnalytics JavaScript Event Tracking](https://docs.gameanalytics.com/event-tracking-and-integrations/sdks-and-collection-api/open-source-sdks/javascript/event-tracking/)、[SDK Features](https://docs.gameanalytics.com/event-tracking-and-integrations/sdks-and-collection-api/open-source-sdks/javascript/sdk-features/)。Design Eventの5階層制約に合わせて分類。Design Eventでcustom dimensionsフィルターが使えるとは仮定していない。
+
+### コスミーのカプセルと着せかえ
+
+| `BeatPSF:v1:` の後 | 記録条件 |
+|---|---|
+| `capsule_open:home:{color}` | ホームのカプセルボタンを開いたとき |
+| `capsule_pull:{free\|coin}:{n\|r\|sr}` | コイン・所持品・無料利用日・天井などの保存が確定したとき |
+| `capsule_dup:{color}:bond` | 重複で、そのとき選んでいたコスミーにきずな+10が確定したとき |
+| `skin_equip:{color}:{head\|face\|color}` | 部位を着用・交換・取り外しし、保存したとき |
+
+有料の成功時のみ Resource Sink の `Coins / Capsule / pull` に100を記録する。これらのイベントは関心反応（`interest:profile`・`interest:sns`）の分子に含めない。
