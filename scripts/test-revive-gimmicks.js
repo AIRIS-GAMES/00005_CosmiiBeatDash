@@ -1,3 +1,4 @@
+// Scripted simulation starts after GO; real countdown is covered by test-html-audio.js.
 // Revive inside a gimmick section: the run restarts just before the section and
 // every gimmick in it works again (cannons visible and boardable, arms, blocks,
 // middle roads, pads...), so the stage can still be cleared.
@@ -10,7 +11,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  const checked=[];
  for(const n of [7,8,20,14,17,12,5,4]){
   const r=await page.evaluate(n=>{const i=n-1,cfg=STAGES[i];window.playTrack=()=>{};window.stopMusic=()=>{};
-   setupRun(i,{duration:AUDIO_TRACKS[cfg.file].duration},[]);practice=false;startAttempt(0);state='play';
+   setupRun(i,{duration:AUDIO_TRACKS[cfg.file].duration},[]);practice=false;startAttempt(0);countdown=null;state='play';
    const secs=stageGimmicks.inspect().sections;if(!secs.length)return {n,skip:true};
    const sec=secs[0],dieAt=Math.min(sec.to-0.2,sec.from+1.6);
    const plan=()=>[...level.filter(o=>!isFreeNote(o)||o.type==='arm').map(o=>o.type==='arm'?o.t:o.t-TAP_OFFSET),...stageGimmicks.inspect().biteTimes].sort((a,b)=>a-b);
@@ -20,7 +21,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
    let taps=plan();play(dieAt,taps);if(state!=='play')return {n,state,where:'before the section'};
    die();const diedAt=songPos;
    // revive from where it died
-   startAttempt(Math.max(0,diedAt-1.5));state='play';songPos=attemptOffset-LEAD;const restart=attemptOffset;
+   startAttempt(Math.max(0,diedAt-1.5));countdown=null;state='play';songPos=attemptOffset-LEAD;const restart=attemptOffset;
    taps=plan().filter(t=>t>=songPos-0.02);play(duration+1,taps);
    return {n,kind:sec.kind,diedAt:+diedAt.toFixed(2),restart:+restart.toFixed(2),state};},n);
   if(r.skip)continue;

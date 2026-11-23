@@ -9,7 +9,7 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready');
  await page.waitForFunction(()=>{const fake={save(){},restore(){},translate(){},scale(){},drawImage(){}};return cosmiiWorld.drawObstacle(fake,'spike',{x:0,y:0,w:36,h:36})&&cosmiiWorld.drawObstacle(fake,'block',{x:0,y:0,w:36,h:36});});
  const mapping=await page.evaluate(()=>{const calls=[];const c={save(){},restore(){},translate(...v){calls.push(['translate',...v]);},scale(...v){calls.push(['scale',...v]);},drawImage(im,...v){calls.push(['image',...v]);}};const shape={x:12,y:34,w:72,h:36,f:true};cosmiiWorld.drawObstacle(c,'block',shape);return {calls,shape};});
- assert.deepEqual(mapping.shape,{x:12,y:34,w:72,h:36,f:true});assert.deepEqual(mapping.calls,[['translate',12,70],['scale',1,-1],['image',3,8,121,117,0,0,72,36]]);
+ assert.deepEqual(mapping.shape,{x:12,y:34,w:72,h:36,f:true});assert.deepEqual(mapping.calls,[['translate',12,70],['scale',1,-1],['image',3,8,121,117,0,0,36,36],['image',3,8,121,117,36,0,36,36]]);
  // Fixed visual fixture only: test all hazard widths and gravity directions without modifying the live physics rules.
  await page.evaluate(()=>{songPos=4;level=[{t:4.3,type:'spike'},{t:4.6,type:'spike2'},{t:4.95,type:'block'},{t:5.15,type:'block2'}];coinsLive=[];orbsLive=[];draw();});
  await page.screenshot({path:path.join(root,'test-results/neon-obstacles.png')});
@@ -26,17 +26,18 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  const boundaries=await page.evaluate(()=>{
    const saved=beats;
    state='play';
-   const check=t=>{songPos=t;cosmiiWorld.background();return ['start','finish'].map(n=>!document.getElementById('world-gate-'+n).hidden);};
+   const assertNoStart=document.querySelectorAll('.world-boundary-start').length;
+   const check=t=>{songPos=t;cosmiiWorld.background();return ['start','finish'].map(n=>{const el=document.getElementById('world-gate-'+n);return !!el&&!el.hidden;});};
    const start=check(-LEAD-COUNT_SEC+.65),middle=check(duration/2),finish=check(duration-.18);
    const speed=dt=>{beats=Array.from({length:30},(_,i)=>({t:i*dt,s:1}));songPos=.1;cosmiiWorld.background();return Math.abs(parseFloat(document.getElementById('world-backdrop').parentElement.style.transform.match(/translateX\(([-.0-9]+)/)[1]));};
    const slow=speed(.6),fast=speed(.4);beats=saved;songPos=4;cosmiiWorld.background();
-   return {start,middle,finish,slow,fast};
+   return {start,middle,finish,slow,fast,assertNoStart};
  });
- assert.deepEqual(boundaries.start,[true,false]);assert.deepEqual(boundaries.middle,[false,false]);assert.deepEqual(boundaries.finish,[false,true]);
+ assert.equal(boundaries.assertNoStart,0);assert.deepEqual(boundaries.start,[false,false]);assert.deepEqual(boundaries.middle,[false,false]);assert.deepEqual(boundaries.finish,[false,true]);
  assert(boundaries.fast>boundaries.slow,'Faster detected tempo must scroll faster');
 
 
- await page.evaluate(()=>{stageIdx=8;flipZones=[{start:3,end:9}];draw();});assert.equal(await page.locator('#world-ceiling').isVisible(),true);await page.screenshot({path:path.join(root,'test-results/neon-ceiling.png')});
+ await page.evaluate(()=>{state='paused';stageIdx=0;songPos=4;flipZones=[{start:3,end:9}];draw();});await page.waitForFunction(()=>!document.getElementById('world-ceiling').hidden);assert.equal(await page.locator('#world-ceiling').isVisible(),true);await page.screenshot({path:path.join(root,'test-results/neon-ceiling.png')});
  await page.evaluate(()=>{flipZones=[];draw();});assert.equal(await page.locator('#world-ceiling').isHidden(),true);
  for(const file of ['neon-spike.png','neon-block.png']){
   const pixels=await page.evaluate(async file=>{const im=new Image();im.src='Asset/world/'+file;await im.decode();const c=document.createElement('canvas');c.width=im.width;c.height=im.height;const g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,c.width,c.height).data;let opaque=0,transparent=0,magenta=0;for(let i=0;i<d.length;i+=4){if(d[i+3]===0)transparent++;if(d[i+3]>128){opaque++;if(d[i]>220&&d[i+1]<30&&d[i+2]>220)magenta++;}}return {opaque,transparent,magenta};},file);

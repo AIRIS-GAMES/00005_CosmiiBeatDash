@@ -60,15 +60,6 @@
 .profile-locked{font-size:13px;line-height:1.7;}.profile-locked strong{color:#d4e2f2;}.profile-locked small{display:block;color:#b6c8db;font-size:11px;}.profile-locked progress{width:100%;height:9px;accent-color:#8fc6b3;}
 #profile-unlock,#profile-select{padding:10px 16px;margin:12px 0;border-radius:9px;background:#25445d;color:#fff;border:1px solid #9cb8c9;font-size:12px;}
 .audio-settings{margin:18px 0;}.volume-setting{display:grid;grid-template-columns:1fr auto;gap:10px;margin:16px 0;color:#eef3ff;}.volume-setting label{font-size:14px;}.volume-setting output{font-size:13px;color:#bddce5;}.volume-setting input{grid-column:1/-1;width:100%;height:28px;accent-color:#8fc6b3;cursor:pointer;}.settings-note{font-size:11px;line-height:1.7;color:#bbcadd;}.settings-link{display:block;padding:14px;border:1px solid #61708e;border-radius:10px;background:#1c263e;color:#eef3ff;text-decoration:none;font-size:14px;}.settings-link:focus-visible{outline:2px solid #b9e4ed;outline-offset:3px;}
-.mission-intro{font-size:13px;line-height:1.7;color:#c6d5e6;margin:0 0 14px;}
-#missions{gap:10px;}
-#missions .mission{padding:14px;align-items:center;background:#1c263e;color:#eef3ff;border:1px solid #61708e;gap:16px;}
-#missions .mission.done{background:#193532;border-color:#719d8a;color:#e0f5e9;}
-.mission-copy{flex:1;min-width:0;}.mission-copy strong{font-size:14px;line-height:1.6;display:block;}
-.mission-copy p{font-size:11px;font-weight:500;line-height:1.7;color:#c1cedf;margin:6px 0;}
-#missions .mission small{color:#c1cedf;font-size:11px;display:block;}
-.mission-copy progress{display:block;width:100%;height:8px;margin:9px 0;accent-color:#8fc6b3;}
-.mission-reward{text-align:center;font-size:10px;color:#f4d898;flex-shrink:0;}.mission-reward b{display:block;font-size:20px;}
 #mission-popup{position:absolute;z-index:45;top:76px;left:16px;width:min(300px,45%);box-sizing:border-box;padding:10px 14px;border:1px solid #8ab9a7;border-radius:12px;background:#162b30f5;box-shadow:0 3px 12px #0004;pointer-events:none;text-align:left;}
 #mission-popup strong{display:block;color:#bce6ce;font-size:13px;margin-bottom:5px;}
 #mission-popup span{display:block;color:#f5f7fb;font-size:12px;line-height:1.5;}
@@ -116,19 +107,12 @@ button:focus-visible,a:focus-visible{outline:2px solid #b9e4ed!important;outline
  #skins .skin-ability{font-size:12px;line-height:1.5;}
  #skins .skin-hint{font-size:11px;line-height:1.5;}
  #skins .skin-status{font-size:10px;line-height:1.5;}
- #missions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
- #missions .mission{flex-direction:column;align-items:stretch;gap:8px;padding:12px;}
- .mission-intro{font-size:11px;line-height:1.5;margin-bottom:10px;}
- .mission-copy strong{font-size:13px;line-height:1.5;}
- .mission-reward{display:flex;align-items:center;justify-content:center;gap:6px;border-top:1px solid #62728a66;padding-top:6px;}
- .mission-reward b{font-size:17px;}
  .game-bar-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
  .game-bar{min-height:52px;padding:7px 10px;gap:10px;}
  .game-bar img{width:38px;height:38px;border-radius:9px;}
  .game-bar-copy strong{font-size:12px;}.game-bar-copy small{font-size:10px;}.game-bar-cta{font-size:10px;}
- .audio-settings{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin:12px 0;}
- .volume-setting{margin:4px 0;}.settings-note{grid-column:1/-1;margin:4px 0;}
- .settings-link{padding:10px 14px;}#effects-setting{padding:9px 14px;}
+
+
  .world-profiles,.world-album{padding:12px 16px;}
  .world-paper header{margin-bottom:8px;}.world-paper h2{font-size:19px;margin:3px 0;}
  .world-profile-tabs{margin:6px 0;gap:7px;}.world-profile-tabs img{width:32px;height:32px;}

@@ -59,6 +59,9 @@
 
   function render(grid) {
     grid.innerHTML = ''; grid.className = 'world-map';
+    let coins = document.getElementById('stagecoins');
+    if (!coins) { coins = document.createElement('div'); coins.id = 'stagecoins'; document.getElementById('stageprogress')?.after(coins); }
+    coins.innerHTML = `<img src="Asset/cosmo-coin.png" alt=""> <span>${totalCoins().toLocaleString()}</span>`; coins.setAttribute('aria-label', '所持コイン ' + totalCoins());
     const next = Array.from({ length: NSTAGE }, (_, i) => i).find(i => unlocked(i) && best(i) < 100);
     let group = null, groupWorld = null, nextCard = null;
     for (let i = 0; i < NSTAGE; i++) {
@@ -78,8 +81,10 @@
       const info = document.createElement('div'); info.className = 'wm-info';
       const g = gimmicks(i).map(k => LABEL[k]);
       info.innerHTML = `<span class="wm-no">${i + 1}</span><span class="wm-g">${STAGES[i].title || g.join('・')}</span>` +
-        `<span class="wm-best">${open ? (done ? '★ ' : '') + (best(i) ? best(i) + '%' + (bestRank(i) ? ' ' + bestRank(i) : '') : 'NEW') : '未解放'}</span>`;
+        `<span class="wm-best">${open ? (done && hiScore(i) ? 'BEST ' + hiScore(i).toLocaleString() : best(i) ? best(i) + '%' : 'NEW') : '未解放'}</span>`;
       b.append(info);
+      // Rank medal (same colours as the result card); an empty dashed one until the stage is cleared.
+      if (open) { const rank = done ? bestRank(i) : ''; const medal = document.createElement('span'); medal.className = 'wm-medal' + (rank ? ' rank-' + rank : ' empty'); medal.textContent = rank || '?'; medal.setAttribute('aria-hidden', 'true'); b.append(medal); if (rank) b.setAttribute('aria-label', `ステージ${i + 1}（ランク${rank}）`); }
       if (i === next) { const tag = document.createElement('span'); tag.className = 'wm-next'; tag.textContent = 'NEXT'; b.append(tag); nextCard = b; }
       if (done) {   // cleared: its song can be heard here
         const ear = document.createElement('span');

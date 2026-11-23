@@ -16,7 +16,24 @@ const server=http.createServer((req,res)=>{
   await page.evaluate(()=>{ $('loginov').style.display='none';localStorage.setItem('cosmii_dash_story_v1',JSON.stringify({intro:true,opening:true})); });
   await page.reload();await page.waitForFunction(()=>window.cosmiiWorld&&bootDone);await page.evaluate(()=>$('loginov').style.display='none');
   await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready'&&musicEl.readyState>=2);
-  await page.locator('#cv').click({position:{x:200,y:150}});await page.waitForFunction(()=>state==='play'&&!musicEl.paused);
+  await page.locator('#cv').click({position:{x:200,y:150}});
+  await page.waitForFunction(()=>state==='play'&&countdown!==null);
+  const starting=await page.evaluate(()=>({pos:songPos,y:player.y,x:player.x,score,combo}));
+  await page.keyboard.down('Space');
+  await page.waitForTimeout(850);
+  assert.deepEqual(await page.evaluate(()=>({pos:songPos,y:player.y,x:player.x,score,combo})),starting,'countdown must freeze scrolling, physics and judging');
+  assert.equal(await page.evaluate(()=>musicEl.paused),true,'music waits for GO');
+  assert.ok(await page.evaluate(()=>countdown.elapsed>.7),'countdown clock still advances');
+  await page.evaluate(()=>gameSafety.pause());
+  const countAtPause=await page.evaluate(()=>countdown.elapsed);
+  await page.waitForTimeout(250);
+  assert.equal(await page.evaluate(()=>countdown.elapsed),countAtPause,'paused countdown remains frozen');
+  await page.keyboard.up('Space');
+  await page.click('#resume-game');
+  await page.waitForFunction(()=>state==='play'&&countdown!==null);
+  assert.equal(await page.evaluate(()=>songPos),starting.pos);
+  await page.waitForFunction(()=>state==='play'&&countdown===null&&!musicEl.paused);
+  assert.equal(await page.evaluate(()=>player.grounded),true,'countdown input must not queue a jump');
   assert.ok(await page.evaluate(()=>songPos<0),'lead-in remains before first beat');
   await page.evaluate(()=>{level=[];orbsLive=[];orbsLive=[];flipZones=[];});
   await page.evaluate(()=>{window.dispatchEvent(new Event('blur'));const until=performance.now()+350;while(performance.now()<until){};});
@@ -168,6 +185,27 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.evaluate(()=>state),'paused');assert.equal(await page.evaluate(()=>musicEl.paused),true);
   assert.ok(await page.evaluate(()=>Object.values(gameAudio.inspect().sfx).flat().every(a=>a.paused)));
   assert.deepEqual(errors,[]);
+  const pitches=await page.evaluate(async()=>{
+   gameAudio.setSettings({sound:true,soundVolume:1});audioUnlocked=true;
+   const results=[];
+   for(const count of [1,4,5,10,15,20,25,100,0]){
+    stopEffects();sfxJudge('perfect',count);
+    const el=gameAudio.inspect().sfx.perfect[0];
+    await new Promise(r=>setTimeout(r,20));
+    results.push({rate:el.playbackRate,preserve:el.preservesPitch,playing:!el.paused});
+   }
+   stopEffects();sfxJudge('great',100);
+   const great=gameAudio.inspect().sfx.great[0].playbackRate;
+   stopEffects();sfxJudge('miss',100);
+   const miss=gameAudio.inspect().sfx.miss[0].playbackRate;
+   stopEffects();return {results,great,miss};
+  });
+  [0,0,2,4,7,9,12,12,0].forEach((semi,i)=>{
+   assert.ok(Math.abs(pitches.results[i].rate-2**(semi/12))<1e-6,'combo pitch milestone/reset');
+   assert.equal(pitches.results[i].preserve,false,'PERFECT must transpose');
+   assert.equal(pitches.results[i].playing,true,'pitched PERFECT should play');
+  });
+  assert.equal(pitches.great,1);assert.equal(pitches.miss,1);
   const offlineContext=await browser.newContext();await offlineContext.route('https://**',r=>r.abort());
   const offlinePage=await offlineContext.newPage();await offlinePage.goto(url);
   await offlinePage.evaluate(()=>Promise.race([navigator.serviceWorker.ready,new Promise((_,reject)=>setTimeout(()=>reject(new Error('Worker activation timed out')),15000))]));await offlinePage.reload();

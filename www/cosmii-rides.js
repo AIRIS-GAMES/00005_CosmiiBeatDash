@@ -68,17 +68,21 @@
   $('ride-cancel').onclick=()=>{const id=pending;pending=null;refresh();cards.get(id)?.focus();};
   function refresh(){
     if(!cards)return;
-    const item=catalog.find(c=>c.id===saved.selected);opener.textContent='のりもの：'+item.name+' ›';
+    // Home: a small pill with the current ride's picture (the name stays as the accessible label).
+    const item=catalog.find(c=>c.id===saved.selected);
+    const pic=item.id==='run'?(runIcons[skinIdx]||skinImageUrl(skinIdx)):(icons[item.id][skinIdx]||skinImageUrl(skinIdx));
+    opener.setAttribute('aria-label','のりもの：'+item.name);
+    opener.innerHTML=`<img src="${pic}" alt=""><span>${item.name}</span><b aria-hidden="true">›</b>`;
     $('ride-balance').textContent='所持コイン：'+totalCoins();
     for(const item of catalog){
       const card=cards.get(item.id),owned=saved.owned.includes(item.id),active=saved.selected===item.id;
       card.setAttribute('aria-pressed',String(active));
-      card.querySelector('.ride-status').textContent=active?'✓ 使用中':owned?'乗り換える':item.price+'コインで解放';
+      card.querySelector('.ride-status').innerHTML=active?'<b class="badge-on">✓ 使用中</b>':owned?'<b class="badge-pick">のりかえる</b>':'<b class="badge-coin"><img src="Asset/cosmo-coin.png" alt="">'+item.price+'</b><span class="sr-only">コインで解放</span>';card.classList.toggle('locked',!owned);
       const image=card.querySelector('img');image.src=item.id==='run'?(runIcons[skinIdx]||skinImageUrl(skinIdx)):(icons[item.id][skinIdx]||skinImageUrl(skinIdx));
       image.alt=item.name;card.disabled=!storageOK&&!owned;
     }
     $('ride-confirm').hidden=!pending;
-    if(pending){const item=catalog.find(c=>c.id===pending);$('ride-confirm').querySelector('span').textContent=item.name+'を'+item.price+'コインで解放しますか？';$('ride-confirm-buy').disabled=totalCoins()<item.price;}
+    if(pending){const item=catalog.find(c=>c.id===pending);$('ride-confirm').querySelector('span').innerHTML='<b>'+item.name+'</b> を <img src="Asset/cosmo-coin.png" alt=""><b>'+item.price+'</b> で解放？';$('ride-confirm').querySelector('span').setAttribute('aria-label',item.name+'を'+item.price+'コインで解放しますか？');$('ride-confirm-buy').disabled=totalCoins()<item.price;}
   }
   gameUI.onRefresh(refresh);
   addEventListener('storage',e=>{if(e.key===KEY||e.key===COINS){saved=read();pending=null;refresh();}});

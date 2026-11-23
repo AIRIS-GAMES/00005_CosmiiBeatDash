@@ -97,15 +97,16 @@ wav('orb',.18,t=>Math.sin(2*Math.PI*1046*(Math.exp(Math.log(1568/1046)*Math.min(
 function chord(t,notes,step,length,shape){return notes.reduce((sum,f,i)=>{const u=t-i*step;return sum+(u>=0&&u<length?shape(2*Math.PI*f*u)*Math.min(1,u/.02)*Math.exp(-8*u):0);},0);}
 wav('clear',.95,t=>chord(t,[523,659,784,1047],.13,.55,tri));
 wav('fever',.52,t=>chord(t,[659,784,988,1319],.07,.3,square));
-// Judgement ticks: very short and soft, above the music's range (PERFECT/GREAT
-// a high glassy "tink", GOOD a wood "tok") or a muffled low "puff" (MISS), so
-// they sit on top of any song without fighting its melody.
-const ping=(t,f,k)=>Math.sin(2*Math.PI*f*t)*Math.exp(-k*t);
-wav('perfect',.09,t=>ping(t,2637,38)+0.35*ping(t,3951,55)+0.15*ping(t,5274,80));
-wav('great',.08,t=>ping(t,2093,45)+0.25*ping(t,3136,70));
-wav('good',.06,t=>Math.sin(2*Math.PI*(1150*t-2600*t*t))*Math.exp(-70*t)*Math.min(1,t*600));
-let mseed=7,mlp=0;
-wav('miss',.12,t=>{mseed=(1664525*mseed+1013904223)>>>0;mlp+=.05*((mseed/2147483648-1)-mlp);return (6*mlp+0.5*Math.sin(2*Math.PI*170*t))*Math.exp(-28*t);});
+// PERFECT: a quick rising sparkle; GREAT: a clean single bell.
+const bell=(t,f,k)=>t<0?0:(Math.sin(2*Math.PI*f*t)+.24*Math.sin(2*Math.PI*f*2.76*t))*Math.min(1,t/.002)*Math.exp(-k*t);
+wav('perfect',.24,t=>bell(t,1318.51,28)+.8*bell(t-.042,1975.53,30)+.45*bell(t-.078,2637.02,36));
+wav('great',.13,t=>bell(t,1046.5,42));
+wav('good',.10,t=>bell(t,783.99,50));
+// MISS: a low "zun" with enough upper body to survive phone speakers.
+wav('miss',.18,t=>{
+ const phase=2*Math.PI*(85*t+95*(1-Math.exp(-35*t))/35);
+ return (Math.sin(phase)+.5*Math.sin(2*phase)+.22*Math.sin(3*phase))*Math.exp(-28*t);
+});
 let seed=42,lp=0;
 wav('death',.35,t=>{seed=(1664525*seed+1013904223)>>>0;lp+=.12*((seed/2147483648-1)-lp);return lp*Math.pow(1-t/.35,2.2);});
 console.log('Wrote nine WAV effects at file peak '+LEVELS.SFX_FILE_PEAK+' ('+LEVELS.dbfs(LEVELS.SFX_FILE_PEAK).toFixed(2)+' dBFS).'+(sfxOnly?' BGM and beat maps left untouched (--sfx-only).':' Prepared seven BGM files and fixed beat maps.'));

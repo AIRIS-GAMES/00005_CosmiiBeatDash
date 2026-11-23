@@ -71,7 +71,7 @@ async function ensureAudio(){
 }
 // Start now or drop: never schedule a pickup sound for a later task. Reserving
 // the sole slot before play() also excludes other effects while play is pending.
-function playSfx(name){
+function playSfx(name,pitch=1){
  if(!audioPrefs.sound||audioPrefs.soundVolume===0||document.hidden||!audioUnlocked)return;
  const entry=effects[name],now=performance.now();
  if(now-entry.lastStart<SFX_RETRIGGER_MS)return;
@@ -84,6 +84,12 @@ function playSfx(name){
  // A free voice is already rewound, so the common path costs one play() call.
  const voice=entry.voices.find(v=>!v.busy);
  if(!voice)return;
+ if(name==='perfect'){
+  // Transpose the file itself instead of time-stretching at the original pitch.
+  voice.audio.preservesPitch=false;
+  if('webkitPreservesPitch' in voice.audio)voice.audio.webkitPreservesPitch=false;
+  if(voice.audio.playbackRate!==pitch)voice.audio.playbackRate=pitch;
+ }
  const token=++voice.token;
  entry.lastStart=now;voice.startedAt=now;voice.busy=true;
  // Reading muted is free; writing it is pipeline work. Voices are left unmuted
@@ -202,7 +208,13 @@ function sfxClear(){playSfx('clear');}
 function sfxCoin(){}
 function sfxOrb(){playSfx('orb');}
 // Judgement ticks (PERFECT / GREAT / GOOD / MISS).
-function sfxJudge(kind){if(SFX_TICKS.includes(kind))playSfx(kind);}
+function sfxJudge(kind,comboCount=0){
+ if(!SFX_TICKS.includes(kind))return;
+ // Five-combo milestones climb a pentatonic scale, capped at one octave.
+ const count=Number.isFinite(comboCount)?Math.max(0,comboCount):0;
+ const semitones=[0,2,4,7,9,12][Math.min(5,Math.floor(count/5))];
+ playSfx(kind,kind==='perfect'?2**(semitones/12):1);
+}
 function sfxFever(){playSfx('fever');}
 window.gameAudio={
  settings:()=>({...audioPrefs}),

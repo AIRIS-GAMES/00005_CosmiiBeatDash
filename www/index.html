@@ -165,6 +165,8 @@
 <link rel="stylesheet" href="cosmii-mobile-dialogs.css">
 <link rel="stylesheet" href="cosmii-fx.css">
 <link rel="stylesheet" href="cosmii-source.css">
+<link rel="stylesheet" href="cosmii-dialogs.css">
+<link rel="stylesheet" href="cosmii-screens.css">
 </head>
 <body>
 <div id="splash" class="overlay"></div>
@@ -200,7 +202,7 @@
 
 <div id="stageSelect" class="overlay">
   <button id="stageback" aria-label="もどる">‹ もどる</button>
-  <h2>ステージ選択</h2>
+  <h2><span class="ss-icon" aria-hidden="true"></span>STAGES<small>ステージ選択</small></h2>
   <div id="stageprogress"></div>
   <div id="grid"></div>
 </div>
@@ -216,7 +218,7 @@
   <div id="clearstats" style="font-size:16px;opacity:.9;text-align:center"></div>
   <div class="btnrow">
     <button id="nextbtn">次のステージ</button>
-    <button id="tomenu">ホーム</button>
+    <button id="tomenu" aria-label="ホーム">⌂ ホーム</button>
   </div>
 </div>
 
@@ -233,11 +235,12 @@
 <button id="revivebtn" class="hudbtn">REVIVE</button>
 <div id="toast"></div>
 
-<div id="loginov" class="overlay">
-  <img id="loginchar" alt="">
-  <h2>🎁</h2>
-  <div id="logininfo" style="font-size:16px;text-align:center"></div>
-  <button id="loginclaim">OK</button>
+<div id="loginov" class="overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <div class="login-card">
+    <header class="login-head"><span class="login-icon" aria-hidden="true"></span><h2 id="login-title">DAILY BONUS<small>ログインボーナス</small></h2><span class="login-streak"><span aria-hidden="true">🔥</span> 連続 <b id="loginstreak">1</b> 日</span></header>
+    <div id="logininfo" class="login-days"></div>
+    <div class="login-foot"><img id="loginchar" alt=""><span id="loginnext"></span><button id="loginclaim">うけとる</button></div>
+  </div>
 </div>
 
 </div>
@@ -367,8 +370,18 @@ addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
 
 const $ = id => document.getElementById(id);
-function toast(msg) {
-  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+// Toasts are glowing badges: coin (+N, gold), warn (red: something failed or is missing), info (cyan).
+const TOAST_WARN = /できません|できなかった|足りません|中止|読み込め|もう一度タップ|0\/3|進めると解放|または/;
+function toast(msg, type) {
+  const t = $('toast'), text = String(msg);
+  type = type || (/^\+\d/.test(text) ? 'coin' : TOAST_WARN.test(text) ? 'warn' : 'info');
+  const lead = /^(✓|♪)\s*/.exec(text);
+  const icon = type === 'coin' ? '<img src="Asset/cosmo-coin.png" alt="">' : type === 'warn' ? '!' : lead ? lead[1] : '✓';
+  t.className = 'toast-' + type;
+  t.innerHTML = `<i aria-hidden="true">${icon}</i><span></span>`;
+  t.querySelector('span').textContent = lead ? text.slice(lead[0].length) : text;
+  t.style.display = 'flex';
+  t.classList.remove('pop'); void t.offsetWidth; t.classList.add('pop');
   clearTimeout(toast._id); toast._id = setTimeout(() => t.style.display = 'none', 2200);
 }
 
@@ -445,14 +458,23 @@ const dailyTriesLeft = () => Math.max(0, 3 - +(localStorage.getItem('rdash_dt_' 
 const useDailyTry = () => localStorage.setItem('rdash_dt_' + dayKey(), (+(localStorage.getItem('rdash_dt_' + dayKey()) || 0)) + 1);
 
 const MISSION_POOL = [
-  { id: 'coins30', desc: 'プレイ中にコインを合計30枚集めよう', hint:'何回遊んでも合計でOK。大きいコインは2枚分です。', target:30, reward:40 },
-  { id: 'perfect10', desc: 'PERFECTを合計10回出そう', hint:'音にぴったり合わせてジャンプ！何回かのプレイに分けてもOK。', target:10, reward:40 },
-  { id: 'combo15', desc: '1回のプレイで15コンボつなげよう', hint:'タイミング判定を連続で成功させよう。途中でミスするとコンボは0に戻ります。', target:15, reward:50 },
-  { id: 'orb5', desc: '空中のオーブを合計5回使おう', hint:'光るオーブの近くでタップすると追加ジャンプ。何回かのプレイに分けてもOK。', target:5, reward:40 },
-  { id: 'clear1', desc: 'ステージを1回クリアしよう', hint:'好きなステージを最後まで走ろう。練習モードのクリアは対象外です。', target:1, reward:60 },
-  { id: 'score3k', desc: '1回のプレイで3,000点を取ろう', hint:'ジャンプのタイミングを合わせて得点アップ。複数回のスコアは合算しません。', target:3000, reward:50 },
-  { id: 'risky5', desc: '大きいコインを合計5個集めよう', hint:'高い場所にある、ひと回り大きなコインが目印。何回かのプレイに分けてもOK。', target:5, reward:50 },
+  { id: 'coins30', label:'コイン {30}枚', tag:'合計でOK', icon:'coin', desc: 'プレイ中にコインを合計30枚集めよう', hint:'何回遊んでも合計でOK。大きいコインは2枚分です。', target:30, reward:40 },
+  { id: 'perfect10', label:'PERFECT {×10}', tag:'合計でOK', icon:'perfect', desc: 'PERFECTを合計10回出そう', hint:'音にぴったり合わせてジャンプ！何回かのプレイに分けてもOK。', target:10, reward:40 },
+  { id: 'combo15', label:'{15} コンボ', tag:'1プレイで', icon:'combo', desc: '1回のプレイで15コンボつなげよう', hint:'タイミング判定を連続で成功させよう。途中でミスするとコンボは0に戻ります。', target:15, reward:50 },
+  { id: 'orb5', label:'オーブ {×5}', tag:'合計でOK', icon:'orb', desc: '空中のオーブを合計5回使おう', hint:'光るオーブの近くでタップすると追加ジャンプ。何回かのプレイに分けてもOK。', target:5, reward:40 },
+  { id: 'clear1', label:'ステージ{クリア}', tag:'練習モード除く', icon:'clear', desc: 'ステージを1回クリアしよう', hint:'好きなステージを最後まで走ろう。練習モードのクリアは対象外です。', target:1, reward:60 },
+  { id: 'score3k', label:'{3,000}点', tag:'1プレイで', icon:'score', desc: '1回のプレイで3,000点を取ろう', hint:'ジャンプのタイミングを合わせて得点アップ。複数回のスコアは合算しません。', target:3000, reward:50 },
+  { id: 'risky5', label:'大コイン {×5}', tag:'合計でOK', icon:'bigcoin', desc: '大きいコインを合計5個集めよう', hint:'高い場所にある、ひと回り大きなコインが目印。何回かのプレイに分けてもOK。', target:5, reward:50 },
 ];
+const MISSION_ICONS = {
+  coin: '<img src="Asset/cosmo-coin.png" alt="">',
+  bigcoin: '<img src="Asset/cosmo-coin.png" alt="">',
+  perfect: '<b>P!</b>',
+  combo: '<svg viewBox="0 0 24 24"><path fill="#ffb347" d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2.4 1.3-4 2.3-5 .2 2 1.2 3 2.2 3C11 7 12 2 12 2z"/><path fill="#fff3c4" d="M12 13s2 1.6 2 3.6a2 2 0 0 1-4 0c0-1.4 2-3.6 2-3.6z"/></svg>',
+  orb: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="#4ed6ff" opacity=".35"/><circle cx="12" cy="12" r="5.5" fill="#bff3ff"/><circle cx="10" cy="10" r="1.8" fill="#fff"/></svg>',
+  clear: '<svg viewBox="0 0 24 24"><path d="M6 3v19" stroke="#e8fff4" stroke-width="2.4" stroke-linecap="round"/><path fill="#5fffb0" d="M7 4h11l-2.5 4L18 12H7z"/><path fill="#1c5a3c" d="M9 4h3v4H9zM12 8h3v4h-3z"/></svg>',
+  score: '<svg viewBox="0 0 24 24"><path fill="#ffd25a" d="M12 2.5l2.9 6 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.2 1.3-6.6L2.5 9.3l6.6-.8z"/></svg>',
+};
 let missions = [], missionProg = {}, missionDay = '';
 function initMissions() {
   const dk = dayKey();
@@ -823,13 +845,21 @@ function refreshMenu() {
   db.className = dleft > 0 ? '' : 'off';
   db.innerHTML = `⚡ ${STAGES[DAILY_IDX].name} <small>${dailyScore() ? '★' + dailyScore() + ' · ' : ''}${dleft}/3</small>`;
   db.onclick = () => dailyTriesLeft() > 0 ? selectStage(DAILY_IDX) : toast('DAILY 0/3');
+  // Mission cards: icon, short label, bar and reward. The long hint shows when the card is tapped.
   const mi = $('missions'); mi.innerHTML = '';
   for (const m of missions) {
     const p = missionProg[m.id] || { v: 0, c: false };
-    const div = document.createElement('div');
-    div.className = 'mission' + (p.c ? ' done' : '');
-    div.innerHTML = `<div class="mission-copy"><strong>${m.desc}</strong><p>${m.hint}</p><progress value="${Math.min(p.v,m.target)}" max="${m.target}" aria-label="${m.desc}の進み具合"></progress><small>${p.c ? '✓ 達成・報酬受け取り済み' : '進み具合：'+Math.min(Math.floor(p.v),m.target).toLocaleString()+' / '+m.target.toLocaleString()}</small></div><span class="mission-reward">${p.c?'獲得済み':'達成報酬'}<b>＋${m.reward}</b>コイン</span>`;
-    mi.appendChild(div);
+    const v = Math.min(Math.floor(p.v), m.target), pct = v / m.target * 100;
+    const count = v.toLocaleString() + ' / ' + m.target.toLocaleString();
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'mission-card' + (p.c ? ' done' : '');
+    card.dataset.mission = m.id;
+    card.setAttribute('aria-expanded', 'false');
+    card.setAttribute('aria-label', `${m.desc}。${m.hint}。進み具合 ${count}。報酬 ${m.reward}コイン${p.c ? '、達成済み' : ''}`);
+    card.innerHTML = `<span class="mission-q" aria-hidden="true">?</span><span class="mission-emblem mi-${m.icon}" aria-hidden="true">${MISSION_ICONS[m.icon]}</span><span class="mission-label">${m.label.replace(/\{(.+?)\}/g, '<b>$1</b>')}</span><span class="mission-tag">${m.tag}</span>${p.c ? '<span class="mission-stamp">CLEAR!</span>' : ''}<span class="mission-bar"><i style="width:${pct}%"></i><span>${count}</span></span><span class="mission-reward">${p.c ? '✓' : '<img src="Asset/cosmo-coin.png" alt="">'}+${m.reward}</span><span class="mission-hint">${m.hint}</span>`;
+    card.onclick = () => card.setAttribute('aria-expanded', String(card.getAttribute('aria-expanded') !== 'true'));
+    mi.appendChild(card);
   }
   // スキン
   const sk = $('skins'); sk.innerHTML = '';
@@ -973,6 +1003,7 @@ function prewarmStage() {
 }
 
 function backToMenu() {
+  clearSeqStop?.();
   window.beatPSF?.end('exit');
   window.gameSafety?.dismiss();
   // 中断時もベスト%を保存
@@ -1115,7 +1146,7 @@ let countdown = null;
 // After a pause during the count: carry on counting from where it stopped.
 function resumeCountdown() {
   if (!countdown) return false;
-  countdown.t0 = performance.now() - (songPos - countdown.from) * 1000;
+  countdown.t0 = performance.now() - countdown.elapsed * 1000;
   return true;
 }
 function startAttempt(offset = 0) {
@@ -1167,12 +1198,12 @@ function startAttempt(offset = 0) {
   lastGdir = inFlipT(offset - LEAD) ? -1 : 1;   // 助走開始時点の重力向き
   player.y = lastGdir === -1 ? CEIL : GROUND - B;
   player.vy = 0; player.rot = 0; player.grounded = true;
-  holdJump = 0; offLedgeAt = -9;
+  holdJump = 0; offLedgeAt = -9; landAt = -9;
   shieldReady = skinEffect('shield');
   invulnUntil = 0;
   particles = []; floats = []; rings = []; pulse = 0; window.cosmiiFx?.reset(); window.cosmiiImpact?.reset(); goalRun = null; clearToken++;
-  // A fresh start counts 3-2-1 while Cosmii already runs; the song starts on GO.
-  if (offset === 0 && !DEMO) { countdown = { t0: performance.now(), from: -LEAD - COUNT_SEC }; songPos = countdown.from; }
+  // Count on a separate clock: the stage and player stay at the starting line.
+  if (offset === 0 && !DEMO) { countdown = { t0: performance.now(), elapsed: 0 }; songPos = -LEAD; isDown = false; tapAt = -9; }
   else { countdown = null; playTrack(offset, LEAD, offset===0); }
   state = 'play';
   if (offset === 0) {
@@ -1213,19 +1244,78 @@ function clearFlair(finalScore, coins) {
     if (hop) { hop.style.top = (mid - hop.offsetHeight / 2 - 6) + 'px'; hop.style.left = Math.max(8, title.offsetLeft - hop.offsetWidth - 14) + 'px'; }
   };
   place(); requestAnimationFrame(place);
-  // the score counts up while the band settles
-  const big = ov.querySelector('.result-heading strong');
-  if (big && finalScore > 0) {
-    const t0 = performance.now(), dur = 900;
-    const tick = () => {
-      if (ov.style.display !== 'flex') return;
-      const k = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-      big.textContent = Math.round(finalScore * e).toLocaleString();
-      if (k < 1) requestAnimationFrame(tick);
-    };
-    big.textContent = '0'; requestAnimationFrame(tick);
-  }
+  clearSequence(ov);
 }
+// Result sequence (about 4 s): the judgement bars grow one by one -> the accuracy ring fills -> the rank badge
+// flies in spinning and stamps onto the ring (shake, flash, sparks) -> the score counts up, NEW BEST pops ->
+// unlock badges and buttons come in. The markup already holds the final values, so skipping (a tap on the
+// card) or reduced effects simply cancel everything and show it as is.
+let clearSeqStop = null;
+function clearSequence(ov) {
+  clearSeqStop?.();
+  const card = $('clearstats'), q = s => card.querySelector(s), qa = s => [...ov.querySelectorAll(s)];
+  if (!q('.result-grid') || window.reducedEffects || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const timers = [], anims = [];let done = false;
+  const at = (ms, fn) => timers.push(setTimeout(() => { if (!done) fn(); }, ms));
+  const an = (el, kf, opt) => { if (!el) return; const a = el.animate(kf, { fill: 'forwards', easing: 'cubic-bezier(.2,1,.3,1)', ...opt }); anims.push(a); return a; };
+  const count = (el, dur, fmt = n => n.toLocaleString()) => { if (!el) return; const to = +el.dataset.n, t0 = performance.now();
+    const f = () => { if (done) return; const k = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(Math.round(to * e)); if (k < 1) requestAnimationFrame(f); }; f(); };
+  const show = [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'none' }];
+  const pop = [{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'scale(1.12)', offset: .7 }, { opacity: 1, transform: 'scale(1)' }];
+  function finish() {
+    if (done) return; done = true; clearSeqStop = null;
+    timers.forEach(clearTimeout); anims.forEach(a => a.cancel());
+    ov.classList.remove('seq'); ov.removeEventListener('pointerdown', onTap, true);
+    card.querySelectorAll('[data-n]').forEach(el => el.textContent = (+el.dataset.n).toLocaleString());
+    const ring = q('.result-ring'); if (ring) ring.style.setProperty('--p', ring.dataset.p);
+  }
+  function onTap(e) { e.preventDefault(); e.stopPropagation(); finish(); }
+  clearSeqStop = finish;
+  ov.classList.add('seq'); ov.addEventListener('pointerdown', onTap, true);
+  card.querySelectorAll('[data-n]').forEach(el => el.textContent = '0');
+  // 1. judgement bars
+  an(q('.result-judges'), [{ opacity: 0, transform: 'translateX(-30px)' }, { opacity: 1, transform: 'none' }], { duration: 350, delay: 250 });
+  card.querySelectorAll('.rj-row').forEach((row, i) => at(400 + i * 260, () => {
+    an(row, [{ opacity: 0, transform: 'translateX(-20px)' }, { opacity: 1, transform: 'none' }], { duration: 250 });
+    const bar = row.querySelector('i'); an(bar, [{ width: '0%' }, { width: bar.dataset.w + '%' }], { duration: 420 });
+    count(row.querySelector('[data-n]'), 420);
+  }));
+  at(1450, () => { an(q('.rj-combo'), [{ opacity: 0 }, { opacity: 1 }], { duration: 250 }); count(q('.rj-combo [data-n]'), 400); });
+  // 2. accuracy ring
+  at(1500, () => {
+    const ring = q('.result-ring'), to = +ring.dataset.p, t0 = performance.now();
+    an(ring, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 300 });
+    const f = () => { if (done) return; const k = Math.min(1, (performance.now() - t0) / 800); ring.style.setProperty('--p', to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); }; f();
+    count(q('.result-ring [data-n]'), 800);
+  });
+  // 3. the rank badge flies in and stamps onto the ring
+  at(2400, () => {
+    an(q('.result-rank'), [{ opacity: 1, transform: 'translate(520px,-320px) rotate(540deg) scale(2.6)' }, { opacity: 1, transform: 'rotate(-14deg) scale(1.25)', offset: .82 },
+      { opacity: 1, transform: 'rotate(-12deg) scale(.92)', offset: .92 }, { opacity: 1, transform: 'rotate(-12deg) scale(1)' }], { duration: 520, easing: 'cubic-bezier(.5,0,.75,0)' });
+    at(430, () => {
+      an(card, [{ transform: 'translate(-6px,3px)' }, { transform: 'translate(5px,-4px)' }, { transform: 'translate(-3px,2px)' }, { transform: 'translate(2px,-1px)' }, { transform: 'none' }], { duration: 350, fill: 'none', easing: 'linear' });
+      const flash = document.createElement('div'); flash.className = 'clear-flash'; ov.appendChild(flash);
+      an(q('.result-ring'), [{ transform: 'scale(1)' }, { transform: 'scale(.9)' }, { transform: 'scale(1)' }], { duration: 260 });
+      const sparks = q('.result-sparks'), rank = q('.result-rank').textContent.trim()[0];
+      const col = { S: '#ffd25a', A: '#4ed6ff', B: '#5fffb0' }[rank] || '#ffffff';
+      sparks.replaceChildren();
+      for (let i = 0; i < 14; i++) { const s = document.createElement('i'); s.style.background = col; sparks.append(s); const a = i / 14 * Math.PI * 2, r = 110 + Math.random() * 40;
+        an(s, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translate(${Math.cos(a) * r}px,${Math.sin(a) * r}px) rotate(${Math.random() * 360}deg)` }], { duration: 600, easing: 'ease-out' }); }
+      if (typeof sfxJudge === 'function') sfxJudge('perfect');
+    });
+  });
+  // 4. score, NEW BEST
+  at(2950, () => { an(q('.result-summary'), show, { duration: 250 }); an(q('.result-heading'), show, { duration: 250 }); count(q('.result-heading [data-n]'), 700); });
+  at(3700, () => {
+    an(q('.result-best'), [{ opacity: 0, transform: 'rotate(-3deg) scale(0)' }, { opacity: 1, transform: 'rotate(-3deg) scale(1.3)', offset: .6 }, { opacity: 1, transform: 'rotate(-3deg) scale(1)' }], { duration: 380 });
+    an(q('.result-bottom'), [{ opacity: 0 }, { opacity: 1 }], { duration: 250 });
+  });
+  // 5. unlock badges (the memory badge is added by cosmii-world after this starts) and the buttons
+  at(3950, () => qa('#clear-unlocks .result-unlock:not([hidden])').forEach((u, i) => at(i * 150, () => an(u, pop, { duration: 320 }))));
+  at(4200, () => { an(ov.querySelector('.src-banner'), show, { duration: 350 }); an(ov.querySelector('.btnrow'), show, { duration: 350 }); });
+  at(4650, finish);
+}
+
 
 function die(opts = {}) {
   const nowT = performance.now() / 1000;
@@ -1271,7 +1361,7 @@ function die(opts = {}) {
   deathPos = songPos;
   reviveOffered = !practice && revivesUsed === 0 && totalCoins() >= REVIVE_COST &&
     songPos > 3 && songPos < duration - 2;
-  if (reviveOffered) { const im = skinImageUrl(skinIdx); if (im) $('rv-char').src = im; $('rv-pct').textContent = `ゴールまで あと ${Math.max(1, 100 - Math.round(songPos / duration * 100))}%`; }
+  if (reviveOffered) { const im = skinImageUrl(skinIdx); if (im) $('rv-char').src = im; const done = Math.min(99, Math.round(songPos / duration * 100)), left = Math.max(1, 100 - done); $('rv-pct').setAttribute('aria-label', `ゴールまで あと ${left}%`); $('rv-pct').innerHTML = `<span class="rv-goal" aria-hidden="true"><i style="width:${done}%"></i><img src="${im || ''}" alt="" style="left:${done}%"></span><span class="rv-flag" aria-hidden="true"></span><span class="rv-remain">あと <b>${left}%</b></span>`; }
   const px = player.x + B/2, py = player.y + B/2;
   // The burst depends on what was hit (cosmii-fx.js); plain squares only as a fallback.
   const fxKind = window.cosmiiFx?.deathKind(opts, opts.ob, opts.part);
@@ -1286,7 +1376,7 @@ function die(opts = {}) {
   sfxDeath();
 }
 
-// 3 / 2 / 1 / GO! over the running start.
+// 3 / 2 / 1 while stationary; GO! starts the run.
 function drawCountdown() {
   let text, k;
   if (state === 'clear' && goalRun) {   // the big GOAL! while Cosmii runs on
@@ -1294,7 +1384,7 @@ function drawCountdown() {
     if (g >= 1) return;
     text = 'GOAL!'; k = g;
   } else if (state !== 'play' && state !== 'paused') return;
-  const left = -LEAD - songPos;
+  const left = countdown ? COUNT_SEC - countdown.elapsed : -LEAD - songPos;
   if (text) {}
   else if (left > 0 && left <= COUNT_SEC + 0.01 && attemptOffset === 0) { const n = Math.ceil(left / (COUNT_SEC / 3)); text = String(n); k = 1 - (left - (n - 1) * COUNT_SEC / 3) / (COUNT_SEC / 3); }
   else if (left <= 0 && left > -0.55 && attemptOffset === 0 && attempts > 0) { text = 'GO!'; k = -left / 0.55; }
@@ -1342,7 +1432,8 @@ function clearStage() {
   if (typeof fadeOutMusic === 'function') fadeOutMusic(GOAL_FADE); else stopMusic();
   goalRun = { at: performance.now() };
   window.cosmiiFx?.goalStart();
-  const extra = [];
+  const extra = [], unlocks = [];
+  const CAST_NAMES = ['赤','水色','ピンク','黄緑','紫'];
   let isNewBest=false;
   const gimmickResult = practice ? null : window.stageGimmicks?.onClear();
   if (gimmickResult) { score += gimmickResult.bonus || 0; if (gimmickResult.text) extra.push(gimmickResult.text); }
@@ -1368,9 +1459,13 @@ function clearStage() {
       if(powerStats?.activationCount)extra.push(`POWER ${powerStats.activationCount}回・${powerStats.activeSeconds.toFixed(1)}秒`);
       for (const [index,s] of SKINS.entries()) if (before < s.need && after >= s.need){
         extra.push(`🎁 ${s.n}`);
+        unlocks.push(`<button type="button" class="result-unlock" data-profile="${index}" aria-label="${CAST_NAMES[index]}コスミーが解放されました（紹介を見る）"><i><img src="${skinImageUrl(index)}" alt=""></i>${CAST_NAMES[index]}コスミー<small>NEW</small></button>`);
         if(!skinBought(index))window.beatPSF?.event('character_unlock',['red','blue','pink','green','purple'][index],'stages');
       }
-      if (stageIdx + 1 < NSTAGE && after > before) extra.push(`🔓 ${STAGES[stageIdx+1].name}`);
+      if (stageIdx + 1 < NSTAGE && after > before) {
+        extra.push(`🔓 ${STAGES[stageIdx+1].name}`);
+        unlocks.push(`<span class="result-unlock" aria-label="${STAGES[stageIdx+1].name}が解放されました"><i aria-hidden="true">🔓</i>${STAGES[stageIdx+1].name}</span>`);
+      }
     }
   }
   // ランク評価: PERFECT/GREAT/OK の精度から算出
@@ -1386,16 +1481,20 @@ function clearStage() {
   }
   $('cleartitle').textContent = practice ? '練習クリア' : 'ステージクリア！';
   $('cleartitle').dataset.artClear=String(!practice);
-  const rankCol = { S: '#ffd94a', A: '#7df', B: '#8f8', C: '#aaa' }[rank];
+  // Result card in three columns, played in by the clear sequence (clearSequence): judgement bars | accuracy ring with
+  // the rank badge stuck to it | score, NEW BEST, coins and unlock badges. Numbers carry their final value in data-n.
+  const stageLabel = STAGES[stageIdx].name + (STAGES[stageIdx].title ? '「' + STAGES[stageIdx].title + '」' : '');
+  const accPct = Math.round(acc * 100), miss = Math.max(0, notes - runStats.p - runStats.g - runStats.o);
   $('clearstats').innerHTML =
-    `<div class="result-heading"><span class="result-rank" aria-label="ランク ${rank}" style="color:${rankCol}">${rank}</span><strong aria-label="スコア ${score}">${score.toLocaleString()}</strong></div>` +
-    `<p class="result-summary">${STAGES[stageIdx].name}${STAGES[stageIdx].title ? '「' + STAGES[stageIdx].title + '」' : ''}　最大 ${maxCombo} コンボ</p>` +
-    (isNewBest?'<p class="result-best">自己ベスト更新！</p>':'') +
-    `<div class="result-bottom">${practice?'<span>練習モード</span>':`<span class="result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン">＋${coinRun}</span>`}<button id="result-details-open" type="button">詳細</button></div>` +
-    `<section id="result-details" hidden role="dialog" aria-modal="true" aria-labelledby="result-details-title"><div class="result-sheet"><header><h2 id="result-details-title" tabindex="-1">プレイ詳細</h2><button type="button">閉じる</button></header><div class="result-scroll"><p>${attempts}回挑戦 ／ ${currentSkin().n}</p><p>精度 ${Math.round(acc*100)}%</p><dl><dt>PERFECT</dt><dd>${runStats.p}</dd><dt>GREAT</dt><dd>${runStats.g}</dd><dt>GOOD</dt><dd>${runStats.o}</dd><dt>MISS</dt><dd>${Math.max(0,notes-runStats.p-runStats.g-runStats.o)}</dd></dl><div class="result-extra">${practice?'記録なし':extra.map(item=>'<p>'+item+'</p>').join('')}</div></div></div></section>`;
-  $('result-details-open').onclick=()=>window.openResultDetails();
+    `<div class="result-grid"><div class="result-judges">${[['PERFECT',runStats.p,'p'],['GREAT',runStats.g,'g'],['GOOD',runStats.o,'o'],['MISS',miss,'m']].map(([name,n,k])=>`<div class="rj-row rj-${k}" aria-label="${name} ${n}"><b>${name}</b><span class="rj-track" aria-hidden="true"><i data-w="${Math.round(n/Math.max(1,notes)*100)}" style="width:${Math.round(n/Math.max(1,notes)*100)}%"></i></span><span class="rj-n" data-n="${n}" aria-hidden="true">${n}</span></div>`).join('')}<div class="rj-combo" aria-label="最大 ${maxCombo} コンボ">MAX COMBO <b data-n="${maxCombo}">${maxCombo}</b></div></div>` +
+    `<div class="result-ringwrap"><div class="result-ring" style="--p:${accPct}" data-p="${accPct}" role="img" aria-label="精度 ${accPct}%"><div><b><span data-n="${accPct}">${accPct}</span><small>%</small></b><span>ACCURACY</span></div></div><div class="result-sparks" aria-hidden="true"></div><span class="result-rank rank-${rank}" aria-label="ランク ${rank}">${rank}<small aria-hidden="true">RANK</small></span></div>` +
+    `<div class="result-score"><span class="result-summary">SCORE · ${stageLabel}</span><div class="result-heading"><strong aria-label="スコア ${score}" data-n="${score}">${score.toLocaleString()}</strong></div>` +
+    (isNewBest?`<span class="result-best" aria-label="${dailyMode()?'デイリーベスト更新':'自己ベスト更新'}">${dailyMode()?'DAILY BEST!':'NEW BEST!'}</span>`:'') +
+    `<div class="result-bottom">${practice?'<span class="result-chip">練習モード</span>':`<span class="result-chip result-coins"><img src="Asset/cosmo-coin.png" alt="獲得コイン"><b>+${coinRun}</b></span>`}${gimmickResult?.text?`<span class="result-chip">${gimmickResult.text}</span>`:''}</div>` +
+    `</div></div><div class="result-unlocks" id="clear-unlocks">${unlocks.join('')}</div>`;
+  $('clearstats').querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>window.cosmiiWorld?.profiles(Number(b.dataset.profile),'result'));
   $('nextbtn').style.display = 'inline-block';
-  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? 'もう一度あそぶ' : '次のステージへ';
+  $('nextbtn').textContent = dailyMode() && dailyTriesLeft() <= 0 ? 'ホームへ' : practice || stageIdx === NSTAGE - 1 || dailyMode() ? '↻ もう一度' : '次のステージ ▶';
   const u = skinImageUrl(skinIdx);
   if (u) $('clearchar').src = u;
   const token = ++clearToken, finalScore = score, coinsWon = coinRun;
@@ -1425,12 +1524,14 @@ async function press() {
     const audioReady = await ensureAudio();
     startPending = false;
     if (state !== 'ready') return;
-    if (!audioReady) { toast('TAP AGAIN'); return; }
+    if (!audioReady) { toast('もう一度タップしてね'); return; }
     startAttempt(0);
     return;
   }
   if (state === 'play') {
+    if (countdown) { isDown = false; tapAt = -9; return; }
     await ensureAudio();
+    if (countdown || state !== 'play') return;
     tapAt = performance.now()/1000;
   }
 }
@@ -1488,7 +1589,7 @@ function judge() {
     if(skinEffect('score'))window.beatPSF?.skill('score');
     window.cosmiiCharacterMotion?.emit('judge');
     mission('perfect10', 1); mission('combo15', combo, true);
-    if (!window.cosmiiImpact?.judge('perfect', px, py, combo)) floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' }); if(typeof sfxJudge==='function')sfxJudge('perfect');
+    if (!window.cosmiiImpact?.judge('perfect', px, py, combo)) floats.push({ text: 'PERFECT!', x: px, y: py, l: 1, c: '#ffd94a' }); if(typeof sfxJudge==='function')sfxJudge('perfect',combo);
   } else if (d <= 0.13 * judgeBoost) {
     if (hitIdx >= noteJudgeIdx) noteJudgeIdx = hitIdx + 1;
     combo++; perfectRun = 0; maxCombo = Math.max(maxCombo, combo);
@@ -1534,6 +1635,7 @@ let prevT = performance.now();
 let lastMediaPos = -99, mediaStall = 0;
 function update(dt, frameSongPos = null) {
   if (state !== 'play' && state !== 'dead') return;
+  if (state === 'play' && countdown) return;
 
   if (state === 'play') {
     let pos = frameSongPos === null ? musicPosition() : frameSongPos;
@@ -2169,8 +2271,9 @@ function loop(t) {
     if(state==='play'){
       let target;
       if(countdown){
-        target=countdown.from+(performance.now()-countdown.t0)/1000;
-        if(target>=-LEAD){target=-LEAD;countdown=null;playTrack(0,LEAD,true);}
+        countdown.elapsed=Math.min(COUNT_SEC,(performance.now()-countdown.t0)/1000);
+        target=-LEAD;isDown=false;tapAt=-9;
+        if(countdown.elapsed>=COUNT_SEC){countdown=null;playTrack(0,LEAD,true);}
       }else target=musicPosition();
       const elapsed=Math.max(0,target-songPos);
       // Advance physics and scrolling together, including ordinary dropped frames.
@@ -2196,8 +2299,16 @@ function checkLoginBonus() {
   const yest = new Date(today); yest.setDate(yest.getDate() - 1);
   const cont = localStorage.getItem('rdash_login_last') === dateKey(yest);
   const streak = cont ? +(localStorage.getItem('rdash_login_streak') || 0) + 1 : 1;
-  const bonus = Math.min(20 + (streak - 1) * 10, 100);
-  $('logininfo').innerHTML = `<b>${streak}</b><br><img src="Asset/cosmo-coin.png" alt="" style="width:22px;height:22px;vertical-align:middle"> <b style="color:#ffd94a">+${bonus}</b>`;
+  const reward = n => Math.min(20 + (n - 1) * 10, 100);
+  const bonus = reward(streak);
+  // 7-day calendar: days already claimed are ✓, today glows, later days show what is coming.
+  const first = Math.floor((streak - 1) / 7) * 7 + 1;
+  $('loginstreak').textContent = streak;
+  $('logininfo').innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const d = first + i, v = reward(d), cls = d < streak ? 'got' : d === streak ? 'today' : '';
+    return `<div class="login-day ${cls}" aria-label="${d}日目 ${v}コイン${d < streak ? '・受け取り済み' : d === streak ? '・今日' : ''}">${d === streak ? '<span class="login-tag">TODAY</span>' : ''}<span class="login-d">DAY ${d}</span><img src="Asset/cosmo-coin.png" alt=""><b>+${v}</b>${v === 100 && reward(d - 1) < 100 ? '<span class="login-max">MAX</span>' : ''}</div>`;
+  }).join('');
+  $('loginnext').innerHTML = `あしたは <b>+${reward(streak + 1)}</b>`;
   $('loginclaim').onclick = () => {
     addCoins(bonus);
     gaCoins('Source', bonus, 'Bonus', 'Login');

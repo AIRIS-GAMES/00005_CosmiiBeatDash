@@ -244,7 +244,7 @@
   // Stage title band above the 3-2-1 (fresh starts only, like the countdown).
   function drawIntro(g) {
     if (state !== 'play' || attemptOffset !== 0) return;
-    const left = -LEAD - songPos;
+    const left = countdown ? COUNT_SEC - countdown.elapsed : -LEAD - songPos;
     if (left <= 0 || left > COUNT_SEC + 0.01) return;
     const k = 1 - left / COUNT_SEC, inK = easeOut(k / 0.15), outK = k > 0.88 ? easeOut((k - 0.88) / 0.12) : 0;
     const cy = 74, h = 40 * inK, info = STAGES[stageIdx];

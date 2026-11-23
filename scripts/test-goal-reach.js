@@ -1,3 +1,4 @@
+// Scripted simulation starts after GO; real countdown is covered by test-html-audio.js.
 // The goal must always be reached, even when the music stops early.
 // A media element can stop a few frames short of its reported length (or
 // stall); the run must still finish. Freezing in front of the goal is never OK.
@@ -12,7 +13,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  for(const e of ends)assert(e.end<=e.audio-0.55,`stage ${e.n}: goal ${e.end}s is too close to the audio end ${e.audio}s`);
  // The music position stops 0.4s short of the goal (and reports ended): the run still clears.
  for(const stall of ['ended','stalled']){
-  const r=await page.evaluate(stall=>{const i=0,cfg=STAGES[i];setupRun(i,{duration:AUDIO_TRACKS[cfg.file].duration},[]);practice=true;startAttempt(0);state='play';
+  const r=await page.evaluate(stall=>{const i=0,cfg=STAGES[i];setupRun(i,{duration:AUDIO_TRACKS[cfg.file].duration},[]);practice=true;startAttempt(0);countdown=null;state='play';
    die=()=>{};let t=-LEAD;const stopAt=duration-0.4;window.musicPosition=()=>Math.min(t,stopAt);window.musicEnded=()=>stall==='ended'&&t>=stopAt;
    for(let k=0;k<60*60&&state==='play';k++){t+=1/60;update(1/60);}return {state,songPos,duration};},stall);
   assert.equal(r.state,'clear',`music ${r.state==='play'?'froze':'ended'} before the goal (${stall}): ${JSON.stringify(r)}`);

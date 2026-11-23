@@ -1,3 +1,4 @@
+// Scripted simulation starts after GO; real countdown is covered by test-html-audio.js.
 /* Stage gimmicks: every gimmick stage can be cleared by tapping on the beat with
    ordinary press lengths and every character, and the wrong choice fails.
    Runs the real update() with a scripted player (no audio). */
@@ -19,7 +20,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
   window.__play=(i,opts={})=>{
    const cfg=STAGES[i],track=AUDIO_TRACKS[cfg.file],savedG=cfg.gimmick;
    if(opts.gimmick)cfg.gimmick=opts.gimmick;   // try a gimmick no stage uses at the moment
-   skinIdx=opts.skin||0;setupRun(i,{duration:track.duration},[]);cfg.gimmick=savedG;practice=true;startAttempt(0);
+   skinIdx=opts.skin||0;setupRun(i,{duration:track.duration},[]);cfg.gimmick=savedG;practice=true;startAttempt(0);countdown=null;
    state='play';const press=opts.press??0.08,step=1/240;let died=null,mistake=null;
    const realDie=window.die;window.die=function(){const before=state;realDie();if(before==='play'&&state==='dead'&&!died)died={t:songPos,near:level.filter(o=>Math.abs(o.t-songPos)<.6).map(o=>o.type+(o.low===false?'(high)':''))};};
    const taps=[];for(const ob of level){if(ob.type==='arm'&&opts.wrong!=='arm')taps.push(ob.t);if(isFreeNote(ob))continue;taps.push(ob.t-TAP_OFFSET);}
@@ -103,7 +104,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
   songPos=(z.start+z.end)/2;const a=stageGimmicks.mult();songPos=z.start-1;const b=stageGimmicks.mult();if(a!==2||b!==1)out.push(i+1);}return out;});
  assert.deepEqual(sabi,[],'every stage has a chorus highlight that doubles only inside it');
  // Mogu: on a bite beat you must be in the air; standing on the road there gets you eaten.
- const bite=async jump=>page.evaluate(jump=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=false;startAttempt(0);state='play';
+ const bite=async jump=>page.evaluate(jump=>{setupRun(14,{duration:AUDIO_TRACKS[STAGES[14].file].duration},[]);practice=false;startAttempt(0);countdown=null;state='play';
   const b=stageGimmicks.inspect().biteTimes[0];const taps=level.filter(o=>!isFreeNote(o)&&o.t-TAP_OFFSET<b+1.2).map(o=>o.t-TAP_OFFSET);if(jump)taps.push(b);taps.sort((x,y)=>x-y);
   // force this bite to be a real one
   songPos=-LEAD;performance.now=()=>(songPos+1000)*1000;const step=1/240;
@@ -127,7 +128,7 @@ const server=http.createServer((req,res)=>{let file=path.resolve(root,'.'+decode
  // Screens for review.
  fs.mkdirSync(path.join(root,'test-results'),{recursive:true});
  for(const [n,frac,name] of [[5,.0,'ring'],[6,.0,'cake'],[3,.0,'jelly'],[4,.0,'pad'],[7,.0,'cannon'],[10,.0,'ball'],[11,.0,'stairs'],[13,.0,'prize'],[14,.0,'arm'],[15,.3,'mogu'],[17,.0,'match'],[17,.0,'matchpre'],[1,.0,'sabi'],[19,.0,'dark']]){
-  await page.evaluate(([i,name])=>{setupRun(i,{duration:AUDIO_TRACKS[STAGES[i].file].duration},[]);practice=true;startAttempt(0);state='play';$('menu').style.display='none';$('clearov').style.display='none';window.die=()=>{};
+  await page.evaluate(([i,name])=>{setupRun(i,{duration:AUDIO_TRACKS[STAGES[i].file].duration},[]);practice=true;startAttempt(0);countdown=null;state='play';$('menu').style.display='none';$('clearov').style.display='none';window.die=()=>{};
    const g=stageGimmicks.inspect();let t=3;
    if(name==='jelly')t=level.find(o=>o.type==='jelly').t-1.0;
    if(name==='ring')t=level.find(o=>o.type==='ring').t-0.04;
