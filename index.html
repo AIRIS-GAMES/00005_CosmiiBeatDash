@@ -948,6 +948,7 @@ async function selectStage(i) {
     $('loading').style.display = 'none';
   }
   setupRun(i, cache[ck].buffer, cache[ck].beats);
+  window.beatPSF?.ready();
 }
 
 // ステージ準備の共通処理(通常/デイリー/MY MUSIC)
@@ -1501,6 +1502,7 @@ function clearStage() {
   setTimeout(() => {
     if (token !== clearToken || state !== 'clear') return;   // left the stage meanwhile
     $('clearov').style.display = 'flex';
+    window.beatPSF?.result();
     clearFlair(finalScore, coinsWon);
     window.cosmiiWorld?.onClear();
     window.cosmiiSource?.onClear();   // the game this stage comes from

@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v151-1.07b28-game-screens';
+const CACHE = 'rdash-v155-1.07b28-psf';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],

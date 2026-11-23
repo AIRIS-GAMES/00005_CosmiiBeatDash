@@ -4,7 +4,7 @@
   const native=location.protocol==='capacitor:';
   const local=/^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/.test(location.hostname);
   const enabled=!navigator.webdriver&&query.get('analytics')!=='off'&&!query.has('demo')&&(native||!local||query.get('analytics')==='on');
-  const build=(native?'ios':'web')+'-psf-1.1.0';
+  const build=(native?'ios':'web')+'-psf-1.2.0';
   window.beatAnalytics={enabled,build};
   const capture=!enabled&&(navigator.webdriver||query.get('analytics')==='off');
   function send(method,...args){try{
@@ -25,29 +25,38 @@
     send('addDesignEvent',`BeatPSF:v1:${action}:${a}:${b}`,value);
   }
   let run=null;
+  function ready(){
+    if(!practice&&!window.cosmiiTutorial?.active)event('run_ready',mode()+'_'+stage(),color());
+  }
   function start(offset=0,newAttempt=true){
     if(practice||window.cosmiiTutorial?.active)return;
     if(offset>0||!newAttempt){
       if(run&&!run.ended)return; // ordinary pause/resume is not a new attempt
-      if(run){run={...run,ended:false,resumed:true};event('run_resume',run.track,run.character);}
+      if(run?.outcome==='fail'){run={...run,ended:false,outcome:null,resumed:true};event('run_resume',run.track,run.character);}
       return;
     }
     const kind=saved.legacy?'legacy':saved.attempts===0?'first':'retry';
     saved.attempts++;persist();
     run={kind,track:mode()+'_'+stage(),character:color(),ended:false,resumed:false,skills:new Set()};
     event('run_start',run.track,kind+'_'+run.character);
+    event('kpi','play');
     event('character_play',run.character,mode());
     event('ride_play',window.cosmiiRides?.selected()||'run',run.character);
   }
   function end(outcome){
     if(!run||run.ended||practice||window.cosmiiTutorial?.active)return;
     run.ended=true;
+    run.outcome=outcome;
     event('run_'+outcome,run.track,(run.resumed?'resumed':run.kind)+'_'+run.character);
     event('run_progress',run.track,outcome,Math.max(0,Math.min(100,songPos/duration*100)));
     if(outcome==='complete'){
-      event('result_shown',run.track,run.character);
       if(!saved.completed){saved.completed=true;persist();if(!saved.legacy)event('first_complete',run.resumed?'resumed':run.kind,run.character,Math.max(0,songPos));}
     }
+  }
+  function result(){
+    if(practice||run?.outcome!=='complete'||run.resultShown)return;
+    run.resultShown=true;
+    event('result_shown',run.track,run.character);
   }
   function skill(name){if(!run||run.ended||practice||window.cosmiiTutorial?.active||run.skills.has(name))return;run.skills.add(name);event('skill_experienced',name,run.character);}
   function legacy(id){
@@ -59,11 +68,20 @@
     if(id.startsWith('Skin:Buy:'))event('character_unlock',color(),'coins');
   }
   function profile(index,source,unlocked){
-    const c=colors[index]||'red',s=['home','album','profile'].includes(source)?source:'home';
-    event(unlocked?'profile_display':'profile_locked',s,c);
-    if(unlocked)event('interest','profile',s+'_'+c);
+    const c=colors[index];
+    if(!c||!['home','album','profile','bond','result'].includes(source))return;
+    event(unlocked?'profile_display':'profile_locked',source,c);
+    if(unlocked){
+      event('interest','profile',source+'_'+c);
+      event('kpi','interest');
+    }
   }
-  function external(destination,source){if(['x','tiktok','instagram'].includes(destination)){event('external_click',source,destination);event('interest','sns',source+'_'+destination);}}
+  function external(destination,source){
+    if(!['x','tiktok','instagram'].includes(destination)||!['social','profile'].includes(source))return;
+    event('external_click',source,destination);
+    event('interest','sns',source+'_'+destination);
+    event('kpi','interest');
+  }
   // Entry impressions: once per visible visit, never from hidden menu refreshes.
   addEventListener('DOMContentLoaded',()=>{
     const ids={'world-profiles-open':'profile','social-open':'sns','world-album-open':'album'};
@@ -86,5 +104,5 @@
   addEventListener('DOMContentLoaded',()=>{if(document.hidden)suspendSession();});
   // Keep analytics failures out of game control flow, including storage restrictions.
   const safe=fn=>(...args)=>{try{return fn(...args);}catch{}};
-  window.beatPSF=Object.fromEntries(Object.entries({event,start,end,skill,legacy,profile,external}).map(([k,v])=>[k,safe(v)]));
+  window.beatPSF=Object.fromEntries(Object.entries({event,ready,start,end,result,skill,legacy,profile,external}).map(([k,v])=>[k,safe(v)]));
 })();
