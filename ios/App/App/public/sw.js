@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v157-1.07b38-appsflyer';
+const CACHE = 'rdash-v161-1.07b42-clear-gate';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],

@@ -53,5 +53,3 @@
 @keyframes bondStamp{from{transform:scale(3) rotate(12deg);opacity:0}}
 @media(max-height:380px){.bond-postcard .bp-card{padding:12px;gap:12px}.bond-postcard p{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.bond-bubble,.bond-heart,.bond-postcard,.bond-postcard *{animation:none!important}.bond-heart{display:none}}
-/* the result card and the continue ring lay their children out in a column: keep the word floating */
-#app #clearov>.bond-bubble,#reviveov>.bond-bubble{position:absolute!important;z-index:6!important}

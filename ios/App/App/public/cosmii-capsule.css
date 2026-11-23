@@ -1,5 +1,5 @@
 #menu .capsule-home-actions{display:flex;align-items:center;justify-content:center;gap:5px;margin:5px auto 0;max-width:100%}
-#app #clearov #clearchar[data-wardrobe-dressed=true]{display:block;object-fit:contain;width:min(17cqh,88px);height:min(17cqh,88px)}
+#app #clearov #clearchar{display:none!important}  /* the result shows Cosmii hopping in the band (.clear-hop), never above it */
 #menu .capsule-home-actions #rides-open{margin:0;white-space:nowrap}
 #menu .capsule-home-closet{padding:4px 8px;min-height:29px;border-radius:99px;border:1px solid #efa5ff9c;background:#291a45;color:#fff2ff;font:800 clamp(9px,1.45cqh,12px) var(--pop-font);white-space:nowrap}
 #menu #home-footer .capsule-home-open{display:inline-flex;align-items:center;justify-content:center;gap:3px;white-space:nowrap}

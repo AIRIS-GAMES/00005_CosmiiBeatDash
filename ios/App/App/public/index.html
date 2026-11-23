@@ -1017,6 +1017,7 @@ function prewarmStage() {
 }
 
 function backToMenu() {
+  window.cosmiiSource?.close?.();   // a clear gate still open (its close starts the result, stopped next line)
   clearSeqStop?.();
   window.beatPSF?.end('exit');
   window.gameSafety?.dismiss();
@@ -1231,7 +1232,7 @@ function startAttempt(offset = 0) {
 
 // opts.fall: the player fell out of the stage (a hole): no burst, no shake.
 // Clear screen dressing (cosmii-fx.css): a band behind the title, the rank
-// stamp, Cosmii hopping beside the band, raining coins and a score count-up.
+// stamp, Cosmii hopping in the band, raining coins and a score count-up.
 function clearFlair(finalScore, coins) {
   const ov = $('clearov');
   ov.querySelectorAll('.clear-band,.clear-coins,.clear-hop,.clear-flash').forEach(e => e.remove());
@@ -1248,6 +1249,7 @@ function clearFlair(finalScore, coins) {
   }
   const flash = document.createElement('div'); flash.className = 'clear-flash';
   ov.prepend(band); ov.prepend(rain); ov.appendChild(flash);
+  // Cosmii hops inside the band, left of CLEAR! (the column's #clearchar above the band stays hidden)
   const hopUrl = window.cosmiiWardrobe?.portrait(skinIdx,'hands') || skinImageUrl(skinIdx);
   let hop = null;
   if (hopUrl) { hop = document.createElement('img'); hop.className = 'clear-hop'; hop.alt = ''; hop.src = hopUrl; ov.appendChild(hop); }
@@ -1258,7 +1260,11 @@ function clearFlair(finalScore, coins) {
     if (hop) { hop.style.top = (mid - hop.offsetHeight / 2 - 6) + 'px'; hop.style.left = Math.max(8, title.offsetLeft - hop.offsetWidth - 14) + 'px'; }
   };
   place(); requestAnimationFrame(place);
-  clearSequence(ov);
+  // CLEAR -> the full-screen gate card (the stage's game + SNS, cosmii-source.js) -> "結果を見る" -> the result
+  // plays in. The card parts wait hidden ('seq') behind the gate; without a gate the result plays at once.
+  const play = () => { ov.classList.remove('seq'); clearSequence(ov); };
+  ov.classList.add('seq');
+  if (!window.cosmiiSource?.gate?.(play)) play();
 }
 // Result sequence (about 4 s): the judgement bars grow one by one -> the accuracy ring fills -> the rank badge
 // flies in spinning and stamps onto the ring (shake, flash, sparks) -> the score counts up, NEW BEST pops ->
@@ -1326,7 +1332,7 @@ function clearSequence(ov) {
   });
   // 5. unlock badges (the memory badge is added by cosmii-world after this starts) and the buttons
   at(3950, () => qa('#clear-unlocks .result-unlock:not([hidden])').forEach((u, i) => at(i * 150, () => an(u, pop, { duration: 320 }))));
-  at(4200, () => { an(ov.querySelector('.src-banner'), show, { duration: 350 }); an(ov.querySelector('.btnrow'), show, { duration: 350 }); });
+  at(4200, () => { an(ov.querySelector('.btnrow'), show, { duration: 350 }); });
   at(4650, finish);
 }
 

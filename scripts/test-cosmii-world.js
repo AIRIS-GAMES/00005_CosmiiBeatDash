@@ -21,7 +21,8 @@ const server=http.createServer((req,res)=>{const pathname=decodeURIComponent(new
  await page.keyboard.down('Space');await page.waitForTimeout(160);await page.keyboard.up('Space');await page.screenshot({path:path.join(root,'test-results/world-play.png')});
  // Controlled completion checks reward idempotence and album lifecycle, not beginner success.
  await page.evaluate(()=>{coinRun=5;clearStage();});const balance=await page.evaluate(()=>totalCoins());
- await page.locator('#world-result-album').waitFor({state:'visible',timeout:4000});   // the card follows the goal runawait page.waitForTimeout(600);await page.screenshot({path:path.join(root,'test-results/world-result.png')});
+ await page.locator('.gate-next').click({timeout:4000});   // CLEAR -> the game/SNS gate card -> 結果を見る
+await page.locator('#world-result-album').waitFor({state:'visible',timeout:8000});   // the card follows the goal runawait page.waitForTimeout(600);await page.screenshot({path:path.join(root,'test-results/world-result.png')});
  await page.click('#world-result-album');await page.waitForFunction(()=>document.querySelector('.world-album-body>img').naturalWidth>0);await page.screenshot({path:path.join(root,'test-results/world-album.png')});await page.click('#world-profile');assert.equal(await page.locator('[data-social]').count(),3);await page.click('#world-close');
  await page.evaluate(()=>clearStage());assert.equal(await page.evaluate(()=>totalCoins()),balance);
  await page.evaluate(()=>backToMenu());await page.evaluate(()=>selectStage(0));await page.waitForFunction(()=>state==='ready');assert.equal(await page.locator('#world-dialog').isHidden(),true);

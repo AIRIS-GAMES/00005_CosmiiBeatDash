@@ -159,7 +159,9 @@ async function main() {
         if(!$('clearchar').src.startsWith('data:image/png'))throw Error('result is not dressed');
         $('clearov').style.display='flex';
       });
-      await page.locator('#clearchar').waitFor({state:'visible'});
+      // the result shows the dressed Cosmii hopping in the band (#clearchar above it stays hidden)
+      await page.locator('#clearov .clear-hop').waitFor({state:'visible'});
+      if(!await page.evaluate(()=>document.querySelector('#clearov .clear-hop').src.startsWith('data:image/png')))throw Error('band Cosmii is not dressed');
       await page.screenshot({path:path.join(output,i+'-result.jpg'),type:'jpeg'});
     }
     const sheet = await page.evaluate(async()=>{

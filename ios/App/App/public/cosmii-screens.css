@@ -383,9 +383,9 @@
 #app #clearov .result-score .result-unlocks{justify-content:flex-start;margin-top:4px;}
 #clearov .result-grid *,#clearov .btnrow{animation:none!important;}
 /* while the sequence plays, the parts wait hidden; the buttons can't be hit yet (a tap skips) */
-#clearov.seq :is(.result-judges,.rj-row,.rj-combo,.result-ring,.result-rank,.result-summary,.result-heading,.result-best,.result-bottom,.result-unlock,.btnrow,.src-banner){opacity:0;}
+#clearov.seq :is(.result-judges,.rj-row,.rj-combo,.result-ring,.result-rank,.result-summary,.result-heading,.result-best,.result-bottom,.result-unlock,.btnrow){opacity:0;}
 #clearov.seq .rj-track i{width:0;}
-#clearov.seq :is(.btnrow,.src-banner,.result-unlock){pointer-events:none;}
+#clearov.seq :is(.btnrow,.result-unlock){pointer-events:none;}
 @container (max-height:420px){
  #clearov .result-grid{grid-template-columns:250px 150px minmax(0,260px);gap:18px;margin-top:8px;}
  .result-judges{gap:5px;padding:9px 12px;}.rj-row{grid-template-columns:64px 1fr 30px;}.rj-row b{font-size:11px;}.rj-track{height:11px;}.rj-n{font-size:14px;}.rj-combo b{font-size:16px;}
@@ -412,5 +412,11 @@
  #app #clearov .btnrow{margin-top:4px;}#app #clearov .btnrow button{min-height:34px;padding:5px 14px;font-size:13px;}
 }
 #app #clearov .result-score{padding-left:40px;}
+/* the rank badge hangs below the ring: keep that room in the grid so it never lands on the unlock row */
+#app #clearov .result-ringwrap{margin-bottom:12px;}
+#app #clearov .result-ringwrap .result-rank{bottom:-4px;}
+@container (max-height:420px){#app #clearov .result-ringwrap{margin-bottom:16px;}#app #clearov .result-ringwrap .result-rank{bottom:-6px;}}
+@container (max-width:640px){#app #clearov .result-ringwrap{margin-bottom:14px;}#app #clearov .result-ringwrap .result-rank{bottom:-6px;}}
+@container (max-height:360px){#app #clearov .result-ringwrap{margin-bottom:12px;}#app #clearov .result-ringwrap .result-rank{bottom:-4px;}}
 @container (max-height:420px){#app #clearov .result-score{padding-left:30px;}}
 @container (max-height:360px){#app #clearov .result-score{padding-left:22px;}}

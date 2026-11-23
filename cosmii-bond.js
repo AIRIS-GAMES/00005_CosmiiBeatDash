@@ -153,22 +153,13 @@
 
   // ---------- B + C: the result card ----------
   function onClear() {
-    const ov = $('clearov'); ov.querySelectorAll('.bond-bubble,.bond-chip').forEach(e => e.remove());
+    const ov = $('clearov'); ov.querySelectorAll('.bond-chip').forEach(e => e.remove());
     if (practice || stageIdx >= NSTAGE + 1) return;
     const i = skinIdx, notes = judgeableCount();
     const acc = Math.min(1, (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, notes));
     const rank = acc >= 0.9 ? 'S' : acc >= 0.7 ? 'A' : acc >= 0.5 ? 'B' : 'C';
     const g = gain(i, 10 + { S: 6, A: 4, B: 2, C: 0 }[rank] + Math.min(5, Math.floor(runStats.p / 10)), 'clear');
     S.lastPlay = today(); S.lastChar = i; save();
-    // the word: next to Cosmii at the top of the card
-    setTimeout(() => {
-      if (getComputedStyle(ov).display === 'none') return;
-      const ch = $('clearchar'); if (!ch) return;
-      const r = rectIn(ch, ov);
-      const text = rank === 'S' ? C[i].good : rank === 'C' ? C[i].bad.replace('いまのナシ！\n', 'つぎは、\n') : C[i].ok;
-      const right = r.x > 230;
-      bubble(ov, text, right ? { right: (r.W - r.x + 6) + 'px', top: Math.max(6, r.y + 4) + 'px' } : { left: (r.x + r.w + 6) + 'px', top: Math.max(6, r.y + 4) + 'px' }, right ? 'left' : 'right');
-    }, 1200);
     // the bond chip in the unlock row (their pop-in animates it with the rest)
     const row = $('clear-unlocks') || ov.querySelector('.btnrow');
     const chip = make('button', 'result-unlock bond-chip' + (g.up ? ' up' : ''), null);
@@ -178,16 +169,15 @@
     chip.onclick = () => window.cosmiiWorld?.profiles(i, 'bond');
     row.append(chip);
   }
-  // a miss: the word next to the continue ring
+  // a miss: the bond earned for trying (no word bubble)
   let missShown = false;
   setInterval(() => {
     const rv = $('reviveov'), on = rv?.classList.contains('on');
     if (on && !missShown) {
       missShown = true;
-      const i = skinIdx, ring = rv.querySelector('.rv-ring');
-      if (ring) { const r = rectIn(ring, rv); bubble(rv, C[i].bad, { left: (r.x + r.w + 10) + 'px', top: (r.y + 6) + 'px' }, 'right'); }
+      const i = skinIdx;
       if (!practice && duration > 0 && songPos / duration > 0.3) { gain(i, FAIL_XP, 'try'); S.lastPlay = today(); S.lastChar = i; save(); }
-    } else if (!on && missShown) { missShown = false; rv?.querySelectorAll('.bond-bubble').forEach(b => b.remove()); }
+    } else if (!on && missShown) missShown = false;
   }, 250);
 
   // ---------- C: the profile ----------
