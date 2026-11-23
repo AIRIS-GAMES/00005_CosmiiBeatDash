@@ -130,8 +130,6 @@
   const balance=make('p','capsule-balance',controls);
   const freeButton=button(controls,'今日の無料 1回',()=>animate('free'),'capsule-free');
   const payButton=button(controls,'100 コインで1回',()=>animate('coin'),'capsule-pay');
-  const rates=make('p','capsule-rates',controls);
-  rates.textContent='N 70% ・ R 25% ・ SR 5% ／ 10回以内にSR確定';
   const reveal=make('div','capsule-reveal',machine);
   reveal.hidden=true;
   reveal.setAttribute('aria-live','polite');

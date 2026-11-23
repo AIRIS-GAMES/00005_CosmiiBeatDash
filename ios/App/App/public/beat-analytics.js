@@ -23,6 +23,7 @@
   function event(action,a='all',b='all',value=1){
     if(!/^[a-z0-9_]+$/.test(action+a+b)||[action,a,b].some(s=>s.length>32)||!Number.isFinite(value))return;
     send('addDesignEvent',`BeatPSF:v1:${action}:${a}:${b}`,value);
+    window.cosmiiAppsFlyer?.event(action,a,b,value);
   }
   let run=null;
   function ready(){

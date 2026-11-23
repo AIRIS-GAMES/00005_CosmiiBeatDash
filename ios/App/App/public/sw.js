@@ -1,4 +1,4 @@
-const CACHE = 'rdash-v155-1.07b38';
+const CACHE = 'rdash-v157-1.07b38-appsflyer';
 const WORLD_ART = {
   dash: ['jelly.png'],
   rescue: ['pop-background.jpg', 'sunset-background.jpg', 'home-ring.png', 'cloud-floor.png', 'spikeball.png', 'crate.png', 'cake.png', 'star.png'],
@@ -11,6 +11,7 @@ const WORLD_ART = {
   arcade: ['background.jpg', 'green.png', 'purple.png'],
 };
 const ASSETS = [
+  'cosmii-appsflyer.js',
   'cosmii-wardrobe-anchors.js', 'cosmii-wardrobe.js', 'cosmii-capsule.js', 'cosmii-capsule.css',
   ...['machine','machine-handle','capsule-n','capsule-r','capsule-sr','capsule-open-n','capsule-open-r','capsule-open-sr']
     .map(id => 'Asset/world/capsule/' + id + '.png'),

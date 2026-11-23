@@ -2,5 +2,8 @@
 	"appId": "com.airisgames.cosmiibeatdash",
 	"appName": "Cosmii Rhythm Dash",
 	"webDir": "www",
-	"packageClassList": []
+	"packageClassList": [
+		"AppsFlyerAttribution",
+		"AppsFlyerPlugin"
+	]
 }
