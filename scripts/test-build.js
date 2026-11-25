@@ -7,7 +7,7 @@ for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3
   assert(fs.existsSync(path.join(root,'Asset',file)),`Missing original: ${file}`);
   assert(!fs.existsSync(path.join(out,'Asset',file)),`Source-only asset bundled: ${file}`);
 }
-for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav','perfect.wav','great.wav','good.wav','miss.wav']){
+for(const file of ['stage01.mp3','stage2.mp3','stage03.mp3','bgm1.mp3','bgm2.mp3','bgm3.mp3','bgm4.mp3','death.wav','clear.wav','coin.wav','orb.wav','fever.wav','perfect.wav','great.wav','good.wav','miss.wav','count.wav','go.wav']){
   assert(fs.existsSync(path.join(out,'Asset/audio',file)),`Missing playback asset: ${file}`);
 }
 // World BGM: playback files ship, the beat-tracking sources and masters do not.

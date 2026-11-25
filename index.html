@@ -365,9 +365,9 @@ function resize() {
   // Menus and dialogs are laid out for a phone in landscape (~844x390). On a
   // bigger screen (iPad) they scale up with it instead of floating tiny in the
   // middle; the game canvas already scales on its own.
-  const uiz = Math.max(1, Math.min(1.7, Math.min(w / 844, h / 390)));
+  const uiz = Math.max(1, Math.min(1.7, Math.min(w / 844, h / 390)));   // only used from 1.2 up (see below)
   document.documentElement.style.setProperty('--uiz', uiz.toFixed(3));
-  document.documentElement.classList.toggle('big-screen', uiz > 1.05);
+  document.documentElement.classList.toggle('big-screen', uiz >= 1.2);   // iPads; big iPhones stay at phone layout
 }
 addEventListener('resize', resize);
 addEventListener('resize', () => bakeCoin());
@@ -1218,6 +1218,7 @@ function startAttempt(offset = 0) {
   invulnUntil = 0;
   particles = []; floats = []; rings = []; pulse = 0; window.cosmiiFx?.reset(); window.cosmiiImpact?.reset(); goalRun = null; clearToken++;
   // Count on a separate clock: the stage and player stay at the starting line.
+  window.cosmiiWorld?.closeGate?.(offset === 0 && !DEMO);
   if (offset === 0 && !DEMO) { countdown = { t0: performance.now(), elapsed: 0 }; songPos = -LEAD; isDown = false; tapAt = -9; }
   else { countdown = null; playTrack(offset, LEAD, offset===0); }
   state = 'play';
@@ -1418,7 +1419,7 @@ function drawCountdown() {
   ctx.fillStyle = text === 'GO!' ? (window.cosmiiImpact?.goFill(ctx, 64) || '#7dffb0') : text === 'GOAL!' ? '#ff8fd0' : '#ffd94a'; ctx.fillText(text, 0, 0);
   ctx.restore();
 }
-const GOAL_HOLD = 2700, GOAL_FADE = 3.4;   // the card comes in once the goal pose has landed
+const GOAL_HOLD = 5000, GOAL_FADE = 5.2;   // the card comes in after the rank reaction and the weird dance (tap to skip)
 let goalRun = null, clearToken = 0;
 // After the goal: keep scrolling on the frame clock and let Cosmii land and run.
 function goalStep(dt) {
@@ -1493,6 +1494,7 @@ function clearStage() {
   const acc = Math.min(1, (runStats.p + runStats.g * 0.6 + runStats.o * 0.3) / Math.max(1, notes));
   const rank = acc >= 0.9 ? 'S' : acc >= 0.7 ? 'A' : acc >= 0.5 ? 'B' : 'C';
   if (!practice && !dailyMode()) setBestRank(stageIdx, rank);
+  window.cosmiiFx?.goalRank?.(rank, skinIdx);   // the goal run's reaction and line-up
   if (!practice) {
     gaProgress('Complete');
     gaDesign('Run:CompleteScore:' + gaStageId(), score);
@@ -1519,15 +1521,19 @@ function clearStage() {
   if (window.cosmiiWardrobe) window.cosmiiWardrobe.setPortrait($('clearchar'),skinIdx,'hands',u);
   else if (u) $('clearchar').src = u;
   const token = ++clearToken, finalScore = score, coinsWon = coinRun;
-  setTimeout(() => {
-    if (token !== clearToken || state !== 'clear') return;   // left the stage meanwhile
+  const hold = (window.cosmiiFx?.goalLength?.() || GOAL_HOLD / 1000) * 1000;
+  const showCard = () => {
+    if (token !== clearToken || state !== 'clear' || goalRun?.shown) return;   // left the stage meanwhile, or shown already
+    if (goalRun) goalRun.shown = true;
     $('clearov').style.display = 'flex';
     window.beatPSF?.result();
     clearFlair(finalScore, coinsWon);
     window.cosmiiWorld?.onClear();
     window.cosmiiSource?.onClear();   // the game this stage comes from
     window.cosmiiBond?.onClear();     // the Cosmii's word and the bond it earned
-  }, GOAL_HOLD);
+  };
+  if (goalRun) goalRun.showCard = showCard;
+  setTimeout(showCard, hold);
   confetti = [];
   for (let i = 0; i < 80; i++) confetti.push({
     x: Math.random()*W, y: -20 - Math.random()*DH,
@@ -1541,6 +1547,8 @@ function clearStage() {
 // ============ 入力 ============
 let startPending = false;
 async function press() {
+  // tap during the goal show (after the banzai): straight to the result card
+  if (state === 'clear' && goalRun && !goalRun.shown && performance.now() - goalRun.at > 1800) { goalRun.showCard?.(); return; }
   if (state === 'ready') {
     if (startPending) return;
     startPending = true;
@@ -2088,12 +2096,14 @@ function draw() {
       if (now < invulnUntil) ctx.globalAlpha = 0.7;  // 保護中は明滅させず半透明にする
       // Enlarge only the artwork; keep collision/physics B unchanged and feet on the surface.
       const artSize = B * (acting?.artScale||1.35) * (1 + 0.25 * cheerW);   // the cheering pose a little bigger
-      ctx.translate(pcx, lastGdir === 1 ? player.y + B - (artSize*sy)/2 : player.y + (artSize*sy)/2);
+      ctx.translate(pcx + (goalPose?.dx || 0), lastGdir === 1 ? player.y + B - (artSize*sy)/2 : player.y + (artSize*sy)/2);
       ctx.rotate(((acting?.tilt||0) + (goalPose ? goalPose.rot : 0))*lastGdir);
       ctx.scale(sx, sy*lastGdir);
       // Goal: cross-fade to the arms-up art facing us for the banzai jump and the pose.
       const cheerArt = cheerW > 0 ? (window.cosmiiCharacterMotion?.poses?.[skinIdx] || sp) : null;
-      const characterArt=(cheerW >= 1 && cheerArt)||acting?.image||sp;
+      // the weird dance: the same arms-up art with a derpy face (two frames)
+      const derp = goalPose?.weird ? window.cosmiiFx?.derpArt?.(skinIdx, Math.floor((performance.now() - goalRun.at) / 210) % 2) : null;
+      const characterArt=derp||(cheerW >= 1 && cheerArt)||acting?.image||sp;
       if (cheerArt && cheerW > 0 && cheerW < 1) {   // mid cross-fade: both, weighted
         const a0 = ctx.globalAlpha;
         ctx.globalAlpha = a0 * (1 - cheerW); if (characterArt) drawPlayerArt(characterArt, acting?.wardrobePose || 'front', artSize);
@@ -2127,6 +2137,7 @@ function draw() {
     window.gameUI?.drawHUD(ctx);
   }
 
+  if (state === 'clear' && goalRun && !goalRun.shown) window.cosmiiFx?.drawGoalCaptions?.(ctx, (performance.now() - goalRun.at) / 1000, { x: player.x + B / 2, footY: lastGdir === 1 ? GROUND : CEIL, W, DH, B });
   drawCountdown();
   if (state === 'clear') {
     for (const c of confetti) {
@@ -2300,7 +2311,15 @@ function loop(t) {
       if(countdown){
         countdown.elapsed=Math.min(COUNT_SEC,(performance.now()-countdown.t0)/1000);
         target=-LEAD;isDown=false;tapAt=-9;
-        if(countdown.elapsed>=COUNT_SEC){countdown=null;playTrack(0,LEAD,true);}
+        // a pip on each of 3, 2, 1
+        const n=3-Math.floor(countdown.elapsed/(COUNT_SEC/3));
+        if(n>=1&&countdown.n!==n){countdown.n=n;if(typeof sfxCount==='function')sfxCount();}
+        if(countdown.elapsed>=COUNT_SEC){
+          countdown=null;playTrack(0,LEAD,true);
+          // GO!: the hit, and the world's start gate swings open as Cosmii sets off
+          if(typeof sfxGo==='function')sfxGo();
+          window.cosmiiWorld?.openGate?.();shake=Math.max(shake,5);
+        }
       }else target=musicPosition();
       const elapsed=Math.max(0,target-songPos);
       // Advance physics and scrolling together, including ordinary dropped frames.

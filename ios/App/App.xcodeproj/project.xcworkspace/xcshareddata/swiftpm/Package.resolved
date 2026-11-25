@@ -1,6 +1,24 @@
 {
-  "originHash" : "35c1779956f6a0b20d27cd21645edad96af7792e3959298f8f27a714c3ce1397",
+  "originHash" : "5efb68b79b29a33fe79621f33378dc55c1c39c69f494f7ff6c4399e0f376feec",
   "pins" : [
+    {
+      "identity" : "appsflyer-apple-rpc",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AppsFlyerSDK/appsflyer-apple-rpc.git",
+      "state" : {
+        "revision" : "c9de36e8da134d4537d3d29f0bb1085de9e4ff93",
+        "version" : "7.0.41"
+      }
+    },
+    {
+      "identity" : "appsflyerframework-static",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AppsFlyerSDK/AppsFlyerFramework-Static.git",
+      "state" : {
+        "revision" : "698c7af917d0c4b97bad055a2c616cde55a0fa74",
+        "version" : "7.0.4"
+      }
+    },
     {
       "identity" : "capacitor-swift-pm",
       "kind" : "remoteSourceControl",

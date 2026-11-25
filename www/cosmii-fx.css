@@ -58,7 +58,13 @@
 
 /* Big screens (iPad): menus, dialogs and buttons scale with the screen (--uiz is
    set in resize(); 1 on phones). Layout is the phone layout, just larger. */
-.big-screen .overlay, .big-screen #reviveov, .big-screen #mission-popup, .big-screen #toast { zoom:var(--uiz); }
+/* A plain scale transform (not `zoom`: Safari applies zoom after percentage
+   sizes, so a zoomed full-screen layer ran off the right and bottom edges).
+   The layer is laid out at phone size (screen / --uiz) and scaled back up to
+   exactly fill the screen, so nothing inside can overflow. */
+.big-screen .overlay, .big-screen #reviveov { inset:auto !important; left:0 !important; top:0 !important;
+  width:calc(100% / var(--uiz)) !important; height:calc(100% / var(--uiz)) !important;
+  transform:scale(var(--uiz)); transform-origin:0 0; }
 /* HUD buttons are sized instead of zoomed: the HUD lines its score panel up with
    the pause button's layout position, which zoom would throw off. */
 .big-screen #backbtn { width:calc(40px * var(--uiz)); height:calc(40px * var(--uiz)); font-size:calc(18px * var(--uiz)); border-radius:calc(10px * var(--uiz)); }

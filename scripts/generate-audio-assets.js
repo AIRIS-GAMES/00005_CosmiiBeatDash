@@ -97,6 +97,15 @@ wav('orb',.18,t=>Math.sin(2*Math.PI*1046*(Math.exp(Math.log(1568/1046)*Math.min(
 function chord(t,notes,step,length,shape){return notes.reduce((sum,f,i)=>{const u=t-i*step;return sum+(u>=0&&u<length?shape(2*Math.PI*f*u)*Math.min(1,u/.02)*Math.exp(-8*u):0);},0);}
 wav('clear',.95,t=>chord(t,[523,659,784,1047],.13,.55,tri));
 wav('fever',.52,t=>chord(t,[659,784,988,1319],.07,.3,square));
+// Count-in: 3 / 2 / 1 is a bright arcade pip (with a soft low thump under it),
+// GO! a rising sweep that lands on a big major chord.
+wav('count',.2,t=>(.75*tri(2*Math.PI*880*t)+.35*Math.sin(2*Math.PI*1760*t))*Math.min(1,t/.003)*Math.exp(-16*t)+.5*Math.sin(2*Math.PI*(110*t-90*t*t))*Math.exp(-30*t));
+wav('go',.9,t=>{
+ const sweep=t<.16?.55*Math.sin(2*Math.PI*(440*t+2200*t*t))*(t/.16):0;
+ const hit=chord(t-.14,[523.25,659.25,783.99,1046.5,1318.5],.0,.76,u=>.6*tri(u)+.4*square(u)*.5);
+ const thump=t>.14?.9*Math.sin(2*Math.PI*(90*(t-.14)-60*(t-.14)**2))*Math.exp(-14*(t-.14)):0;
+ return sweep+.55*hit+thump;
+});
 // PERFECT: a quick rising sparkle; GREAT: a clean single bell.
 const bell=(t,f,k)=>t<0?0:(Math.sin(2*Math.PI*f*t)+.24*Math.sin(2*Math.PI*f*2.76*t))*Math.min(1,t/.002)*Math.exp(-k*t);
 wav('perfect',.24,t=>bell(t,1318.51,28)+.8*bell(t-.042,1975.53,30)+.45*bell(t-.078,2637.02,36));

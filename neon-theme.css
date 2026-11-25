@@ -53,3 +53,26 @@ button:focus-visible,a:focus-visible {outline:3px solid #fff4a6!important;outlin
 .world-boundary-finish img {width:min(36%,58cqh);}
 .world-boundary-front {z-index:2;}
 .world-boundary-front img {clip-path:inset(53% 0 0 62%);}
+
+/* Start gate tape: across the arch's opening, in the world's colour. It snaps
+   in the middle on GO! and the two halves swing down and away. */
+.world-boundary-start img { width:min(34%,44cqh); }
+.gate-tape { position:absolute; left:0; bottom:16.6667%; width:min(34%,44cqh); aspect-ratio:306/141; transform:translateX(-50%); pointer-events:none; }
+.gate-tape i { position:absolute; top:44%; height:13%; width:34%; border-radius:3px;
+  background:repeating-linear-gradient(115deg, var(--gate-color,#ffd94a) 0 10px, #fff 10px 16px);
+  box-shadow:0 0 0 2px rgba(30,14,50,.8), 0 0 12px var(--gate-color,#ffd94a); }
+.gate-tape .gate-tape-l { left:16%; transform-origin:0 50%; }
+.gate-tape .gate-tape-r { left:50%; transform-origin:100% 50%; }
+.gate-tape .gate-burst { position:absolute; left:50%; top:50%; width:12%; aspect-ratio:1; border-radius:50%; transform:translate(-50%,-50%) scale(0); opacity:0;
+  border:3px solid var(--gate-color,#ffd94a); background:radial-gradient(circle,#fff 0 30%,rgba(255,255,255,0) 60%); mix-blend-mode:screen; }
+.world-boundary-start:not(.gate-open) .gate-tape i { animation:gatewait .8s ease-in-out infinite alternate; }
+.gate-open .gate-tape i { opacity:0; }
+.gate-open.gate-animate .gate-tape .gate-tape-l { animation:gatesnapl .55s cubic-bezier(.3,.1,.5,1) both; }
+.gate-open.gate-animate .gate-tape .gate-tape-r { animation:gatesnapr .55s cubic-bezier(.3,.1,.5,1) both; }
+.gate-open.gate-animate .gate-burst { animation:gateburst .45s ease-out both; }
+.gate-open.gate-animate img { animation:gatebounce .4s ease-out; }
+@keyframes gatewait { to { filter:brightness(1.35); } }
+@keyframes gatesnapl { 0% { opacity:1; transform:none; } 25% { opacity:1; transform:rotate(-8deg) scaleX(1.05); } 100% { opacity:0; transform:translate(-30%,120%) rotate(-70deg) scaleX(.6); } }
+@keyframes gatesnapr { 0% { opacity:1; transform:none; } 25% { opacity:1; transform:rotate(8deg) scaleX(1.05); } 100% { opacity:0; transform:translate(30%,120%) rotate(70deg) scaleX(.6); } }
+@keyframes gateburst { 0% { opacity:1; transform:translate(-50%,-50%) scale(.2); } 100% { opacity:0; transform:translate(-50%,-50%) scale(7); } }
+@keyframes gatebounce { 30% { transform:translateX(-50%) scale(1.08,.94); } 60% { transform:translateX(-50%) scale(.97,1.04); } }

@@ -7,15 +7,15 @@
    balance, and Asset/audio/tracks.js carries a per-track BGM gain that puts
    every stage at the same effective peak. Keep these in step with
    scripts/audio-levels.js - test-audio-levels.js fails if they drift. */
-const SFX_GAIN={death:.45,clear:.5,coin:.4,orb:.45,fever:.5,perfect:.27,great:.26,good:.25,miss:.25};
+const SFX_GAIN={death:.45,clear:.5,coin:.4,orb:.45,fever:.5,perfect:.27,great:.26,good:.25,miss:.25,count:.42,go:.5};
 /* Pool depth per effect. Restarting a media element is expensive on iOS, so the
    task that starts a sound does nothing but play(); rewinding happens on
    'ended'. One voice per effect; only one effect may sound at any time. */
-const SFX_POOL_SIZE={death:1,clear:1,coin:0,orb:1,fever:1,perfect:1,great:1,good:1,miss:1};
+const SFX_POOL_SIZE={death:1,clear:1,coin:0,orb:1,fever:1,perfect:1,great:1,good:1,miss:1,count:1,go:1};
 /* Only the high-frequency effects hold a warm media pipeline. */
-const SFX_EAGER_PRELOAD=['orb','perfect','great','good','miss'];
+const SFX_EAGER_PRELOAD=['orb','perfect','great','good','miss','count','go'];
 const MAX_CONCURRENT_SFX=1;
-const SFX_PRIORITY=['death','clear','fever'],SFX_TICKS=['perfect','great','good','miss'];
+const SFX_PRIORITY=['death','clear','fever','go','count'],SFX_TICKS=['perfect','great','good','miss'];
 const SFX_RETRIGGER_MS=100;
 // Used only if a track carries no measured gain; see setMusicTrack.
 const FALLBACK_MUSIC_GAIN=0.3;
@@ -79,7 +79,7 @@ function playSfx(name,pitch=1){
  // Keep the voices already sounding. Stealing adds pause + seek + play work
  // exactly when effects are busiest; excess requests are dropped instead -
  // except that death / clear / fever cut a judgement tick short (they matter more).
- if(active.length>=MAX_CONCURRENT_SFX&&SFX_PRIORITY.includes(name)){for(const v of active)if(SFX_TICKS.includes(v.name))releaseVoice(v);active=activeVoices();}
+ if(active.length>=MAX_CONCURRENT_SFX&&SFX_PRIORITY.includes(name)){for(const v of active)if(SFX_TICKS.includes(v.name)||(v.name==='count'&&name!=='count'))releaseVoice(v);active=activeVoices();}
  if(active.length>=MAX_CONCURRENT_SFX)return;
  // A free voice is already rewound, so the common path costs one play() call.
  const voice=entry.voices.find(v=>!v.busy);
@@ -216,6 +216,9 @@ function sfxJudge(kind,comboCount=0){
  playSfx(kind,kind==='perfect'?2**(semitones/12):1);
 }
 function sfxFever(){playSfx('fever');}
+// Count-in: 3, 2, 1 pips and the GO! hit.
+function sfxCount(){playSfx('count');}
+function sfxGo(){playSfx('go');}
 window.gameAudio={
  settings:()=>({...audioPrefs}),
  setSettings(prefs){

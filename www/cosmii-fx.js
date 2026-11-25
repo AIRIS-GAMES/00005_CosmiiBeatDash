@@ -343,12 +343,43 @@
   // ---------- Goal run ----------
   // After the goal: two little hops (ぴょんぴょん), a big banzai jump with a
   // spin, a sliding stop into a pose lit from below, then fireworks.
-  const GOAL_T = { hops: 0.8, jump: 0.75, land: 0.18, brake: 0.55 };
+  // ...then a reaction for the rank (S: all five line up, A: grooving,
+  // B: deadpan clap, C: slumped "…セーフ"), and every rank ends on the same
+  // weird octopus dance with a derpy face (googly eyes, tongue out): the meme.
+  const GOAL_T = { hops: 0.8, jump: 0.75, land: 0.18, brake: 0.55, react: 1.35, dance: 1.9 };
+  const GREEN = 3;
+  let goalRankNow = 'A', goalSkin = 0;
+  const reactAt = () => GOAL_T.hops + GOAL_T.jump + GOAL_T.land;
+  const danceAt = () => reactAt() + GOAL_T.react;
+  // seconds from the goal to the result card
+  const goalLength = () => danceAt() + GOAL_T.dance;
+  // S rank: green trips near the end of the line-up, lies flat, gets up for the dance
+  // S rank: green trips at the very end of the weird dance and stays down (the punchline)
+  const tripAt = () => danceAt() + GOAL_T.dance - 0.75;
+  const tripCurve = t => t < tripAt() ? 0 : smooth((t - tripAt()) / 0.22);
+  // The weird dance: a lopsided wiggle with a hiccup on every other beat.
+  // Each one dances its own way: red bounces high, blue sways its hips
+  // slowly, pink shimmies fast, green wobbles half a beat late, purple jerks
+  // like a robot.
+  function weirdDance(u, seed = 0, idx = 0) {
+    const P = [0.38, 0.6, 0.26, 0.5, 0.42][idx] || 0.42, t = u / P + seed, ph = t * Math.PI * 2, hic = Math.floor(t) % 2;
+    if (idx === 0) return { rot: 0.25 * Math.sin(ph), lift: 22 * Math.abs(Math.sin(ph)), sx: 1 + 0.16 * Math.cos(ph * 2), sy: 1 - 0.16 * Math.cos(ph * 2), dx: 3 * Math.sin(ph / 2) };
+    if (idx === 1) return { rot: 0.18 * Math.sin(ph), lift: 3 * Math.abs(Math.sin(ph)), sx: 1 + 0.05 * Math.sin(ph * 2), sy: 1 - 0.05 * Math.sin(ph * 2), dx: 12 * Math.sin(ph) };
+    if (idx === 2) return { rot: 0.32 * Math.sin(ph), lift: 6 * Math.abs(Math.sin(ph * 2)), sx: 1 + 0.1 * Math.sin(ph * 2), sy: 1 - 0.1 * Math.sin(ph * 2), dx: 5 * Math.sin(ph * 2) };
+    if (idx === 3) { const l = ph - 0.9; return { rot: 0.5 * Math.sin(l) * (0.7 + 0.3 * Math.sin(l / 3)), lift: 5 * Math.abs(Math.sin(l)), sx: 1 + 0.18 * Math.sin(l * 2 + 1), sy: 1 - 0.18 * Math.sin(l * 2 + 1), dx: 6 * Math.sin(l / 2) }; }
+    if (idx === 4) { const step = Math.round(Math.sin(ph) * 2) / 2; return { rot: 0.4 * step, lift: hic ? 8 : 0, sx: 1, sy: 1, dx: 8 * step }; }
+    return {
+      rot: 0.42 * Math.sin(ph) + (hic ? 0.12 * Math.sin(ph * 3) : 0),
+      lift: 10 * Math.abs(Math.sin(ph)) + (hic ? 6 : 0) * Math.max(0, Math.sin(ph * 2)),
+      sx: 1 + 0.14 * Math.sin(ph * 2 + 1), sy: 1 - 0.14 * Math.sin(ph * 2 + 1),
+      dx: 7 * Math.sin(ph / 2),
+    };
+  }
   const smooth = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
   const mix = (a, b, k) => a + (b - a) * k;
   function goalPose(t) {
     const H = GOAL_T, j0 = H.hops, j1 = j0 + H.jump, l1 = j1 + H.land;
-    let lift = 0, rot = 0, sx = 1, sy = 1, speed = 1, phase = 'hop';
+    let lift = 0, rot = 0, sx = 1, sy = 1, speed = 1, phase = 'hop', dx = 0;
     // cheer: 0 = side-on running art, 1 = arms-up art facing us (cross-faded)
     const cheer = smooth((t - j0 + 0.02) / 0.14);
     if (t < j0) {   // hop, hop: squashed on the ground, stretched in the air
@@ -364,18 +395,28 @@
     } else if (t < l1) {   // landing squash and recovery
       const u = (t - j1) / H.land, e = Math.sin(Math.PI * Math.min(1, u * 1.4));
       sx = mix(1.12, 1, smooth(u)) + 0.14 * e; sy = mix(0.88, 1, smooth(u)) - 0.14 * e; phase = 'land';
-    } else {   // sliding stop (eased), then the pose with a little bounce
+    } else if (t < danceAt()) {   // slide to a stop, then the rank's reaction
       const u = t - l1, b = Math.min(1, u / H.brake);
-      speed = 1 - smooth(b); phase = 'pose';   // eases in and out of the stop
+      speed = 1 - smooth(b); phase = 'react';
       rot = 0.16 * Math.sin(Math.PI * b) * (1 - b);
-      const q = u > H.brake ? u - H.brake : 0, w = Math.exp(-q * 5) * Math.sin(q * 20) * smooth(q / 0.05);
-      sx = 1 + 0.1 * w; sy = 1 - 0.1 * w;
+      const q = u > H.brake * 0.6 ? u - H.brake * 0.6 : 0, in1 = smooth(q / 0.15);
+      if (goalRankNow === 'S') { lift = 12 * Math.abs(Math.sin(q * 9)) * in1; sx = 1 - 0.05 * Math.sin(q * 18) * in1; sy = 2 - sx; }
+      else if (goalRankNow === 'A') { rot += 0.22 * Math.sin(q * 8) * in1; lift = 8 * Math.abs(Math.sin(q * 8)) * in1; }
+      else if (goalRankNow === 'B') { const c = Math.max(0, Math.sin(q * 6)) ** 6; sx = 1 - 0.1 * c * in1; sy = 1 + 0.04 * c * in1; }
+      else { sx = 1 + 0.12 * in1; sy = 1 - 0.16 * in1; rot = -0.08 * in1; }   // C: slumped
+    } else {   // everyone: the weird dance
+      const u = t - danceAt(), d = weirdDance(u, 0, goalSkin), e = smooth(u / 0.15);
+      speed = 0; phase = 'dance';
+      rot = d.rot * e; lift = d.lift * e; sx = mix(1, d.sx, e); sy = mix(1, d.sy, e); dx = d.dx * e;
     }
-    return { lift, rot, sx, sy, speed, phase, cheer };
+    // S as green: you are the one who trips
+    if (goalRankNow === 'S' && goalSkin === GREEN) { const k = tripCurve(t); if (k > 0) { rot = mix(rot, 1.45, k); lift *= 1 - k; } }
+    return { lift, rot, sx, sy, speed, phase, cheer, dx, weird: t >= danceAt() };
   }
   const fireworks = [], goalBits = [];
   let goalT0 = -1, lastHop = -1, landed = false, nextFw = 0;
-  function goalStart() { goalT0 = 0; lastHop = -1; landed = false; nextFw = 0; fireworks.length = 0; goalBits.length = 0; }
+  function goalRank(rank, skin) { goalRankNow = rank; goalSkin = skin; }
+  function goalStart() { goalRankNow = 'A'; goalT0 = 0; lastHop = -1; landed = false; nextFw = 0; fireworks.length = 0; goalBits.length = 0; }
   // Effects for the goal run (drawn over the world, behind the result card).
   function drawGoal(g, t, s) {
     const H = GOAL_T, j1 = H.hops + H.jump, footY = s.footY;
@@ -386,7 +427,7 @@
       landed = true;
       for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; goalBits.push({ x: s.x, y: footY - 6, at: t, vx: Math.cos(a) * 160, vy: Math.sin(a) * 90 - 60, star: true }); }
     }
-    if (t >= j1 + H.land && t >= nextFw) {   // fireworks, one after another
+    if ((goalRankNow === 'S' || goalRankNow === 'A') && t >= j1 + H.land && t >= nextFw) {   // fireworks, one after another
       nextFw = (nextFw || t) + 0.32 + Math.random() * 0.2;
       const hue = Math.floor(Math.random() * 360), x = s.W * (0.15 + Math.random() * 0.7), y = s.DH * (0.12 + Math.random() * 0.3);
       fireworks.push({ x, y, at: t, hue, n: 26 });
@@ -418,11 +459,186 @@
       else { g.font = '900 18px "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.fillText(b.ch, b.x - 14 - k * 30, b.y - k * 40); g.textAlign = 'left'; }
     }
     g.restore();
+    drawGoalCast(g, t, s);
     while (fireworks.length && t - fireworks[0].at > 1.3) fireworks.shift();
+  }
+
+  // ---------- Derpy face ----------
+  // The face patch is measured from each front ("hands") art when first baked.
+  const derpBakes = new Map();
+  // Each Cosmii's own derpy face, drawn only inside its face outline:
+  //  red    – curious: huge star-sparkle eyes, wide "wahh" mouth
+  //  blue   – stylish, my-pace: smug half-lid eyes with lashes, a "3" kiss
+  //  pink   – cat: squeezed >< eyes, ω mouth with a tongue tip
+  //  green  – sleepy: one eye still asleep, the other wide open, drooling
+  //  purple – mischief: spiral eyes, a jagged grin with a fang
+  function derpArt(idx, frame) {
+    const src = window.cosmiiCharacterMotion?.poses?.[idx];
+    if (!src) return null;
+    const key = idx + ':' + frame, hit = derpBakes.get(key);
+    if (hit && hit.src === src) return hit.c;
+    const S = src.width, c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+    // Find the face in the art itself (skin-coloured pixels; percentiles so the
+    // eyes and blush inside and stray highlights outside do not matter), and
+    // take its own skin colour.
+    const px = g.getImageData(0, 0, S, S).data, xs = [], ys = [], cr = [], cg = [], cb = [];
+    for (let y = 0; y < S; y += 2) for (let x = 0; x < S; x += 2) {
+      const i = (y * S + x) * 4, r = px[i], gg = px[i + 1], bl = px[i + 2];
+      if (px[i + 3] > 200 && r > 225 && gg > 200 && bl > 170 && bl < 240 && r - bl > 12 && gg - bl > 8 && r - gg < 30) { xs.push(x); ys.push(y); cr.push(r); cg.push(gg); cb.push(bl); }
+    }
+    if (xs.length < 50) return null;
+    const med = a => a.slice().sort((p, q) => p - q)[a.length >> 1];
+    xs.sort((p, q) => p - q); ys.sort((p, q) => p - q);
+    const pc = (a, q) => a[Math.floor(a.length * q)];
+    const x0 = pc(xs, .015), x1 = pc(xs, .985), y0 = pc(ys, .015), y1 = pc(ys, .985);
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2;
+    const skin = `rgb(${med(cr)},${med(cg)},${med(cb)})`;
+    g.save();
+    // everything from here stays inside the face
+    g.beginPath(); g.ellipse(cx, cy, rx * 0.97, ry * 0.95, 0, 0, TAU); g.clip();
+    g.fillStyle = skin; g.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);   // the old eyes and mouth go
+    const ink = '#3a1a22', lw = Math.max(2, rx * 0.06);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const blush = (a = .45) => { g.fillStyle = `rgba(255,130,150,${a})`; for (const sx of [-1, 1]) { g.beginPath(); g.ellipse(cx + sx * rx * 0.62, cy + ry * 0.3, rx * 0.16, ry * 0.11, 0, 0, TAU); g.fill(); } };
+    const dot = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); };
+    const line = (pts, w = lw, col = ink) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); };
+    const starShape = (x, y, r, rot) => { g.beginPath(); for (let k = 0; k < 10; k++) { const a = rot + k * Math.PI / 5 - Math.PI / 2, rr = k % 2 ? r * 0.45 : r; g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } g.closePath(); };
+    const ex = rx * 0.38, ey = cy - ry * 0.12, my = cy + ry * 0.4;
+    if (idx === 0) {   // red: star-sparkle eyes, wide open mouth
+      blush(.55);
+      for (const sx of [-1, 1]) {
+        dot(cx + sx * ex, ey, rx * 0.26, ink);
+        g.fillStyle = '#ffe14a'; starShape(cx + sx * ex, ey, rx * (frame ? 0.2 : 0.17), frame ? 0.3 : 0); g.fill();
+        dot(cx + sx * ex - rx * 0.08, ey - ry * 0.12, rx * 0.05, '#fff');
+      }
+      g.fillStyle = '#7a1f2e'; g.strokeStyle = ink; g.lineWidth = lw;
+      g.beginPath(); g.ellipse(cx, my, rx * 0.26, ry * (frame ? 0.26 : 0.2), 0, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#ff7f9a'; g.beginPath(); g.ellipse(cx, my + ry * 0.12, rx * 0.15, ry * 0.09, 0, 0, TAU); g.fill();
+    } else if (idx === 1) {   // blue: smug half-lids, one brow up, kiss lips
+      blush(.4);
+      for (const sx of [-1, 1]) {
+        const x = cx + sx * ex, y = ey + ry * 0.04;
+        g.fillStyle = '#fff'; g.beginPath(); g.ellipse(x, y, rx * 0.2, ry * 0.15, 0, 0, Math.PI); g.fill();
+        dot(x + rx * (frame ? 0.08 : -0.06), y + ry * 0.05, rx * 0.08, ink);
+        line([[x - rx * 0.22, y], [x + rx * 0.22, y]], lw * 1.3);                                   // heavy lid
+        line([[x + rx * 0.2, y], [x + rx * 0.3, y - ry * 0.08]], lw * 0.8);                         // lash
+        const up = sx === (frame ? 1 : -1) ? ry * 0.12 : 0;                                          // one brow up, switching
+        line([[x - rx * 0.18, y - ry * 0.22 - up], [x + rx * 0.16, y - ry * 0.28 - up]], lw * 0.9);
+      }
+      g.fillStyle = '#ff6f8f'; g.strokeStyle = ink; g.lineWidth = lw * 0.9;                         // "3" kiss
+      const kx = cx + rx * (frame ? 0.08 : 0.02);
+      g.beginPath(); g.arc(kx - rx * 0.05, my - ry * 0.06, rx * 0.08, -Math.PI / 2, Math.PI / 2); g.arc(kx - rx * 0.05, my + ry * 0.1, rx * 0.08, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
+      if (frame) { g.fillStyle = '#ff6f8f'; g.font = `900 ${Math.round(rx * 0.3)}px sans-serif`; g.fillText('♥', cx + rx * 0.35, my - ry * 0.05); }
+    } else if (idx === 2) {   // pink: >< eyes, ω mouth, tongue tip
+      blush(.6);
+      for (const sx of [-1, 1]) {
+        const x = cx + sx * ex, y = ey, d = rx * 0.15;
+        line(sx < 0 ? [[x - d, y - d], [x + d * 0.8, y], [x - d, y + d]] : [[x + d, y - d], [x - d * 0.8, y], [x + d, y + d]], lw * 1.2);
+      }
+      const w = rx * 0.14;
+      line([[cx - w * 2, my - ry * 0.05], [cx - w, my + ry * 0.07], [cx, my - ry * 0.03], [cx + w, my + ry * 0.07], [cx + w * 2, my - ry * 0.05]], lw);
+      g.fillStyle = '#ff7f9a'; g.strokeStyle = ink; g.lineWidth = lw * 0.8;
+      g.beginPath(); g.ellipse(cx + (frame ? w * 0.9 : -w * 0.9), my + ry * 0.12, rx * 0.07, ry * 0.08, 0, 0, TAU); g.fill(); g.stroke();
+      if (frame) { g.fillStyle = '#ff9ccf'; starShape(cx + rx * 0.62, cy - ry * 0.45, rx * 0.1, 0); g.fill(); }
+    } else if (idx === 3) {   // green: one eye asleep, one wide open; drool
+      blush(.35);
+      const sleepy = frame ? 1 : -1;
+      line([[cx + sleepy * ex - rx * 0.17, ey], [cx + sleepy * ex + rx * 0.17, ey]], lw * 1.2);         // still asleep
+      const ox = cx - sleepy * ex;
+      dot(ox, ey, rx * 0.25, ink); dot(ox, ey, rx * 0.21, '#fff');
+      dot(ox + rx * 0.04 * -sleepy, ey + ry * 0.03, rx * 0.06, ink);                                  // a tiny shocked pupil
+      g.fillStyle = '#7a1f2e'; g.strokeStyle = ink; g.lineWidth = lw;
+      g.beginPath(); g.ellipse(cx + rx * 0.05, my, rx * 0.12, ry * 0.14, 0.2, 0, TAU); g.fill(); g.stroke();
+      g.fillStyle = '#9fe6ff'; g.strokeStyle = 'rgba(58,26,34,.4)'; g.lineWidth = lw * 0.5;              // drool
+      g.beginPath(); g.ellipse(cx + rx * 0.16, my + ry * (frame ? 0.3 : 0.24), rx * 0.05, ry * (frame ? 0.12 : 0.08), 0, 0, TAU); g.fill(); g.stroke();
+    } else {   // purple: spiral eyes, jagged grin with a fang
+      blush(.35);
+      for (const sx of [-1, 1]) {
+        const x = cx + sx * ex, y = ey; g.strokeStyle = ink; g.lineWidth = lw * 0.9; g.beginPath();
+        for (let a = 0; a < Math.PI * 5; a += 0.25) { const r = rx * 0.025 * a * 0.85, aa = a * sx + (frame ? 1.5 : 0); g.lineTo(x + Math.cos(aa) * r, y + Math.sin(aa) * r); }
+        g.stroke();
+      }
+      const w = rx * 0.4, pts = [];
+      for (let k = 0; k <= 6; k++) pts.push([cx - w + k * w / 3, my + (k % 2 ? ry * 0.1 : -ry * 0.02) + (frame ? ry * 0.03 * Math.sin(k) : 0)]);
+      g.fillStyle = '#7a1f2e'; g.beginPath(); g.moveTo(cx - w, my - ry * 0.06); g.quadraticCurveTo(cx, my + ry * 0.4, cx + w, my - ry * 0.06); g.closePath(); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.moveTo(cx + w * 0.3, my - ry * 0.02); g.lineTo(cx + w * 0.45, my + ry * 0.14); g.lineTo(cx + w * 0.6, my - ry * 0.03); g.fill();   // fang
+      line([[cx - w, my - ry * 0.06], ...pts.slice(1, 6), [cx + w, my - ry * 0.06]], lw * 0.9);
+      g.strokeStyle = ink; g.lineWidth = lw; g.beginPath(); g.moveTo(cx - w, my - ry * 0.06); g.quadraticCurveTo(cx, my + ry * 0.4, cx + w, my - ry * 0.06); g.stroke();
+    }
+    g.restore();
+    derpBakes.set(key, { src, c }); return c;
+  }
+
+  // ---------- The other four Cosmii (S rank) and the background extras ----------
+  const CAST_COLOR = ['#ff5f7a', '#4fc3ff', '#ff8fc8', '#8fdc5a', '#b07cff'];
+  function drawCast(g, idx, x, foot, size, o) {
+    const motion = window.cosmiiCharacterMotion, art = o.side ? motion?.runs?.[idx]?.[o.frame || 0] : (o.derp ? derpArt(idx, o.frame || 0) : motion?.poses?.[idx]);
+    g.save(); g.translate(x + (o.dx || 0), foot - (o.lift || 0)); g.rotate(o.rot || 0); g.scale((o.flip ? -1 : 1) * (o.sx || 1), o.sy || 1);
+    if (art) g.drawImage(art, -size / 2, -size, size, size);
+    else { g.fillStyle = CAST_COLOR[idx]; g.beginPath(); g.arc(0, -size * 0.4, size * 0.35, 0, TAU); g.fill(); }
+    g.restore();
+  }
+  function drawGoalCast(g, t, s) {
+    const R = reactAt(), D = danceAt(), foot = s.footY, size = s.B * 1.35 * 1.25, gap = s.B * 1.75;
+    if (t < R) return;
+    g.save();
+    if (goalRankNow === 'S') {
+      // the other four run in from both sides and line up with you
+      const others = [0, 1, 2, 3, 4].filter(i => i !== goalSkin), slots = [-2, -1, 1, 2];
+      others.forEach((idx, n) => {
+        const slot = slots[n], home = s.x + slot * gap, from = slot < 0 ? -s.B * 2 : s.W + s.B * 2;
+        const arrive = R + 0.55 + n * 0.05, u = Math.min(1, Math.max(0, (t - R - n * 0.05) / (arrive - R - n * 0.05)));
+        const x = mix(from, home, smooth(u));
+        if (u < 1) { drawCast(g, idx, x, foot, size * 0.9, { side: true, frame: Math.floor(t * 12) % 4, flip: slot > 0 }); return; }
+        const q = t - arrive, o = { lift: 10 * Math.abs(Math.sin(q * 9)) };
+        if (t >= D) Object.assign(o, weirdDance(t - D, n * 0.37, idx), { derp: true, frame: Math.floor((t - D) / 0.21) % 2 });
+        if (idx === GREEN) { const k = tripCurve(t); if (k > 0) { o.rot = mix(o.rot || 0, 1.45, k); o.lift = (o.lift || 0) * (1 - k); } }
+        drawCast(g, idx, home, foot, size, o);
+        if (idx === GREEN && t > tripAt() + 0.1) {   // "zukoh!"
+          g.font = '900 15px "M PLUS 1p", sans-serif'; g.textAlign = 'center'; g.lineWidth = 4; g.strokeStyle = '#2a1650'; g.fillStyle = '#c5ff82';
+          g.strokeText('ずこっ', home + s.B * 0.4, foot - size * 0.95); g.fillText('ずこっ', home + s.B * 0.4, foot - size * 0.95);
+        }
+      });
+    } else if (goalRankNow === 'B' && t < D) {   // a small Cosmii wanders past behind, deadpan
+      const idx = (goalSkin + 2) % 5, u = (t - R) / GOAL_T.react;
+      g.globalAlpha = 0.85; drawCast(g, idx, mix(s.W + s.B, s.x + s.B * 3.5, u), foot - s.B * 0.1, size * 0.55, { side: true, frame: Math.floor(t * 6) % 4, flip: true });
+    }
+    g.restore();
+  }
+  // captions over the scene
+  function caption(g, text, x, y, col, size, wob) {
+    g.save(); g.translate(x, y); if (wob) g.rotate(wob);
+    g.font = `900 ${size}px "M PLUS 1p", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineJoin = 'round'; g.lineWidth = 5; g.strokeStyle = '#2a1650'; g.strokeText(text, 0, 0); g.fillStyle = col; g.fillText(text, 0, 0);
+    g.restore();
+  }
+  // Captions: no words for the rank reaction (just the cold sweat on C); in the
+  // weird dance, クネクネ pops up all around, wobbling. S: ずこっ over green.
+  const KUNE = [[-0.16, 0.14, 21], [0.2, 0.2, 17], [-0.3, 0.32, 15], [0.33, 0.1, 19], [0.02, 0.05, 24], [-0.05, 0.4, 14], [0.42, 0.34, 16], [-0.42, 0.18, 18]];
+  function drawGoalCaptions(g, t, s) {
+    const R = reactAt(), D = danceAt();
+    if (goalRankNow === 'C' && t >= R + 0.3 && t < D) {   // cold sweat
+      const k = ((t - R) % 0.7) / 0.7;
+      g.save(); g.globalAlpha = 1 - k; g.fillStyle = '#8fe8ff';
+      g.beginPath(); g.ellipse(s.x + s.B * 0.55, s.footY - s.B * 1.35 + k * 18, 4, 6, 0, 0, TAU); g.fill(); g.restore();
+    }
+    if (goalRankNow === 'S' && goalSkin === GREEN && t > tripAt() + 0.1) caption(g, 'ずこっ', s.x + s.B * 0.4, s.footY - s.B * 2, '#c5ff82', 15, 0);
+    if (t < D) return;
+    const u = t - D, cols = ['#ffb3f0', '#8fe8ff', '#ffe27a', '#c5ff82'];
+    KUNE.forEach(([fx, fy, size], i) => {
+      const at = i * 0.17; if (u < at) return;
+      const k = u - at, pop = k < 0.15 ? 0.5 + smooth(k / 0.15) * 0.5 : 1;
+      const x = s.x + fx * s.W * 0.55 + 6 * Math.sin(t * 6 + i), y = s.footY - s.B * 1.9 - fy * s.DH + 5 * Math.sin(t * 13 + i * 2);
+      g.save(); g.globalAlpha = Math.min(1, k / 0.1);
+      g.translate(x, y); g.scale(pop, pop);
+      caption(g, i % 3 === 2 ? 'クネ〜' : 'クネクネ', 0, 0, cols[i % 4], size, 0.18 * Math.sin(t * 7.5 + i));
+      g.restore();
+    });
   }
 
   function prewarm(W, DH, B, im) { edge(W, DH, '120,210,255'); aura(B); tinted(im, 'rgba(30,20,30,0.55)'); tinted(im, 'rgba(255,255,180,0.85)'); }
   function reset() { fx = null; trail.length = 0; tierShown = 0; flames.length = sparks.length = lines.length = beatRings.length = stars.length = 0; lastPos = null; lastRun = 0; }
 
-  window.cosmiiFx = { goalPose, goalStart, drawGoal, GOAL_T, deathKind, startDeath, drawDeath, drawStreak, prewarm, reset, active: () => !!fx, kind: () => fx?.kind || null };
+  window.cosmiiFx = { goalPose, goalStart, goalRank, goalLength, drawGoal, drawGoalCaptions, derpArt, GOAL_T, deathKind, startDeath, drawDeath, drawStreak, prewarm, reset, active: () => !!fx, kind: () => fx?.kind || null };
 })();

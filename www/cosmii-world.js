@@ -25,17 +25,33 @@
       panel[image===panel.floor?'floorFrame':'ceilingFrame']=frame;
     }
   });
-  const gates=['finish'].map(name=>{
+  const gates=['start','finish'].map(name=>{
     const layers=['back','front'].map(side=>{
       const layer=document.createElement('div');layer.hidden=true;
       layer.className=`world-boundary world-boundary-${name} world-boundary-${side}`;
       if(side==='back')layer.id='world-gate-'+name;
       const art=document.createElement('img');art.alt='';art.decoding='async';
-      layer.append(art);app.append(layer);
+      layer.append(art);
+      // The start gate has a tape across it (in front of Cosmii) that snaps
+      // open on GO!, two halves flying apart with a burst of sparkles.
+      if(name==='start'&&side==='front'){
+        const tape=document.createElement('div');tape.className='gate-tape';
+        tape.innerHTML='<i class="gate-tape-l"></i><i class="gate-tape-r"></i><b class="gate-burst"></b>';
+        layer.append(tape);
+      }
+      app.append(layer);
       return {layer,art};
     });
     return {name,layers,lastTransform:''};
   });
+  const startGate=gates[0];
+  const GATE_COLORS={dash:'#ffd94a',rescue:'#ff8fc8',cannon:'#ffcf4a',roll:'#c9a6ff',catch:'#ffb84a',sudoku:'#ff9a5a',mogu:'#7fd45a',match:'#ff6fb5',arcade:'#5ff0ff',finale:'#ff8fd0'};
+  function setGate(open,animate){
+    for(const {layer} of startGate.layers){
+      layer.classList.toggle('gate-open',open);
+      layer.classList.toggle('gate-animate',!!animate);
+    }
+  }
   let tempoBeats=null,tempoScale=1;
   const themes=[
     {file:'rhythm-neon.jpg',name:'スターアーケード',floor:5/6},
@@ -65,6 +81,7 @@
       const source=ASSET+`gates/${gateWorld}-${name}.png`;
       for(const {art} of layers)if(art.getAttribute('src')!==source)art.src=source;
     }
+    app.style.setProperty('--gate-color',GATE_COLORS[gateWorld]||'#ffd94a');
     app.dataset.worldTheme=theme.name;
   }
   function scenerySpeed(){
@@ -259,9 +276,14 @@
       const characterX=W*.3+B/2, speed=scenerySpeed();
       const time=state==='ready'?-runUp:songPos;
       const finishX=characterX+(duration-.18-time)*speed;
-      const gatesOn=['ready','play','dead','paused','clear'].includes(state)&&stageIdx<NSTAGE;
+      // The start gate stands just ahead of Cosmii while it waits for GO!.
+      const startTime=state==='ready'?-LEAD:songPos;
+      // (just past Cosmii's nose: its left pillar starts at Cosmii's front; the img is min(34%,44cqh) wide)
+      const startX=characterX+B*.85+.22*Math.min(W*.34/.44,DH)*.86+(-LEAD-startTime)*speed;
+      // stageIdx <= NSTAGE: the daily stage (index NSTAGE) has its gates too
+      const gatesOn=['ready','play','dead','paused','clear'].includes(state)&&stageIdx<=NSTAGE;
       gates.forEach(gate=>{
-        const x=finishX;
+        const x=gate===startGate?startX:finishX;
         const hidden=!gatesOn||x<-W*.18||x>W*1.18;
         for(const {layer} of gate.layers)if(layer.hidden!==hidden)layer.hidden=hidden;
         if(hidden)return;
@@ -273,6 +295,9 @@
       });
       return active;
     },
+    // GO!: the tape snaps; a new attempt from the top closes it again.
+    openGate(){setGate(true,true);},
+    closeGate(closed=true){setGate(!closed,false);},
     drawObstacle,onClear, album, profiles, themeFor, replayOpening:()=>intro(false)
   };
 })();
