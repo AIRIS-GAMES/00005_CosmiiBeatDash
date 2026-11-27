@@ -1,6 +1,9 @@
 // Keep native SDK failures outside gameplay. No email, names or URLs are sent.
 const EVENTS = new Set(['run_start','run_complete','run_fail','run_exit','tutorial_start','tutorial_complete','character_unlock','capsule_pull']);
-export function createAppsFlyerClient({sdk, enabled, config, warn = () => {}}) {
+// `tracking` asks the App Tracking Transparency question and resolves to its
+// status; the IDFA is only read, and partners only see user-level data, when it
+// is 'authorized'. A missing or failing prompt counts as not authorized.
+export function createAppsFlyerClient({sdk, enabled, config, tracking = async () => 'denied', warn = () => {}}) {
   let state = enabled ? 'idle' : 'disabled', initialization, starting = false;
   const queue = [];
   const fail = () => { state = 'error'; queue.length = 0; warn('AppsFlyer initialization failed'); };
@@ -20,11 +23,19 @@ export function createAppsFlyerClient({sdk, enabled, config, warn = () => {}}) {
     if (initialization) return initialization;
     state = 'initializing';
     initialization = (async () => {
+      let allowed = false;
+      try { allowed = (await tracking()) === 'authorized'; } catch { warn('Tracking permission unavailable'); }
       await sdk.init({appId:config.appId, devKey:config.devKey});
-      await sdk.setDisableAdvertisingIdentifiers({disable:true});
+      await sdk.setDisableAdvertisingIdentifiers({disable:!allowed});
+      if (!allowed) await sdk.setSharingFilterForPartners({partners:['all']});
       await sdk.enableDebug({enabled:false});
       state = 'waiting';
       await sdk.registerSessionReadyListener(startSession);
+      // The session may already be ready before the listener was attached;
+      // without this check start() would never run and no event would be sent.
+      let ready = false;
+      try { ready = await sdk.isSessionReady(); } catch {}
+      if (ready && state === 'waiting') await startSession();
     })().catch(fail);
     return initialization;
   }

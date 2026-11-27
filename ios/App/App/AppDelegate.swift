@@ -7,6 +7,11 @@ import WebKit
 /// stage, character and ride. `targetEnvironment(simulator)` is decided at
 /// compile time, so device and TestFlight / App Store builds never contain it.
 class MainViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        // App-local plugin for the App Tracking Transparency prompt.
+        bridge?.registerPluginInstance(CosmiiTrackingPlugin())
+    }
+
     override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
         let config = super.webViewConfiguration(for: instanceConfiguration)
         #if targetEnvironment(simulator)

@@ -7,6 +7,8 @@ const calls=[];let ready;
 const sdk={
   init:async value=>calls.push(['init',value]),
   setDisableAdvertisingIdentifiers:async value=>calls.push(['idfa',value]),
+  setSharingFilterForPartners:async value=>calls.push(['share',value]),
+  isSessionReady:async()=>false,
   enableDebug:async value=>calls.push(['debug',value]),
   registerSessionReadyListener:async callback=>{ready=callback;calls.push(['listen']);},
   start:async()=>calls.push(['start']),
@@ -17,7 +19,7 @@ client.event('run_start','normal_s01','first_red');
 await Promise.all([client.init(),client.init()]);
 assert.equal(calls.filter(c=>c[0]==='init').length,1);
 assert.equal(calls.filter(c=>c[0]==='start').length,0,'wait until SDK session-ready');
-assert.deepEqual(calls.slice(0,3),[['init',config],['idfa',{disable:true}],['debug',{enabled:false}]]);
+assert.deepEqual(calls.slice(0,4),[['init',config],['idfa',{disable:true}],['share',{partners:['all']}],['debug',{enabled:false}]],'no ATT answer: no IDFA, no partner sharing');
 await ready();
 assert.equal(client.status(),'started');
 assert.equal(calls.filter(c=>c[0]==='event').length,1);
@@ -38,8 +40,23 @@ const bounded=[];let release;
 const buffered=createAppsFlyerClient({sdk:{...sdk,registerSessionReadyListener:async cb=>release=cb,logEvent:async v=>bounded.push(v)},enabled:true,config});
 for(let i=0;i<100;i++)buffered.event('run_start');
 await buffered.init();await release();assert.equal(bounded.length,50);
+// ATT authorized: IDFA collected, partner sharing left to the dashboard settings.
+const allowedCalls=[];
+await createAppsFlyerClient({sdk:{...sdk,init:async v=>allowedCalls.push(['init',v]),setDisableAdvertisingIdentifiers:async v=>allowedCalls.push(['idfa',v]),setSharingFilterForPartners:async v=>allowedCalls.push(['share',v])},enabled:true,config,tracking:async()=>'authorized'}).init();
+assert.deepEqual(allowedCalls,[['init',config],['idfa',{disable:false}]]);
+for(const answer of ['denied','restricted','notDetermined']){
+  const c=[];await createAppsFlyerClient({sdk:{...sdk,setDisableAdvertisingIdentifiers:async v=>c.push(v)},enabled:true,config,tracking:async()=>answer}).init();
+  assert.deepEqual(c,[{disable:true}],answer);
+}
+const brokenPrompt=createAppsFlyerClient({sdk:{...sdk,isSessionReady:async()=>true},enabled:true,config,tracking:async()=>{throw Error('plugin missing');}});
+await brokenPrompt.init();assert.equal(brokenPrompt.status(),'started','prompt failure must not stop measurement');
+// Session already ready before the listener was attached: start without waiting for a callback.
+const early=[];
+const already=createAppsFlyerClient({sdk:{...sdk,registerSessionReadyListener:async()=>{},isSessionReady:async()=>true,start:async()=>early.push('start'),logEvent:async v=>early.push(v.eventName)},enabled:true,config});
+already.event('run_start');await already.init();
+assert.deepEqual(early,['start','cosmii_run_start']);
 // Execute the real bundle as a plain browser: no native calls or network required.
 const sandbox={console,URLSearchParams,location:{search:''},navigator:{webdriver:false}};
 sandbox.window=sandbox;vm.runInNewContext(fs.readFileSync(new URL('../cosmii-appsflyer.js',import.meta.url),'utf8'),sandbox);
 assert.equal(sandbox.cosmiiAppsFlyer.status(),'disabled');
-console.log('PASS: AppsFlyer init-once, IDFA disabled, session-ready start, resume, bounded queue, allowlisted events, failure isolation and browser exclusion.');
+console.log('PASS: AppsFlyer init-once, ATT-gated IDFA and partner sharing, already-ready session, session-ready start, resume, bounded queue, allowlisted events, failure isolation and browser exclusion.');
